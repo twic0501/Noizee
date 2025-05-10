@@ -1,0 +1,70 @@
+/* src/styles/theme.css */
+:root {
+    /* --- Font Families --- */
+    --font-family-sans-serif: 'Roboto Mono', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --font-family-monospace: 'Roboto Mono', SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --font-family-heading-main: 'Archivo Black', var(--font-family-sans-serif); /* Tiêu đề chính, logo */
+    --font-family-heading-sub: 'Oswald', var(--font-family-sans-serif); /* Tiêu đề phụ, button, nav */
+    --font-family-accent: 'Cormorant Garamond', serif; /* Font accent */
+  
+    /* --- Colors (Theme Trắng/Đen) --- */
+    --color-text-base: #212529;       /* Màu chữ chính (đen) */
+    --color-text-muted: #6c757d;      /* Màu chữ phụ (xám) */
+    --color-background: #ffffff;     /* Màu nền chính (trắng) */
+    --color-dark: #000000;           /* Màu đen tuyền */
+    --color-light: #f8f9fa;          /* Màu trắng ngà/xám nhạt */
+    --color-border: #dee2e6;        /* Màu đường viền */
+    --color-primary: #0d6efd;       /* Giữ màu Primary của Bootstrap hoặc đổi thành màu accent của bạn */
+    --color-danger: #dc3545;        /* Màu đỏ cho lỗi/cảnh báo */
+    --color-success: #198754;       /* Màu xanh lá cho thành công */
+  
+    /* --- Bootstrap Overrides (Optional) --- */
+    /* Ghi đè trực tiếp biến Bootstrap nếu cần */
+    /* --bs-body-font-family: var(--font-family-sans-serif); */
+    /* --bs-body-color: var(--color-text-base); */
+    /* --bs-body-bg: var(--color-background); */
+    /* --bs-primary: var(--color-primary); */
+    /* --bs-dark: var(--color-dark); */
+  }
+  
+  /* Áp dụng font cơ bản */
+  body {
+    font-family: var(--font-family-sans-serif);
+    color: var(--color-text-base);
+    background-color: var(--color-background);
+  }
+  
+  /* Áp dụng font cho các tiêu đề (ví dụ) */
+  h1, h2, h3, .logo-text /* Thêm class logo từ Header.css */ {
+    font-family: var(--font-family-heading-main);
+    color: var(--color-dark); /* Tiêu đề chính màu đen */
+  }
+  
+  h4, h5, h6, button, .btn, .nav-link /* Cần xem xét lại các nav-link */ {
+    font-family: var(--font-family-heading-sub);
+     /* text-transform: uppercase; */ /* Oswald thường đi với uppercase */
+  }
+  
+  blockquote, .hero-subtitle /* Thêm class cho subtitle */ {
+      font-family: var(--font-family-accent);
+  }
+  
+  /* Các overrides khác cho Bootstrap nếu cần */
+  .btn-dark {
+      background-color: var(--color-dark);
+      border-color: var(--color-dark);
+      font-family: var(--font-family-heading-sub);
+      text-transform: uppercase;
+      /* Thêm style riêng cho nút đen */
+  }
+  .btn-dark:hover {
+       background-color: #333;
+       border-color: #333;
+  }
+  
+  a {
+      color: var(--color-primary);
+  }
+  a:hover {
+       color: darken(var(--color-primary), 10%); /* Làm tối màu primary khi hover */
+  }

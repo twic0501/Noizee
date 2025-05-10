@@ -1,0 +1,99 @@
+/* src/components/products/ProductCard.css */
+.product-card {
+    /* Thêm style đường phố, góc cạnh nếu cần */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden; /* Ẩn phần tràn ra của badge */
+}
+
+.product-card:hover {
+    transform: translateY(-5px); /* Nhấc nhẹ card lên */
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1) !important;
+}
+
+.product-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block; /* Để wrapper ảnh chiếm đúng chỗ */
+    position: relative; /* Cho badge */
+}
+
+.product-image-wrapper {
+    position: relative;
+    overflow: hidden; /* Đảm bảo ảnh không tràn */
+     background-color: #f8f9fa; /* Màu nền nhẹ cho ảnh */
+}
+
+.product-card-img {
+    width: 100%;
+    aspect-ratio: 3 / 4; /* Tỉ lệ ảnh dọc phổ biến cho thời trang */
+    object-fit: cover; /* Đảm bảo ảnh fill */
+    transition: transform 0.5s ease; /* Hiệu ứng zoom nhẹ khi hover card */
+}
+.product-card:hover .product-card-img {
+     transform: scale(1.05);
+}
+
+
+.product-card-title {
+    font-family: 'Oswald', sans-serif; /* Font tiêu đề SP */
+    font-size: 1rem;
+    font-weight: 500;
+    text-transform: uppercase;
+     /* Giới hạn 2 dòng text */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-clamp: 2;
+    min-height: 2.4em; /* Đảm bảo chiều cao tối thiểu cho 2 dòng */
+}
+.product-card-title a:hover {
+    color: var(--bs-primary) !important; /* Hoặc màu accent */
+}
+
+.product-card-price {
+    font-family: 'Roboto Mono', monospace; /* Font giá */
+    font-weight: 500;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.add-to-cart-btn {
+    /* Style nút icon cart */
+    padding: 0.3rem 0.6rem;
+    line-height: 1; /* Đảm bảo icon căn giữa */
+    border-radius: 4px; /* Hơi vuông */
+}
+.add-to-cart-btn i {
+    font-size: 1rem;
+    vertical-align: middle;
+}
+
+/* Badges */
+.sold-out-badge, .new-arrival-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 0.7rem;
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    padding: 0.3em 0.6em;
+    z-index: 2; /* Nổi lên trên ảnh */
+}
+ .sold-out-badge {
+    background-color: rgba(0,0,0,0.8) !important;
+    color: white !important;
+ }
+ .new-arrival-badge {
+     background-color: #dc3545 !important; /* Màu đỏ */
+ }
+
+/* Responsive Image Button Placeholder */
+.change-image-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 2;
+    /* Style nút này */
+}

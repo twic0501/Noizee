@@ -1,0 +1,49 @@
+/* src/components/layout/Footer.css */
+.main-footer {
+    border-top: 1px solid #343a40; /* Border nhẹ phía trên */
+}
+
+.footer-brand.logo-text {
+    /* Kế thừa hoặc định nghĩa lại style logo ở đây */
+    font-size: 1.6rem;
+    /* color: #ffffff; */ /* Đảm bảo màu trắng */
+}
+
+.footer-heading {
+    font-family: 'Oswald', sans-serif; /* Font Oswald cho tiêu đề */
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    font-weight: 500;
+    color: #adb5bd; /* Màu nhạt hơn chút */
+}
+
+.footer-links .nav-link {
+    padding: 0.3rem 0; /* Giảm padding */
+    color: #adb5bd !important; /* Màu chữ link */
+    font-size: 0.9rem;
+    font-family: 'Roboto Mono', monospace; /* Font cho link */
+    transition: color 0.2s ease;
+}
+
+.footer-links .nav-link:hover {
+    color: #ffffff !important; /* Màu trắng khi hover */
+}
+
+.footer-text {
+    font-size: 0.9rem;
+     font-family: 'Roboto Mono', monospace;
+}
+
+.social-icons .nav-link {
+    font-size: 1.3rem;
+    padding: 0.5rem 0.8rem 0.5rem 0; /* Chỉ padding phải */
+    transition: color 0.2s ease;
+}
+.social-icons .nav-link:hover {
+    color: var(--bs-primary) !important; /* Hoặc màu accent của bạn */
+}
+
+
+.footer-bottom {
+    background-color: rgba(0, 0, 0, 0.2); /* Nền tối hơn chút */
+}

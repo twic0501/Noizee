@@ -1,0 +1,82 @@
+/* src/pages/Account/AccountLayout.css */
+.account-layout .account-nav {
+    border: none; /* Bỏ border mặc định của card */
+    background-color: var(--color-light); /* Nền xám nhạt */
+    border-radius: 0.3rem;
+}
+
+.account-nav-title {
+    font-family: var(--font-family-heading-sub); /* Oswald */
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem !important;
+}
+
+.account-nav-link {
+    color: var(--color-text-base);
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.2rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    display: flex; /* Để icon và text thẳng hàng */
+    align-items: center;
+     font-family: var(--font-family-heading-sub); /* Oswald */
+     font-weight: 400;
+     font-size: 0.95rem;
+}
+
+.account-nav-link i {
+    width: 1.5em; /* Tạo khoảng trống đều cho icon */
+    font-size: 1.1rem;
+    color: var(--color-text-muted);
+    transition: color 0.2s ease;
+}
+
+.account-nav-link:hover,
+.account-nav-link.active {
+    background-color: var(--color-dark); /* Nền đen khi active/hover */
+    color: var(--color-background) !important; /* Chữ trắng */
+    font-weight: 500;
+}
+.account-nav-link:hover i,
+.account-nav-link.active i {
+     color: var(--color-background); /* Icon trắng */
+}
+
+.account-nav-link.text-danger {
+    color: var(--color-danger) !important;
+}
+ .account-nav-link.text-danger:hover {
+    background-color: var(--color-danger);
+    color: white !important;
+ }
+  .account-nav-link.text-danger:hover i {
+     color: white;
+  }
+
+/* Style cho phần Outlet (nội dung) nếu cần */
+.account-layout .card { /* Style chung cho card trong trang account */
+     border: none;
+}
+.account-layout .card-header {
+    background-color: transparent;
+    border-bottom: 1px solid var(--color-border);
+    padding-left: 0;
+    padding-right: 0;
+}
+ .account-layout .card-header h5 {
+     font-family: var(--font-family-heading-sub); /* Oswald */
+     font-weight: 500;
+ }
+.account-layout .card-body {
+    padding: 1.5rem;
+}
+
+@media (max-width: 767.98px) {
+    .account-nav-title { text-align: center; }
+     .account-nav-link { justify-content: center; }
+     .account-nav-link i { margin-right: 0.5rem; }
+}

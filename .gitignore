@@ -1,0 +1,42 @@
+# General
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Node Modules (cho cả backend và frontend)
+node_modules/
+**/node_modules/ # Đảm bảo node_modules trong các thư mục con cũng bị bỏ qua
+
+# Environment Variables (Rất quan trọng để không đưa lên GitHub)
+.env
+.env.*
+!.env.example # Chỉ cho phép .env.example nếu có
+
+# Backend specific (Node.js, Express, Sequelize)
+backend/dist/
+backend/build/
+backend/coverage/
+backend/uploads/ # Nếu bạn không muốn đưa ảnh upload lên Git (thường là không)
+                 # Nếu có thì ảnh upload lên repo sẽ rất nặng và không cần thiết.
+                 # Bạn nên có giải pháp lưu trữ ảnh riêng cho production (Cloudinary, S3, ...)
+
+# Admin Frontend specific (Vite, React)
+admin-frontend/dist/
+admin-frontend/build/
+admin-frontend/coverage/
+admin-frontend/.vite/
+admin-frontend/.env # Đảm bảo file .env của admin cũng được bỏ qua
+
+# IDE specific
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

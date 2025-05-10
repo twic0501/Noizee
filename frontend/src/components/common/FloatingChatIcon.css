@@ -1,0 +1,86 @@
+/* src/components/common/FloatingChatIcon.css */
+.floating-chat-container {
+    position: fixed; /* Giữ vị trí cố định */
+    bottom: 20px;    /* Cách đáy */
+    right: 20px;     /* Cách phải */
+    z-index: 1050;   /* Đảm bảo nổi lên trên các thành phần khác */
+    display: flex;
+    flex-direction: column-reverse; /* Đặt nút chính ở dưới */
+    align-items: flex-end;
+}
+
+.floating-chat-button {
+    background-color: #000000; /* Màu đen cho phù hợp theme */
+    color: #ffffff;          /* Chữ/icon màu trắng */
+    border: none;
+    border-radius: 50%;      /* Bo tròn */
+    width: 55px;             /* Kích thước nút */
+    height: 55px;
+    font-size: 1.5rem;       /* Kích thước icon */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out, background-color 0.2s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Đổ bóng nhẹ */
+}
+
+.floating-chat-button:hover {
+    transform: scale(1.1);   /* Phóng to nhẹ khi hover */
+    background-color: #333; /* Đổi màu nền khi hover */
+}
+
+.chat-options {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    margin-bottom: 10px; /* Khoảng cách giữa nút và các lựa chọn */
+    background-color: rgba(255, 255, 255, 0.95); /* Nền trắng mờ */
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    gap: 8px; /* Khoảng cách giữa các link chat */
+    animation: fadeIn 0.3s ease-out; /* Hiệu ứng xuất hiện */
+}
+
+.chat-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 20px; /* Bo tròn nhẹ */
+    text-decoration: none;
+    color: #333;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    font-size: 0.9rem;
+    background-color: #f8f9fa; /* Màu nền nhẹ */
+    border: 1px solid #e0e0e0;
+}
+
+.chat-option i {
+    font-size: 1.2rem;
+    margin-right: 8px;
+}
+
+.chat-option.messenger i {
+    color: #0078FF; /* Màu Messenger */
+}
+.chat-option.instagram i {
+    color: #E1306C; /* Màu Instagram */
+}
+
+.chat-option:hover {
+    background-color: #e9ecef; /* Đổi màu nền khi hover */
+    color: #000;
+}
+
+/* Hiệu ứng xuất hiện đơn giản */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

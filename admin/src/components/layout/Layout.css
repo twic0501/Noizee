@@ -1,0 +1,89 @@
+/* src/components/layout/Layout.css */
+
+/* --- Admin Layout Structure --- */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* --- Sidebar Styling --- */
+.sidebar-wrapper {
+  width: 250px;
+  min-width: 250px;
+  background-color: #212529; /* Màu nền tối cho sidebar */
+  color: #adb5bd; /* Màu chữ cho sidebar */
+  position: fixed; /* Hoặc sticky tùy theo yêu cầu */
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1030; /* Đảm bảo sidebar ở trên các phần tử khác */
+  overflow-y: auto; /* Cho phép cuộn nếu nội dung sidebar dài */
+  transition: margin-left 0.3s ease-in-out; /* Hiệu ứng khi ẩn/hiện sidebar (nếu có) */
+}
+
+.sidebar-wrapper .nav-link {
+  color: rgba(255, 255, 255, 0.65);
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  border-radius: 0.25rem;
+  margin-bottom: 0.1rem;
+}
+
+.sidebar-wrapper .nav-link i {
+  margin-right: 0.75rem;
+  width: 1.25em; /* Đảm bảo icon thẳng hàng */
+  text-align: center;
+}
+
+.sidebar-wrapper .nav-link:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-wrapper .nav-link.active {
+  color: #fff;
+  font-weight: 500;
+  background-color: #0d6efd; /* Màu primary của Bootstrap */
+}
+
+/* --- Content Area Styling --- */
+.content-wrapper {
+  flex-grow: 1;
+  margin-left: 250px; /* Bằng với chiều rộng của sidebar */
+  transition: margin-left 0.3s ease-in-out; /* Hiệu ứng khi ẩn/hiện sidebar */
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Quan trọng cho flex item để không bị tràn */
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 1.5rem; /* Padding cho khu vực nội dung chính */
+}
+
+/* --- Navbar Styling --- */
+.admin-navbar {
+  /* position: sticky; */ /* Nếu muốn navbar dính ở trên khi cuộn */
+  /* top: 0; */
+  /* z-index: 1020; */
+  border-bottom: 1px solid #dee2e6; /* Đường viền mỏng dưới navbar */
+  background-color: #ffffff; /* Màu nền trắng cho navbar */
+}
+
+/* --- Responsive --- */
+@media (max-width: 991.98px) { /* Breakpoint của Bootstrap cho lg */
+  .sidebar-wrapper {
+      margin-left: -250px; /* Ẩn sidebar mặc định */
+  }
+  .sidebar-wrapper.toggled { /* Class này cần được thêm/xóa bằng JS */
+      margin-left: 0; /* Hiện sidebar */
+  }
+  .content-wrapper {
+      margin-left: 0; /* Content chiếm toàn bộ chiều rộng khi sidebar ẩn */
+  }
+  /* Cần thêm logic JavaScript để toggle class 'toggled' cho .sidebar-wrapper 
+     khi nhấn nút toggle trên navbar (nếu bạn làm nút đó) */
+}
+
+/* Thêm các style layout khác nếu cần */

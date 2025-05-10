@@ -1,0 +1,13 @@
+/* src/App.css */
+/* Thường thì file này không cần thiết nếu bạn dùng index.css
+   và/hoặc CSS Modules/Styled Components cho từng component. */
+
+/* Ví dụ style cũ từ template Vite (có thể xóa) */
+/* #root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+} */
+
+/* ... các style khác từ template ... */

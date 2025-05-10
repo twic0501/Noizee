@@ -1,0 +1,51 @@
+/* src/styles/index.css */
+
+/* Import các file CSS khác nếu có (ví dụ: reset CSS) */
+/* @import './reset.css'; */
+
+/* Đảm bảo các biến trong theme.css được áp dụng */
+@import './theme.css';
+
+/* Style tổng thể */
+body {
+  /* Đã định nghĩa font và màu trong theme.css */
+  line-height: 1.6;
+}
+
+main {
+  min-height: calc(100vh - 150px); /* Giả sử Footer cao khoảng 150px */
+  /* Hoặc dùng flexbox trong App/MainLayout để đẩy footer xuống */
+  padding-top: 80px; /* Khoảng trống cho header fixed-top (điều chỉnh chiều cao header) */
+}
+
+/* CSS Reset cơ bản (Tùy chọn, có thể dùng thư viện reset CSS) */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block; /* Tránh khoảng trống dưới ảnh */
+}
+
+
+/* Có thể thêm các helper class hoặc style global khác */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Style cho scrollbar (tùy chọn) */
+/* ::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-light);
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-text-muted);
+  border-radius: 4px;
+  border: 2px solid var(--color-light);
+} */

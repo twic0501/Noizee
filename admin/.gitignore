@@ -1,0 +1,50 @@
+# Dependencies
+/node_modules/
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+# Production Build output
+/dist/
+/build/
+/out/
+
+# Vite build cache
+/.vite/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# Test Coverage
+/coverage/
+lcov.info
+*.lcov
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE specific files
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

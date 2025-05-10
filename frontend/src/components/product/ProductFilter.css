@@ -1,0 +1,104 @@
+/* src/components/products/ProductFilter.css */
+
+.product-filter-sidebar {
+    /* Có thể thêm border, background nếu muốn tách biệt khỏi layout chính */
+     border: 1px solid var(--color-border);
+    border-radius: 0.25rem; 
+    background-color: var(--color-light); 
+}
+
+.filter-title {
+    font-family: var(--font-family-heading-sub); /* Oswald */
+    text-transform: uppercase;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* Style cho Accordion */
+.product-filter-sidebar .accordion-item {
+    border: none; /* Bỏ border mặc định của accordion item */
+    background-color: transparent;
+    border-bottom: 1px solid var(--color-border); /* Thêm border dưới */
+}
+.product-filter-sidebar .accordion-item:last-child {
+    border-bottom: none; /* Bỏ border cho item cuối */
+}
+
+
+.product-filter-sidebar .accordion-button {
+    font-family: var(--font-family-heading-sub); /* Oswald */
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.8rem 0; /* Chỉ cần padding top/bottom */
+    color: var(--color-text-base);
+    background-color: transparent;
+    box-shadow: none; /* Bỏ shadow khi focus/active */
+    text-transform: uppercase;
+}
+
+.product-filter-sidebar .accordion-button:not(.collapsed) {
+    color: var(--color-primary); /* Màu khác khi mở */
+    background-color: transparent;
+}
+
+.product-filter-sidebar .accordion-button::after {
+    
+    background-image: url("..."); 
+}
+
+.product-filter-sidebar .accordion-body {
+    padding: 0.5rem 0 1rem 0; /* Điều chỉnh padding */
+    font-size: 0.9rem;
+}
+
+/* Style cho các lựa chọn filter */
+.filter-option {
+    /* Style chung cho checkbox/radio */
+    margin-bottom: 0.5rem;
+}
+.filter-option .form-check-label {
+    font-size: 0.9rem;
+}
+
+/* Style cho Color Swatch (Nếu dùng trong filter) */
+.color-filter-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+/* Kế thừa style từ Selectors.css nếu bạn đã có */
+/* Hoặc định nghĩa lại ở đây nếu cần */
+.color-swatch {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    display: inline-block;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.color-swatch.selected {
+     border-color: var(--color-dark);
+     transform: scale(1.1);
+      box-shadow: 0 0 0 2px white, 0 0 0 3px var(--color-dark);
+}
+.color-swatch:hover {
+    transform: scale(1.1);
+}
+
+/* Style cho Price Range */
+.product-filter-sidebar .form-label {
+     font-size: 0.8rem;
+     margin-bottom: 0.2rem;
+     color: var(--color-text-muted);
+}
+.product-filter-sidebar .form-control-sm {
+     font-size: 0.85rem;
+}
+
+/* Style nút Reset */
+.product-filter-sidebar .btn-link {
+    font-size: 0.8rem;
+    text-decoration: none;
+}
