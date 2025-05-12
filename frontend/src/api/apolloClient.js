@@ -1,73 +1,113 @@
+// src/api/apolloClient.js
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
-import { USER_TOKEN_KEY } from '../utils/constants';
+import { USER_TOKEN_KEY } from '../utils/constants'; // Key để lấy token
 
+// Link HTTP đến GraphQL endpoint của bạn
 const httpLink = createHttpLink({
   uri: import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://localhost:5000/graphql',
 });
 
+// Middleware để gắn token vào header Authorization cho mỗi request
 const authLink = setContext((_, { headers }) => {
-  const token = localStorage.getItem(USER_TOKEN_KEY);
+  const token = localStorage.getItem(USER_TOKEN_KEY); // Lấy token của user
   return {
     headers: {
       ...headers,
       authorization: token ? `Bearer ${token}` : '',
     }
-  }
+  };
 });
 
-const cache = new InMemoryCache({
-  typePolicies: {
-    Query: {
-      fields: {
-        products: {
-          keyArgs: ['filter'],
-          merge(existing, incoming, { args }) {
-             console.log(`Apollo Cache Merge for products: Offset=${args?.offset}, Filter:`, args?.filter);
-             // Luôn thay thế bằng dữ liệu mới khi load trang đầu tiên (offset 0) hoặc khi filter thay đổi
-             if (!args?.offset || args.offset === 0) {
-                 console.log('-> Cache policy: Replacing products (Offset 0 / Filter Change)');
-                 return incoming; // Trả về dữ liệu mới nhất từ server
-             }
+// Khởi tạo Apollo Client
+const client = new ApolloClient({
+  link: authLink.concat(httpLink), // Kết hợp authLink (gắn token) và httpLink (gửi request)
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          // Chính sách merge cho query 'products' (danh sách sản phẩm)
+          products: {
+            keyArgs: ["filter"], // Cache sẽ được phân biệt dựa trên giá trị của 'filter'
+                                 // Nếu filter thay đổi, Apollo sẽ coi đó là một query mới.
+                                 // Nếu filter giữ nguyên và chỉ offset/limit thay đổi, nó sẽ cố merge.
+            merge(existing = { products: [], count: 0 }, incoming, { args }) {
+              const mergedProducts = existing.products ? [...existing.products] : [];
 
-             // Đối với các trang sau (offset > 0), logic merge mặc định của Apollo thường đủ tốt
-             // nếu keyArgs được đặt đúng. Hoặc nếu muốn chắc chắn thay thế:
-             // console.log('-> Cache policy: Replacing products (Offset > 0)');
-             // return incoming;
+              if (args?.offset === 0 || !existing.products.length) {
+                // Nếu là trang đầu tiên (offset=0) hoặc chưa có dữ liệu cũ,
+                // thì thay thế hoàn toàn bằng dữ liệu mới.
+                return {
+                  ...incoming, // Bao gồm cả 'count' từ incoming
+                  products: [...incoming.products],
+                };
+              }
 
-             // Hoặc để Apollo tự xử lý merge cho các trang sau:
-             // console.log('-> Cache policy: Letting Apollo handle merge (Offset > 0)');
-             if (existing && incoming) {
-                // Ví dụ merge đơn giản nếu cần (nhưng dễ sai)
-                // return { ...incoming, products: [...existing.products, ...incoming.products] };
-             }
-             // Trả về incoming nếu không có existing hoặc không muốn merge phức tạp
-              return incoming;
+              // Nếu là các trang sau, nối dữ liệu mới vào.
+              // Cần đảm bảo không có item trùng lặp nếu backend có thể trả về trùng.
+              // Logic này giả định backend trả về các item không trùng lặp qua các trang.
+              if (incoming.products) {
+                mergedProducts.push(...incoming.products);
+              }
+
+              return {
+                ...incoming, // Quan trọng: lấy 'count' từ incoming để cập nhật tổng số item
+                products: mergedProducts,
+              };
+            },
           },
+          // Chính sách merge cho query 'mySales' (lịch sử đơn hàng của tôi)
+          mySales: {
+            keyArgs: false, // Giả sử mySales không có filter phức tạp, chỉ phân trang
+            merge(existing = { sales: [], count: 0 }, incoming, { args }) {
+              const mergedSales = existing.sales ? [...existing.sales] : [];
+              if (args?.offset === 0 || !existing.sales.length) {
+                return {
+                  ...incoming,
+                  sales: [...incoming.sales],
+                };
+              }
+              if (incoming.sales) {
+                mergedSales.push(...incoming.sales);
+              }
+              return {
+                ...incoming,
+                sales: mergedSales,
+              };
+            },
+          },
+          // Cân nhắc thêm type policy cho các query danh sách khác nếu có phân trang
+          // ví dụ: adminGetAllSales, adminGetAllUsers trong admin frontend.
         },
       },
-    },
-     Product: {
-       keyFields: ["product_id"], // Giúp Apollo chuẩn hóa cache Product theo ID
-     },
-  },
-});
-
-
-const client = new ApolloClient({
-  link: authLink.concat(httpLink),
-  cache: cache, // Sử dụng cache đã cấu hình
-  connectToDevTools: import.meta.env.DEV,
-  defaultOptions: {
+      // Nếu bạn cần cập nhật một item cụ thể trong cache sau mutation,
+      // bạn có thể định nghĩa field policy cho Type đó. Ví dụ:
+      // Sale: {
+      //   fields: {
+      //     // ...
+      //   }
+      // },
+      // Product: {
+      //   fields: {
+      //     // ...
+      //   }
+      // }
+    }
+  }),
+  connectToDevTools: import.meta.env.DEV, // Bật Apollo DevTools khi ở môi trường development
+  defaultOptions: { // Các tùy chọn mặc định (tùy chọn)
     watchQuery: {
-      fetchPolicy: 'cache-and-network',
+      fetchPolicy: 'cache-and-network', // Chính sách fetch mặc định cho watchQuery
+                                        // (Lấy từ cache trước, rồi fetch từ network và cập nhật cache)
     },
     query: {
-      fetchPolicy: 'network-only', // Bạn có thể đổi lại thành 'cache-and-network' sau khi test typePolicies
-      errorPolicy: 'all',
+      fetchPolicy: 'network-only',    // Chính sách fetch mặc định cho query (luôn lấy từ network)
+                                      // Bạn có thể đổi thành 'cache-first' hoặc 'cache-and-network'
+                                      // nếu muốn ưu tiên cache hơn.
+      errorPolicy: 'all',             // Hiển thị cả lỗi GraphQL và lỗi mạng
     },
     mutate: {
-      errorPolicy: 'all',
+      errorPolicy: 'all',             // Tương tự cho mutations
     },
   }
 });

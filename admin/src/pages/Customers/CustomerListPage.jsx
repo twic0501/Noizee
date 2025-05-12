@@ -1,7 +1,7 @@
 // src/pages/Customers/CustomerListPage.jsx
 import React, { useCallback } from 'react';
 import { useQuery } from '@apollo/client';
-import { Container, Row, Col, Form, InputGroup, Button } from 'react-bootstrap'; // Thêm Form, InputGroup, Button nếu cần filter
+import { Container, Row, Col, Form, InputGroup, Button,Card } from 'react-bootstrap'; // Thêm Form, InputGroup, Button nếu cần filter
 import CustomerTable from '../../components/customers/CustomerTable';
 import Pagination from '../../components/common/Pagination';
 import LoadingSpinner from '../../components/common/LoadingSpinner';

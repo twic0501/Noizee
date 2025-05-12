@@ -1,143 +1,207 @@
-// src/components/products/ProductFilter.jsx
-import React, { useState, useEffect } from 'react';
-import { Form, Button, Accordion } from 'react-bootstrap';
+// src/components/product/ProductFilter.jsx
+import React, { useState, useEffect, useCallback } from 'react';
+import { Form, Button, Accordion, Spinner,Row ,Col} from 'react-bootstrap'; // Thêm Spinner
 import { useQuery } from '@apollo/client';
 import { GET_FILTER_OPTIONS_QUERY } from '../../api/graphql/queries/productQueries';
 import './ProductFilter.css'; // CSS riêng cho filter
 
-function ProductFilter({ initialFilters = {}, onFilterChange }) {
+function ProductFilter({ initialFilters = {}, onFilterChange, isLoadingExternally = false }) {
   const [filters, setFilters] = useState(initialFilters);
+  const [priceRange, setPriceRange] = useState({ min: initialFilters.minPrice || '', max: initialFilters.maxPrice || '' });
 
   // Fetch options cho filter
-  const { data: optionsData, loading: optionsLoading } = useQuery(GET_FILTER_OPTIONS_QUERY);
+  const { data: optionsData, loading: optionsLoading, error: optionsError } = useQuery(GET_FILTER_OPTIONS_QUERY);
+
   const categories = optionsData?.categories || [];
   const sizes = optionsData?.sizes || [];
   const colors = optionsData?.availableColors || []; // Dùng alias từ query
 
+  // Đồng bộ filter từ bên ngoài (ví dụ: từ URL)
   useEffect(() => {
-    setFilters(initialFilters); // Đồng bộ filter từ bên ngoài
+    setFilters(initialFilters);
+    setPriceRange({ min: initialFilters.minPrice || '', max: initialFilters.maxPrice || '' });
   }, [initialFilters]);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    // Xử lý checkbox (nếu có filter dạng checkbox)
-    if (type === 'checkbox') {
-        // TODO: Logic thêm/bớt giá trị vào mảng filter (ví dụ: size, color)
-        console.warn("Checkbox filter logic not fully implemented yet.");
-        setFilters(prev => ({ ...prev, [name]: checked })); // Tạm thời gán boolean
-    } else {
-        setFilters(prev => ({ ...prev, [name]: value }));
-    }
+  const handleFilterItemChange = useCallback((name, value) => {
+    setFilters(prev => {
+      const newFilters = { ...prev };
+      if (value === '' || value === null || value === undefined) {
+        delete newFilters[name];
+      } else {
+        newFilters[name] = value;
+      }
+      // Gọi onFilterChange ngay khi một lựa chọn thay đổi (ngoại trừ price)
+      if (name !== 'minPrice' && name !== 'maxPrice') {
+        onFilterChange(newFilters);
+      }
+      return newFilters;
+    });
+  }, [onFilterChange]);
+
+  const handlePriceChange = (e) => {
+    const { name, value } = e.target;
+    setPriceRange(prev => ({ ...prev, [name]: value }));
   };
 
-   // Gọi onFilterChange khi state filters thay đổi (debounced hoặc khi nhấn nút)
-   useEffect(() => {
-       // Debounce để tránh gọi API liên tục khi gõ nhanh
-       const handler = setTimeout(() => {
-           const activeFilters = Object.entries(filters).reduce((acc, [key, value]) => {
-               if (value !== '' && value !== null && value !== undefined) {
-                   acc[key] = value;
-               }
-               return acc;
-           }, {});
-            // Chỉ gọi nếu filter thực sự thay đổi so với initialFilters (tùy chọn)
-           if (JSON.stringify(activeFilters) !== JSON.stringify(initialFilters)) {
-               onFilterChange(activeFilters);
-           }
-       }, 500); // Delay 500ms
+  const applyPriceFilter = useCallback(() => {
+    const newFilters = { ...filters };
+    if (priceRange.min) newFilters.minPrice = parseFloat(priceRange.min); else delete newFilters.minPrice;
+    if (priceRange.max) newFilters.maxPrice = parseFloat(priceRange.max); else delete newFilters.maxPrice;
+    onFilterChange(newFilters);
+  }, [filters, priceRange, onFilterChange]);
 
-       return () => {
-           clearTimeout(handler);
-       };
-   }, [filters, onFilterChange, initialFilters]);
+  // Debounce việc áp dụng filter giá khi người dùng gõ
+  useEffect(() => {
+    const identifier = setTimeout(() => {
+        // Chỉ apply nếu giá trị min hoặc max thực sự thay đổi so với filter hiện tại
+        // để tránh gọi applyPriceFilter không cần thiết khi component re-render
+        if (parseFloat(priceRange.min) !== parseFloat(filters.minPrice) ||
+            parseFloat(priceRange.max) !== parseFloat(filters.maxPrice) ||
+            (priceRange.min === '' && filters.minPrice !== undefined) ||
+            (priceRange.max === '' && filters.maxPrice !== undefined) ) {
+             applyPriceFilter();
+        }
+    }, 800); // Delay 800ms sau khi ngừng gõ
+    return () => clearTimeout(identifier);
+  }, [priceRange, applyPriceFilter, filters.minPrice, filters.maxPrice]);
 
 
   const handleReset = () => {
-    setFilters({}); // Reset state nội bộ
-    onFilterChange({}); // Gửi filter rỗng lên component cha
+    setFilters({});
+    setPriceRange({ min: '', max: '' });
+    onFilterChange({});
   };
 
+  if (isLoadingExternally || optionsLoading) {
+    return (
+        <div className="product-filter-sidebar mb-4 p-3 text-center">
+            <Spinner animation="border" size="sm" variant="secondary" />
+            <small className="d-block text-muted mt-1">Đang tải bộ lọc...</small>
+        </div>
+    );
+  }
+  if (optionsError) {
+      return <div className="product-filter-sidebar mb-4 p-3"><small className="text-danger">Lỗi tải bộ lọc.</small></div>
+  }
+
+
   return (
-    <div className="product-filter-sidebar mb-4"> {/* CSS */}
+    <div className="product-filter-sidebar mb-4 p-3 shadow-sm">
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h5 className="filter-title mb-0">Filter By</h5> {/* CSS: Oswald */}
-        <Button variant="link" size="sm" onClick={handleReset} className="text-muted">Reset All</Button>
+        <h5 className="filter-main-title mb-0">Lọc sản phẩm</h5>
+        <Button variant="link" size="sm" onClick={handleReset} className="text-muted p-0 filter-reset-all">
+          Xóa tất cả
+        </Button>
       </div>
 
-      {/* Sử dụng Accordion của Bootstrap để nhóm filter */}
-      <Accordion defaultActiveKey={['0','1']} alwaysOpen flush>
+      <Accordion defaultActiveKey={['0', '1', '2', '3']} alwaysOpen flush>
         {/* Category Filter */}
-        <Accordion.Item eventKey="0">
-          <Accordion.Header>Category</Accordion.Header> {/* CSS: Oswald */}
+        {categories.length > 0 && (
+            <Accordion.Item eventKey="0">
+            <Accordion.Header className="filter-accordion-header">Danh mục</Accordion.Header>
+            <Accordion.Body>
+                <Form.Select
+                name="categoryId"
+                value={filters.categoryId || ''}
+                onChange={(e) => handleFilterItemChange('categoryId', e.target.value)}
+                size="sm"
+                aria-label="Category filter"
+                >
+                <option value="">Tất cả danh mục</option>
+                {categories.map(cat => (
+                    <option key={cat.category_id} value={cat.category_id}>{cat.category_name}</option>
+                ))}
+                </Form.Select>
+            </Accordion.Body>
+            </Accordion.Item>
+        )}
+
+        {/* Size Filter */}
+        {sizes.length > 0 && (
+            <Accordion.Item eventKey="1">
+            <Accordion.Header className="filter-accordion-header">Kích thước</Accordion.Header>
+            <Accordion.Body className="filter-options-body">
+                {sizes.map(size => (
+                <Button
+                    key={size.size_id}
+                    variant={String(filters.sizeId) === String(size.size_id) ? "dark" : "outline-secondary"}
+                    size="sm"
+                    className={`me-1 mb-1 filter-tag-btn ${String(filters.sizeId) === String(size.size_id) ? 'active' : ''}`}
+                    onClick={() => handleFilterItemChange('sizeId', String(filters.sizeId) === String(size.size_id) ? '' : size.size_id)}
+                    aria-pressed={String(filters.sizeId) === String(size.size_id)}
+                >
+                    {size.size_name}
+                </Button>
+                ))}
+            </Accordion.Body>
+            </Accordion.Item>
+        )}
+
+        {/* Color Filter */}
+        {colors.length > 0 && (
+            <Accordion.Item eventKey="2">
+            <Accordion.Header className="filter-accordion-header">Màu sắc</Accordion.Header>
+            <Accordion.Body className="color-filter-body">
+                {colors.map(color => (
+                <div
+                    key={color.color_id}
+                    className={`color-swatch-filter ${String(filters.colorId) === String(color.color_id) ? 'selected' : ''}`}
+                    style={{ backgroundColor: color.color_hex || '#ccc' }}
+                    title={color.color_name}
+                    onClick={() => handleFilterItemChange('colorId', String(filters.colorId) === String(color.color_id) ? '' : color.color_id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && handleFilterItemChange('colorId', String(filters.colorId) === String(color.color_id) ? '' : color.color_id)}
+                    aria-pressed={String(filters.colorId) === String(color.color_id)}
+                    aria-label={`Filter by color ${color.color_name}`}
+                >
+                 {String(filters.colorId) === String(color.color_id) && <i className="bi bi-check filter-color-check"></i>}
+                </div>
+                ))}
+            </Accordion.Body>
+            </Accordion.Item>
+        )}
+
+        {/* Price Range Filter */}
+        <Accordion.Item eventKey="3">
+          <Accordion.Header className="filter-accordion-header">Khoảng giá</Accordion.Header>
           <Accordion.Body>
-            <Form.Select name="categoryId" value={filters.categoryId || ''} onChange={handleChange} size="sm">
-              <option value="">All Categories</option>
-              {categories.map(cat => (
-                <option key={cat.category_id} value={cat.category_id}>{cat.category_name}</option>
-              ))}
-            </Form.Select>
+            <Row className="g-2">
+              <Col>
+                <Form.Group controlId="filterMinPrice">
+                  <Form.Label visuallyHidden>Giá thấp nhất</Form.Label>
+                  <Form.Control
+                    size="sm"
+                    type="number"
+                    name="min"
+                    value={priceRange.min}
+                    onChange={handlePriceChange}
+                    placeholder="Từ (VNĐ)"
+                    aria-label="Minimum price"
+                  />
+                </Form.Group>
+              </Col>
+              <Col>
+                <Form.Group controlId="filterMaxPrice">
+                   <Form.Label visuallyHidden>Giá cao nhất</Form.Label>
+                  <Form.Control
+                    size="sm"
+                    type="number"
+                    name="max"
+                    value={priceRange.max}
+                    onChange={handlePriceChange}
+                    placeholder="Đến (VNĐ)"
+                    aria-label="Maximum price"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+             {/* Nút Apply giá bị ẩn đi vì đã dùng debounce */}
           </Accordion.Body>
         </Accordion.Item>
-
-        {/* Size Filter (Ví dụ dùng Radio hoặc Checkbox) */}
-        <Accordion.Item eventKey="1">
-          <Accordion.Header>Size</Accordion.Header> {/* CSS: Oswald */}
-          <Accordion.Body>
-            {optionsLoading ? <small>Loading sizes...</small> : (
-                sizes.map(size => (
-                    <Form.Check
-                        key={size.size_id}
-                        type="radio" // Hoặc 'checkbox' nếu cho chọn nhiều
-                        id={`size-${size.size_id}`}
-                        label={size.size_name}
-                        name="sizeId" // Phải khớp với key trong state `filters`
-                        value={size.size_id}
-                        checked={String(filters.sizeId) === String(size.size_id)} // So sánh chuỗi
-                        onChange={handleChange}
-                        className="mb-1 filter-option" /* CSS */
-                    />
-                ))
-            )}
-             </Accordion.Body>
-        </Accordion.Item>
-
-         {/* Color Filter (Ví dụ dùng Swatch) */}
-         <Accordion.Item eventKey="2">
-           <Accordion.Header>Color</Accordion.Header> {/* CSS: Oswald */}
-           <Accordion.Body className="color-filter-body"> {/* CSS: Dùng flexbox để wrap */}
-             {optionsLoading ? <small>Loading colors...</small> : (
-                 colors.map(color => (
-                     <div
-                         key={color.color_id}
-                         className={`color-swatch ${String(filters.colorId) === String(color.color_id) ? 'selected' : ''}`} /* CSS */
-                         style={{ backgroundColor: color.color_hex || '#ccc' }}
-                         title={color.color_name}
-                         onClick={() => handleChange({ target: { name: 'colorId', value: color.color_id } })} // Giả lập event
-                     ></div>
-                 ))
-             )}
-            </Accordion.Body>
-         </Accordion.Item>
-
-         {/* Price Range Filter */}
-         <Accordion.Item eventKey="3">
-            <Accordion.Header>Price</Accordion.Header> {/* CSS: Oswald */}
-            <Accordion.Body>
-                 {/* TODO: Implement Price Range Slider hoặc Input */}
-                 <Form.Group className="mb-2">
-                     <Form.Label><small>Min Price</small></Form.Label>
-                     <Form.Control size="sm" type="number" name="minPrice" value={filters.minPrice || ''} onChange={handleChange} placeholder="e.g., 100000"/>
-                 </Form.Group>
-                 <Form.Group>
-                     <Form.Label><small>Max Price</small></Form.Label>
-                     <Form.Control size="sm" type="number" name="maxPrice" value={filters.maxPrice || ''} onChange={handleChange} placeholder="e.g., 500000"/>
-                 </Form.Group>
-             </Accordion.Body>
-         </Accordion.Item>
-
       </Accordion>
     </div>
   );
 }
 
-export default ProductFilter;
+export default React.memo(ProductFilter);

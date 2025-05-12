@@ -1,136 +1,222 @@
-import React, { useState, useMemo } from 'react';
+// src/components/product/ProductCard.jsx
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, Button, Badge } from 'react-bootstrap';
-import { formatCurrency, getFullImageUrl } from '@noizee/shared-utils';
+import { formatCurrency, getFullImageUrl } from '../../utils/formatters';
 import { useCart } from '../../hooks/useCart';
 import SizeSelector from './SizeSelector';
 import ColorSelector from './ColorSelector';
+import { PLACEHOLDER_PRODUCT_IMAGE } from '../../utils/constants';
 import './ProductCard.css';
-
-const PLACEHOLDER_IMAGE = '/images/placeholder.png';
 
 function ProductCard({ product }) {
   const { addItem } = useCart();
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedColor, setSelectedColor] = useState(null);
-  const [hovered, setHovered] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState(PLACEHOLDER_PRODUCT_IMAGE); // Khởi tạo với placeholder
+  const [variantMessage, setVariantMessage] = useState('');
 
-  if (!product || !product.product_id) return null; // Thêm check product_id
+  const inventoryData = useMemo(() => product?.inventory || [], [product?.inventory]);
+  const availableSizes = useMemo(() => product?.sizes || [], [product?.sizes]);
+  const availableColors = useMemo(() => product?.colors || [], [product?.colors]);
 
-  const inventoryData = product.inventory || [];
-  const availableSizes = product.sizes || [];
-  const availableColors = product.colors || [];
+  const primaryImageUrl = useMemo(() => getFullImageUrl(product?.imageUrl), [product?.imageUrl]);
+  const secondaryImageUrl = useMemo(() => product?.secondaryImageUrl ? getFullImageUrl(product.secondaryImageUrl) : null, [product?.secondaryImageUrl]);
 
-  const imageUrl = getFullImageUrl(product.imageUrl);
-  const hoverImageUrl = product.secondaryImageUrl ? getFullImageUrl(product.secondaryImageUrl) : imageUrl;
+  // Cập nhật ảnh khi product prop thay đổi hoặc ảnh chính thay đổi
+  useEffect(() => {
+    const mainImg = getFullImageUrl(product?.imageUrl);
+    setCurrentImageUrl(mainImg); // Luôn set ảnh chính trước
+    setSelectedSize(null); // Reset lựa chọn khi sản phẩm thay đổi
+    setSelectedColor(null);
+    setVariantMessage('');
+  }, [product]);
+
+
+  const getVariantStock = useCallback((sizeId, colorId) => {
+    // ... (logic getVariantStock giữ nguyên)
+    if (!inventoryData || inventoryData.length === 0) {
+      return (availableSizes.length > 0 || availableColors.length > 0) ? 0 : Infinity;
+    }
+    const variant = inventoryData.find(inv =>
+      inv.size_id === (sizeId || null) &&
+      inv.color_id === (colorId || null)
+    );
+    return variant ? variant.quantity : 0;
+  }, [inventoryData, availableSizes, availableColors]);
 
   const selectedVariantStock = useMemo(() => {
-    // Nếu SP không yêu cầu size/color, coi như còn hàng (backend sẽ check lại)
-    if (availableSizes.length === 0 && availableColors.length === 0) return Infinity;
-    // Nếu có inventory data nhưng mảng rỗng, tức là chưa nhập kho -> hết hàng
-    if (inventoryData.length === 0 && (availableSizes.length > 0 || availableColors.length > 0)) return 0;
-
-    const variant = inventoryData.find(inv =>
-       inv.size_id === (selectedSize?.size_id || null) &&
-       inv.color_id === (selectedColor?.color_id || null)
-     );
-    return variant ? variant.quantity : 0; // Hết hàng nếu không tìm thấy variant khớp
-  }, [inventoryData, selectedSize, selectedColor, availableSizes, availableColors]);
+    // ... (logic selectedVariantStock giữ nguyên) ...
+    if (!product) return 0;
+    if (availableSizes.length === 0 && availableColors.length === 0) {
+      const simpleInventory = inventoryData.find(inv => inv.size_id === null && inv.color_id === null);
+      return simpleInventory ? simpleInventory.quantity : (inventoryData.length === 0 && product.product_id ? Infinity : 0);
+    }
+    if ((availableSizes.length > 0 && !selectedSize) || (availableColors.length > 0 && !selectedColor)) {
+        return 0;
+    }
+    return getVariantStock(selectedSize?.size_id, selectedColor?.color_id);
+  }, [product, selectedSize, selectedColor, inventoryData, availableSizes, availableColors, getVariantStock]);
 
   const isCompletelyOutOfStock = useMemo(() => {
-       if (!inventoryData) return true; // Đang load hoặc lỗi
-       // Nếu SP có định nghĩa size/color nhưng inventory rỗng -> Hết hàng
-       if (inventoryData.length === 0 && (availableSizes.length > 0 || availableColors.length > 0)) return true;
-       // Nếu không có size/color -> Không thể hết hàng theo kiểu này
-       if (availableSizes.length === 0 && availableColors.length === 0) return false;
-       // Hết hàng nếu mọi variant trong inventory đều có quantity <= 0
-       return inventoryData.every(inv => inv.quantity <= 0);
-   }, [inventoryData, availableSizes, availableColors]);
+    // ... (logic isCompletelyOutOfStock giữ nguyên) ...
+    if (!inventoryData || !product) return true;
+    if (availableSizes.length === 0 && availableColors.length === 0) {
+      const simpleInventory = inventoryData.find(inv => inv.size_id === null && inv.color_id === null);
+      return simpleInventory ? simpleInventory.quantity <= 0 : (inventoryData.length > 0 ? true: false);
+    }
+    return inventoryData.length > 0 && inventoryData.every(inv => inv.quantity <= 0);
+  }, [inventoryData, product, availableSizes, availableColors]);
+
+
+  const handleSelectSize = useCallback((size) => {
+    // ... (logic handleSelectSize giữ nguyên) ...
+    const newSelectedSize = size?.size_id === selectedSize?.size_id ? null : size;
+    setSelectedSize(newSelectedSize);
+    setVariantMessage('');
+    const stock = getVariantStock(newSelectedSize?.size_id, selectedColor?.color_id);
+    if (availableColors.length > 0 && selectedColor && newSelectedSize && stock <= 0) {
+        setVariantMessage(`Size ${newSelectedSize.size_name} hết hàng với màu ${selectedColor.color_name}.`);
+    }
+  }, [selectedColor, getVariantStock, availableColors.length, selectedSize?.size_id]);
+
+  const handleSelectColor = useCallback((color) => {
+    // ... (logic handleSelectColor giữ nguyên) ...
+    const newSelectedColor = color?.color_id === selectedColor?.color_id ? null : color;
+    setSelectedColor(newSelectedColor);
+    setVariantMessage('');
+    const stock = getVariantStock(selectedSize?.size_id, newSelectedColor?.color_id);
+    if (availableSizes.length > 0 && selectedSize && newSelectedColor && stock <= 0) {
+        setVariantMessage(`Màu ${newSelectedColor.color_name} hết hàng với size ${selectedSize.size_name}.`);
+    }
+  }, [selectedSize, getVariantStock, availableSizes.length, selectedColor?.color_id]);
+
+  const canAddToCart = useMemo(() => {
+    // ... (logic canAddToCart giữ nguyên) ...
+    if (isCompletelyOutOfStock) return false;
+    const sizeRequirementMet = availableSizes.length === 0 || !!selectedSize;
+    const colorRequirementMet = availableColors.length === 0 || !!selectedColor;
+    return sizeRequirementMet && colorRequirementMet && selectedVariantStock > 0 && selectedVariantStock !== Infinity;
+  }, [isCompletelyOutOfStock, availableSizes, availableColors, selectedSize, selectedColor, selectedVariantStock]);
 
   const handleAddToCart = () => {
-    if (availableSizes.length > 0 && !selectedSize) { alert("Vui lòng chọn size."); return; }
-    if (availableColors.length > 0 && !selectedColor) { alert("Vui lòng chọn màu."); return; }
-    if (selectedVariantStock < 1) { alert("Lựa chọn này hiện đã hết hàng."); return; }
-
+    // ... (logic handleAddToCart giữ nguyên) ...
+    if (!canAddToCart) {
+        let message = "Vui lòng chọn đầy đủ thuộc tính sản phẩm.";
+        if (availableSizes.length > 0 && !selectedSize) message = "Vui lòng chọn size.";
+        else if (availableColors.length > 0 && !selectedColor) message = "Vui lòng chọn màu sắc.";
+        else if (selectedVariantStock <= 0 && !isCompletelyOutOfStock) message = "Lựa chọn này hiện đã hết hàng.";
+        else if (isCompletelyOutOfStock) message = "Sản phẩm này đã hết hàng.";
+        setVariantMessage(message);
+        return;
+    }
     addItem(product, 1, selectedSize, selectedColor);
-    alert(`${product.product_name} đã được thêm vào giỏ!`);
+    setVariantMessage(`${product.product_name} đã được thêm vào giỏ!`);
+    setTimeout(() => setVariantMessage(''), 3000);
   };
 
-  const handleImageError = (e) => { e.target.onerror = null; e.target.src = PLACEHOLDER_IMAGE; };
+  const handleImageError = (e) => {
+    e.target.onerror = null;
+    e.target.src = PLACEHOLDER_PRODUCT_IMAGE; // Sử dụng placeholder đã import
+    setCurrentImageUrl(PLACEHOLDER_PRODUCT_IMAGE); // Cập nhật state để không thử load lại ảnh lỗi
+  };
 
-  // Điều kiện để enable nút Add to Cart
-  const canAddToCart = !isCompletelyOutOfStock &&
-                       (availableSizes.length === 0 || selectedSize) &&
-                       (availableColors.length === 0 || selectedColor) &&
-                       selectedVariantStock >= 1;
+  const handleMouseEnter = () => {
+    if (secondaryImageUrl && secondaryImageUrl !== PLACEHOLDER_PRODUCT_IMAGE) setCurrentImageUrl(secondaryImageUrl);
+  };
+  const handleMouseLeave = () => {
+    // Chỉ quay lại ảnh chính nếu nó không phải là placeholder (trừ khi ảnh chính cũng lỗi)
+    if (primaryImageUrl !== PLACEHOLDER_PRODUCT_IMAGE || currentImageUrl === PLACEHOLDER_PRODUCT_IMAGE) {
+        setCurrentImageUrl(primaryImageUrl);
+    }
+  };
+
+
+  if (!product || !product.product_id) {
+      return null;
+  }
 
   return (
     <Card className="product-card h-100 shadow-sm border-0">
-      <Link to={`/products/${product.product_id}`} className="product-card-link">
+      <Link to={`/products/${product.product_id}`} className="product-card-link d-block">
         <div
-            className="product-image-wrapper"
-            onMouseEnter={() => product.secondaryImageUrl && setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
+          className="product-image-wrapper" // CSS: Thêm class này và style cho tỉ lệ 1:1
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
-            <Card.Img
-                variant="top"
-                src={hovered ? hoverImageUrl : imageUrl}
-                alt={product.product_name}
-                className="product-card-img"
-                onError={handleImageError}
-            />
-            {isCompletelyOutOfStock && <Badge bg="dark" className="sold-out-badge">Sold Out</Badge>}
-            {product.isNewArrival && !isCompletelyOutOfStock && <Badge bg="danger" className="new-arrival-badge">New</Badge>}
-         </div>
-       </Link>
-       <Card.Body className="d-flex flex-column p-3">
-         <Card.Title className="product-card-title mb-1">
-           <Link to={`/products/${product.product_id}`} className="text-dark text-decoration-none">
-             {product.product_name}
-           </Link>
-         </Card.Title>
+          <Card.Img
+            variant="top"
+            src={currentImageUrl} // Sử dụng state currentImageUrl
+            alt={product.product_name}
+            className="product-card-img" // CSS: object-fit: cover
+            onError={handleImageError} // Xử lý lỗi tải ảnh
+          />
+          {isCompletelyOutOfStock && <Badge bg="dark" className="product-badge out-of-stock-badge">Hết hàng</Badge>}
+          {(product.isNewArrival === true) && !isCompletelyOutOfStock && <Badge bg="danger" className="product-badge new-arrival-badge">Mới</Badge>}
+        </div>
+      </Link>
+      <Card.Body className="d-flex flex-column p-3 product-card-body">
+        {/* THỨ TỰ MỚI: Tên -> Size/Color (nếu có) -> Giá */}
+        <Card.Title className="product-card-title mb-2 order-1"> {/* order-1 */}
+          <Link to={`/products/${product.product_id}`} className="text-dark text-decoration-none">
+            {product.product_name || "Unnamed Product"}
+          </Link>
+        </Card.Title>
 
-         <p className="product-card-price mb-2">
-           {formatCurrency(product.product_price)}
-         </p>
+        {(availableSizes.length > 0 || availableColors.length > 0) && (
+            <div className="product-card-selectors mb-2 order-2"> {/* order-2 */}
+                {availableSizes.length > 0 && (
+                <SizeSelector
+                    sizes={availableSizes}
+                    selectedSize={selectedSize}
+                    onSelectSize={handleSelectSize}
+                    inventory={inventoryData}
+                    selectedColor={selectedColor}
+                    disabled={isCompletelyOutOfStock}
+                    className="mb-1" // Thêm margin bottom nếu có cả color selector
+                />
+                )}
+                {availableColors.length > 0 && (
+                <ColorSelector
+                    colors={availableColors}
+                    selectedColor={selectedColor}
+                    onSelectColor={handleSelectColor}
+                    inventory={inventoryData}
+                    selectedSize={selectedSize}
+                    disabled={isCompletelyOutOfStock}
+                />
+                )}
+            </div>
+        )}
 
-         {availableSizes.length > 0 && (
-             <SizeSelector
-                 sizes={availableSizes}
-                 selectedSize={selectedSize}
-                 onSelectSize={setSelectedSize}
-                 inventory={inventoryData}
-                 selectedColor={selectedColor}
-                 disabled={isCompletelyOutOfStock} // Disable nếu hết sạch hàng
-             />
-         )}
+        <p className="product-card-price mb-2 order-3"> {/* order-3 */}
+          {formatCurrency(parseFloat(product.product_price))}
+        </p>
 
-         <div className={`d-flex align-items-center ${availableSizes.length > 0 ? 'mt-2' : 'mt-auto'}`}>
-             <Button
-                 variant="dark"
-                 size="sm"
-                 onClick={handleAddToCart}
-                 disabled={!canAddToCart} // Dùng biến đã tính toán
-                 className="add-to-cart-btn me-2"
-                 title={canAddToCart ? "Add to Cart" : (isCompletelyOutOfStock ? "Sold Out" : "Please select size/color")}
-             >
-                 <i className="bi bi-cart-plus"></i>
-             </Button>
+        {/* Thông báo lỗi/thành công cho biến thể */}
+        {variantMessage && (
+            <small className={`d-block mb-2 variant-message order-4 ${canAddToCart && variantMessage.includes("thêm vào giỏ") ? 'text-success' : 'text-danger'}`}>
+                {variantMessage}
+            </small>
+        )}
 
-              {availableColors.length > 0 && (
-                 <ColorSelector
-                     colors={availableColors}
-                     selectedColor={selectedColor}
-                     onSelectColor={setSelectedColor}
-                     inventory={inventoryData}
-                     selectedSize={selectedSize}
-                     className="ms-auto"
-                     disabled={isCompletelyOutOfStock} // Disable nếu hết sạch hàng
-                 />
-              )}
-         </div>
-       </Card.Body>
-     </Card>
-   );
- }
- export default ProductCard;
+        {/* Nút Add to Cart sẽ ở cuối cùng nhờ flex-grow-1 của parent hoặc mt-auto */}
+        <div className={`d-flex align-items-center mt-auto order-5`}> {/* order-5, mt-auto để đẩy xuống */}
+          <Button
+            variant="dark"
+            size="sm"
+            onClick={handleAddToCart}
+            disabled={!canAddToCart || isCompletelyOutOfStock}
+            className="add-to-cart-btn flex-grow-1"
+            title={canAddToCart ? "Thêm vào giỏ" : (isCompletelyOutOfStock ? "Hết hàng" : "Chọn size/màu")}
+          >
+            <i className="bi bi-cart-plus me-1"></i>
+            {isCompletelyOutOfStock ? "Hết hàng" : "Thêm vào giỏ"}
+          </Button>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+}
+
+export default React.memo(ProductCard);

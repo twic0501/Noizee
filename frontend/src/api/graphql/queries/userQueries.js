@@ -21,48 +21,63 @@ export const GET_MY_PROFILE_QUERY = gql`
 export const GET_MY_SALE_DETAIL_QUERY = gql`
   query GetMySaleDetail($id: ID!) {
     mySaleDetail(id: $id) {
-      # <<< SỬA LẠI: Thêm các trường cần lấy vào đây
       sale_id
       sale_date
       sale_status
-      customer { # Lấy thông tin khách hàng
+      shipping_name # Thêm các trường giao hàng nếu bạn lưu ở bảng Sales
+      shipping_phone
+      shipping_address
+      shipping_notes
+      payment_method
+      customer {
         customer_id
         customer_name
         customer_email
         customer_tel
-        customer_address
+        # customer_address # Có thể lấy từ shipping_address của đơn hàng
       }
-      items { # Lấy danh sách sản phẩm trong đơn
-        sale_item_id # ID của dòng chi tiết (nếu có)
+      items {
+        sale_item_id
         product_qty
         price_at_sale
         discount_amount
-        product { # Lấy thông tin sản phẩm liên quan
+        product_name_at_sale # Tên SP tại thời điểm mua
+        product_sku_at_sale # SKU variant tại thời điểm mua (nếu có)
+        product { # Thông tin SP gốc (có thể null nếu SP bị xóa)
           product_id
           product_name
           imageUrl
-          # product_price # Có thể lấy giá hiện tại nếu cần
+        }
+        size { # Thông tin size đã chọn (có thể null)
+          size_id
+          size_name
+        }
+        color { # Thông tin color đã chọn (có thể null)
+          color_id
+          color_name
+          color_hex
         }
       }
-      totals { # Lấy tổng tiền
+      totals {
+        subtotal_amount
+        discount_total
+        shipping_fee
         total_amount
       }
-      history { # Lấy lịch sử trạng thái
+      history {
         history_id
         history_date
         history_status
         history_notes
       }
-      # <<< KẾT THÚC SỬA LẠI
     }
   }
 `;
 
-// Query lấy lịch sử đơn hàng của người dùng (Đã sửa lỗi limit trong items)
+// Query lấy lịch sử đơn hàng của người dùng
 export const GET_MY_SALES_QUERY = gql`
   query GetMySales($limit: Int, $offset: Int) {
-   # Giả định backend đã hỗ trợ pagination cho mySales
-   mySales(limit: $limit, offset: $offset) {
+    mySales(limit: $limit, offset: $offset) {
       count
       sales {
         sale_id
@@ -71,13 +86,18 @@ export const GET_MY_SALES_QUERY = gql`
         totals {
           total_amount
         }
-        items { # Không còn limit ở đây
+        # Lấy item đầu tiên để hiển thị ảnh đại diện (ví dụ)
+        items(limit: 1) { # Nếu resolver hỗ trợ limit cho items
           product {
             product_id
             imageUrl
             product_name
           }
         }
+        # Hoặc nếu items không hỗ trợ limit, bạn có thể lấy hết và xử lý ở frontend:
+        # items {
+        #   product { product_id imageUrl product_name }
+        # }
       }
     }
   }

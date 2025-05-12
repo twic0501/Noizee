@@ -1,0 +1,65 @@
+/* src/pages/CartPage.css */
+.cart-page .page-main-title {
+    font-family: var(--font-family-heading-main);
+    text-transform: uppercase;
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin-bottom: 0.5rem !important;
+}
+
+.empty-cart-message {
+    padding: 3rem 1rem;
+    background-color: var(--color-light);
+    border-radius: 0.3rem;
+}
+.empty-cart-icon {
+    font-size: 4rem;
+    color: var(--color-text-muted);
+}
+.empty-cart-message .lead {
+    font-family: var(--font-family-accent);
+    font-size: 1.2rem;
+}
+.start-shopping-btn {
+    font-family: var(--font-family-heading-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.cart-items-card .cart-items-header {
+    background-color: var(--color-light-alt, #f8f9fa);
+    border-bottom: 1px solid var(--color-border);
+}
+.cart-items-card .cart-items-header h5 {
+    font-family: var(--font-family-heading-sub);
+    font-weight: 500;
+}
+.clear-cart-btn {
+    font-family: var(--font-family-monospace);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+.cart-items-list {
+    /* max-height: 500px; */ /* Giới hạn chiều cao nếu cần scroll */
+    /* overflow-y: auto; */
+}
+.cart-items-list .cart-item:last-child {
+    border-bottom: none !important; /* Bỏ border cho item cuối */
+}
+
+.cart-summary-sticky {
+    position: sticky;
+    top: 100px; /* Khoảng cách từ top, sau header */
+}
+
+.continue-shopping-link-bottom a {
+    font-family: var(--font-family-monospace);
+    font-size: 0.9rem;
+}
+.continue-shopping-link-bottom a:hover {
+    color: var(--color-primary) !important;
+}
+
+/* Import CartItem.css và CartSummary.css nếu có style riêng cho chúng */
+/* @import url('../../components/cart/CartItem.css'); */
+/* @import url('../../components/cart/CartSummary.css'); */

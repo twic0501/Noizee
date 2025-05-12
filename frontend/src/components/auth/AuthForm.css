@@ -1,0 +1,25 @@
+/* src/components/auth/AuthForm.css */
+.auth-form .form-label {
+    font-weight: 500;
+    font-family: var(--font-family-heading-sub); /* Oswald */
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+}
+
+.auth-form .form-control {
+    border-radius: 0.2rem; /* Hơi vuông hơn */
+    border: 1px solid var(--color-border);
+    padding: 0.6rem 0.8rem;
+    font-family: var(--font-family-monospace);
+}
+.auth-form .form-control:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25); /* Bootstrap focus style */
+}
+
+.auth-submit-btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}

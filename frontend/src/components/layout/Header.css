@@ -1,148 +1,168 @@
 /* src/components/layout/Header.css */
 .main-header {
-    transition: background-color 0.4s ease-in-out, box-shadow 0.4s ease-in-out;
-    padding-top: 0.8rem; /* Tăng padding để cao hơn chút */
-    padding-bottom: 0.8rem;
+  transition: background-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out, border-bottom 0.3s ease-in-out;
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid transparent; /* Border mặc định trong suốt */
 }
 
 .header-transparent {
-    background-color: transparent !important; /* Ghi đè Bootstrap */
-    box-shadow: none !important;
-    border-bottom: none !important; /* Bỏ border khi trong suốt */
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border-bottom-color: rgba(255, 255, 255, 0.2) !important; /* Border mờ khi trong suốt */
+}
+.header-transparent .navbar-brand.logo-text,
+.header-transparent .header-icons .header-icon-link,
+.header-transparent .main-menu .main-menu-link {
+  color: #ffffff !important;
+}
+.header-transparent .main-menu .main-menu-link.active {
+  /* Có thể thêm style riêng cho active link khi header trong suốt, ví dụ border bottom trắng */
+   border-bottom-color: rgba(255,255,255,0.7) !important;
+}
+.header-transparent .main-menu .main-menu-link:hover {
+   color: #e0e0e0 !important; /* Màu hover nhạt hơn chút */
 }
 
-.header-transparent .navbar-brand,
-.header-transparent .header-icons .nav-link {
-    color: #ffffff !important; /* Màu trắng khi header trong suốt */
-}
-.header-transparent .navbar-toggler-icon {
-    /* Style nút toggle mobile khi trong suốt (vd: dùng background image) */
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+.header-transparent .custom-toggler .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 }
 
 .header-white {
-    background-color: #ffffff !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-    border-bottom: 1px solid #eee; /* Thêm border khi trắng */
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  border-bottom-color: var(--color-border) !important;
+}
+.header-white .navbar-brand.logo-text,
+.header-white .header-icons .header-icon-link,
+.header-white .main-menu .main-menu-link {
+  color: var(--color-dark) !important;
+}
+.header-white .main-menu .main-menu-link.active {
+   border-bottom-color: var(--color-dark) !important;
+}
+.header-white .main-menu .main-menu-link:hover {
+   color: var(--color-primary) !important; /* Màu primary khi hover trên nền trắng */
+}
+.header-white .custom-toggler .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%280, 0, 0, 0.7%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 }
 
-.header-white .navbar-brand,
-.header-white .header-icons .nav-link {
-    color: #000000 !important; /* Màu đen khi header trắng */
+/* Logo Text */
+.navbar-brand.logo-text {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 1.7rem; /* Điều chỉnh kích thước */
+  font-weight: normal; /* Archivo Black đã đậm */
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transition: color 0.3s ease-in-out;
 }
-.header-white .navbar-toggler-icon {
-     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%280, 0, 0, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+
+/* Main Menu Links */
+.main-menu .main-menu-link {
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  font-weight: 400; /* Hơi mảnh hơn mặc định */
+  margin: 0 1rem; /* Khoảng cách đều hơn */
+  transition: color 0.3s ease-in-out;
+  position: relative;
+  padding-top: 0.5rem; /* Tạo không gian cho active indicator */
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid transparent; /* Gạch chân mặc định trong suốt */
+}
+
+.main-menu .main-menu-link.active,
+.main-menu .main-menu-link:hover {
+  border-bottom-color: currentColor; /* Màu gạch chân theo màu text hiện tại */
+}
+/* Đối với header transparent, màu active và hover đã được định nghĩa ở trên */
+.header-white .main-menu .main-menu-link.active {
+  font-weight: 500; /* Đậm hơn khi active */
 }
 
 
-/* Style cho Logo Text */
-.logo-text {
-    font-family: 'Archivo Black', sans-serif; /* Font cho logo */
-    font-size: 1.8rem; /* Kích thước lớn hơn */
-    font-weight: bold;
-    letter-spacing: 1px; /* Giãn chữ nhẹ */
-    text-transform: uppercase;
+/* Ẩn text của menu trên trang chủ khi chưa cuộn */
+.main-header.menu-text-hidden .main-menu.invisible-on-hero .nav-link {
+  color: transparent !important; /* Làm chữ trong suốt */
+  border-bottom-color: transparent !important; /* Ẩn gạch chân */
+  pointer-events: none; /* Không cho click */
+}
+/* Header Icons */
+.header-icons .header-icon-link {
+  font-size: 1.2rem; /* Kích thước icon */
+  margin-left: 1rem; /* Khoảng cách */
+  transition: color 0.3s ease-in-out;
+  padding: 0.5rem !important; /* Đảm bảo click area đủ lớn */
+}
+.header-icons .header-icon-link:hover {
+  color: var(--color-primary) !important;
 }
 
-/* Style cho Menu chính */
-.main-menu .nav-link {
-    font-family: 'Oswald', sans-serif; /* Font cho menu */
-    text-transform: uppercase;
-    font-weight: 500;
-    margin: 0 0.8rem;
-    color: inherit; /* Lấy màu từ class cha (.header-transparent/.header-white) */
-    transition: color 0.3s ease;
-    position: relative; /* Cho gạch chân */
-    padding-bottom: 0.5rem; /* Tạo khoảng trống cho gạch chân */
-}
-.main-menu .nav-link::after { /* Gạch chân khi active/hover */
-    content: '';
+.cart-count-badge {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background-color: currentColor; /* Lấy màu text hiện tại */
-    transition: width 0.3s ease;
-}
-.main-menu .nav-link.active::after,
-.main-menu .nav-link:hover::after {
-    width: 100%;
-}
-.main-menu .nav-link:hover {
-     color: var(--bs-primary); /* Hoặc màu custom của bạn */
-}
-.main-menu .nav-link.active {
-    font-weight: 700; /* Đậm hơn khi active */
-     color: var(--bs-primary); /* Hoặc màu custom */
+    top: -2px;
+    right: -5px;
+    font-size: 0.65em;
+    padding: 0.25em 0.45em;
+    font-family: var(--font-family-sans-serif);
 }
 
-/* Hiệu ứng ẩn/hiện menu trên trang chủ */
-.main-header.menu-hidden .main-menu {
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.4s ease, visibility 0s linear 0.4s;
+/* Custom Toggler for mobile (nếu cần style riêng) */
+.custom-toggler {
+    border: none;
+    padding: 0.25rem 0.5rem;
 }
-.main-header.menu-visible .main-menu {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 0.4s ease 0.2s, visibility 0s linear 0s; /* Delay nhẹ */
+.custom-toggler:focus {
+    box-shadow: none;
 }
 
-
-/* Style cho các icon bên phải */
-.header-icons .nav-link {
-    font-size: 1.3rem; /* Kích thước icon */
-    margin-left: 0.8rem; /* Khoảng cách giữa các icon */
-    color: inherit;
-    transition: color 0.3s ease;
+/* Offcanvas Mobile Menu */
+.mobile-offcanvas .offcanvas-header .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%); /* Làm nút close màu trắng */
 }
-.header-icons .nav-link:hover {
-     color: var(--bs-primary); /* Hoặc màu custom */
+.mobile-offcanvas .offcanvas-title .logo-text {
+    color: var(--color-dark) !important; /* Logo màu đen trong offcanvas */
 }
 
-/* Responsive: Đảm bảo menu và icon hiển thị đúng trên mobile */
-@media (max-width: 991.98px) {
-    .main-header .navbar-collapse {
-        background-color: #ffffff; /* Nền trắng cho menu mobile */
-        padding: 1rem;
-        margin-top: 0.5rem;
-        border-radius: 0.25rem;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-    .main-menu .nav-link {
-        color: #000000 !important; /* Luôn màu đen trong menu mobile */
-        margin: 0.5rem 0;
-        padding-bottom: 0; /* Bỏ padding cho gạch chân mobile */
-    }
-     .main-menu .nav-link::after {
-        display: none; /* Ẩn gạch chân mobile */
-     }
-    .header-icons {
-        margin-top: 1rem;
-        flex-direction: row !important; /* Đảm bảo icon nằm ngang */
-        justify-content: center;
-    }
-     .header-icons .nav-link {
-        color: #000000 !important; /* Luôn màu đen */
-        margin: 0 1rem;
-    }
-    /* Luôn hiển thị menu khi ở mobile (nút toggle kiểm soát) */
-    .main-header.menu-hidden .main-menu,
-    .main-header.menu-visible .main-menu {
-        opacity: 1;
-        visibility: visible;
-        transition: none;
-        display: flex; /* Đảm bảo flex hoạt động */
-        flex-direction: column;
-    }
-    /* Căn giữa logo khi mobile (tùy chọn) */
-    .header-container {
-         justify-content: center; 
-    }
-    .navbar-brand {
-         margin-right: auto; 
-         margin-left: auto; 
-    }
+.mobile-main-menu .mobile-menu-link {
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    font-size: 1.1rem;
+    padding: 0.75rem 1rem;
+    color: var(--color-text-base);
+    border-bottom: 1px solid var(--color-border);
+}
+.mobile-main-menu .mobile-menu-link:last-child {
+    border-bottom: none;
+}
+.mobile-main-menu .mobile-menu-link.active,
+.mobile-main-menu .mobile-menu-link:hover {
+    color: var(--color-primary);
+    background-color: var(--color-light);
+}
 
+.mobile-icon-menu .mobile-icon-link {
+    font-family: var(--font-family-heading-sub);
+    font-size: 1rem;
+    padding: 0.6rem 1rem;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+}
+.mobile-icon-menu .mobile-icon-link i {
+    font-size: 1.2rem;
+}
+.mobile-icon-menu .mobile-icon-link:hover {
+    color: var(--color-dark);
+}
+
+/* Khi Offcanvas mở, header có thể cần đổi màu nền nếu đang transparent */
+.main-header.offcanvas-open {
+    /* background-color: #ffffff !important;
+    border-bottom-color: var(--color-border) !important; */
+    /* Logic này đã được xử lý bằng variant của Navbar */
+}
+.main-header.offcanvas-open .navbar-brand.logo-text,
+.main-header.offcanvas-open .header-icons .header-icon-link {
+    /* color: var(--color-dark) !important; */
 }

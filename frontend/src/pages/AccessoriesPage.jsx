@@ -1,44 +1,27 @@
 // src/pages/AccessoriesPage.jsx
-import React from 'react';
-import { Container, Row, Col } from 'react-bootstrap';
-// import ProductGrid from '../components/products/ProductGrid';
-// import ProductFilter from '../components/products/ProductFilter';
-// import Pagination from '../components/common/Pagination';
-// import { useQuery } from '@apollo/client';
-// import { GET_PRODUCTS_QUERY } from '../api/graphql/queries/productQueries';
-// import useDataTable from '../hooks/useDataTable';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
+// Component này sẽ chỉ làm nhiệm vụ điều hướng đến CollectionsPage với filter phù hợp
 function AccessoriesPage() {
-  // TODO: Fetch accessory products (e.g., filter by category 'accessories')
-  // const { loading, error, data } = useQuery(GET_PRODUCTS_QUERY, {
-  //   variables: { filter: { categoryName: "Accessories" }, limit: 12, offset: 0 } // Giả sử filter theo tên category
-  // });
-  // const products = data?.products?.products || [];
+  const navigate = useNavigate();
 
-  return (
-    <Container className="my-4 my-md-5">
-      <h1 className="page-title mb-4">Accessories</h1> {/* CSS */}
+  useEffect(() => {
+    // Thay 'accessories_category_id' bằng ID thực tế của category "Phụ kiện"
+    // Hoặc nếu bạn dùng slug: '/collections/accessories-slug'
+    const accessoriesCategoryId = 'ID_CUA_CATEGORY_PHU_KIEN'; // Ví dụ ID là 3
 
-      <Row>
-        {/* Optional Filter Column */}
-        {/* <Col lg={3} className="mb-4 mb-lg-0">
-          <ProductFilter onFilterChange={handleFilterChange} />
-        </Col> */}
+    // Điều hướng đến CollectionsPage với query parameter cho category
+    // Hoặc bạn có thể dùng navigate('/collections/accessories-slug') nếu route của bạn hỗ trợ slug
+    navigate(`/collections?categoryId=${accessoriesCategoryId}`, { replace: true });
+  }, [navigate]);
 
-        {/* Product Grid Column */}
-        <Col lg={12}> {/* Hoặc lg={9} nếu có filter */}
-           <p className="text-muted">
-                Explore our collection of accessories. Design this page according to your needs.
-           </p>
-          {/* TODO: Hiển thị loading/error/ProductGrid */}
-          {/* {loading && <LoadingSpinner />} */}
-          {/* {error && <AlertMessage variant="danger">Error loading accessories.</AlertMessage>} */}
-          {/* {!loading && !error && <ProductGrid products={products} />} */}
-          {/* TODO: Add Pagination */}
-        </Col>
-      </Row>
-    </Container>
-  );
+  // Component này sẽ không render gì cả vì nó chỉ điều hướng
+  // Hoặc bạn có thể hiển thị một LoadingSpinner ngắn hạn
+  return null;
+  // Hoặc:
+  // import LoadingSpinner from '../components/common/LoadingSpinner';
+  // return <LoadingSpinner message="Đang chuyển đến trang Phụ kiện..." />;
 }
 
 export default AccessoriesPage;

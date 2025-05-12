@@ -1,51 +1,125 @@
 /* src/styles/index.css */
 
-/* Import các file CSS khác nếu có (ví dụ: reset CSS) */
-/* @import './reset.css'; */
-
-/* Đảm bảo các biến trong theme.css được áp dụng */
+/* Import các biến theme (font, màu) để sử dụng trong các style global */
 @import './theme.css';
 
-/* Style tổng thể */
-body {
-  /* Đã định nghĩa font và màu trong theme.css */
-  line-height: 1.6;
-}
-
-main {
-  min-height: calc(100vh - 150px); /* Giả sử Footer cao khoảng 150px */
-  /* Hoặc dùng flexbox trong App/MainLayout để đẩy footer xuống */
-  padding-top: 80px; /* Khoảng trống cho header fixed-top (điều chỉnh chiều cao header) */
-}
-
-/* CSS Reset cơ bản (Tùy chọn, có thể dùng thư viện reset CSS) */
+/* --- Basic Reset & Box Sizing --- */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
+  margin: 0; /* Reset margin mặc định */
+  padding: 0; /* Reset padding mặc định */
 }
 
-img {
+html {
+  scroll-behavior: smooth; /* Cuộn mượt khi click vào link anchor */
+}
+
+body {
+  font-family: var(--font-family-sans-serif); /* Font mặc định từ theme */
+  color: var(--color-text-base);
+  background-color: var(--color-background);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding-top: var(--header-height, 70px); /* Tạo khoảng trống cho Header fixed-top */
+                                          /* Định nghĩa --header-height trong theme.css hoặc Header.css nếu chiều cao header thay đổi */
+}
+
+/* Đảm bảo main content có thể chiếm hết chiều cao còn lại */
+/* (Đã xử lý bằng flexbox trong MainLayout.jsx) */
+/*
+main.site-main-content {
+  flex-grow: 1;
+}
+*/
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
   max-width: 100%;
   height: auto;
-  display: block; /* Tránh khoảng trống dưới ảnh */
 }
 
+/* Remove list styles on ul, ol elements with a list role, which suggests default styling will be removed */
+ul[role='list'],
+ol[role='list'] {
+  list-style: none;
+}
 
-/* Có thể thêm các helper class hoặc style global khác */
-.cursor-pointer {
+/* Set core root defaults */
+html:focus-within {
+  scroll-behavior: smooth;
+}
+
+/* Set core body defaults */
+body {
+  min-height: 100vh;
+  text-rendering: optimizeSpeed;
+}
+
+/* A elements that don't have a class getdefault styles */
+a:not([class]) {
+  text-decoration-skip-ink: auto;
+}
+
+/* Make an interactive element visually distinguishable */
+button,
+[role="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="button"] {
   cursor: pointer;
 }
 
-/* Style cho scrollbar (tùy chọn) */
-/* ::-webkit-scrollbar {
-  width: 8px;
+
+/* --- Typography Helpers (Tùy chọn) --- */
+.text-primary { color: var(--color-primary) !important; }
+.text-dark { color: var(--color-dark) !important; }
+.text-light { color: var(--color-light) !important; } /* Chú ý: text-light trên nền sáng sẽ không thấy */
+.text-muted-custom { color: var(--color-text-muted) !important; }
+
+.font-main-heading { font-family: var(--font-family-heading-main); }
+.font-sub-heading { font-family: var(--font-family-heading-sub); }
+.font-accent { font-family: var(--font-family-accent); }
+.font-mono { font-family: var(--font-family-monospace); }
+
+
+/* --- Scrollbar Styling (Tùy chọn, không hoạt động trên Firefox mặc định) --- */
+/* Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-light);
+  background: var(--color-light, #f1f1f1);
+  border-radius: 5px;
 }
 ::-webkit-scrollbar-thumb {
-  background-color: var(--color-text-muted);
-  border-radius: 4px;
-  border: 2px solid var(--color-light);
+  background-color: var(--color-text-muted, #888);
+  border-radius: 5px;
+  border: 2px solid var(--color-light, #f1f1f1); /* Tạo padding cho thumb */
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-dark, #555);
+}
+/* Firefox (Cần bật cờ trong about:config, không phải lúc nào cũng hiệu quả) */
+/* * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-text-muted) var(--color-light);
 } */
+
+/* --- Utility Classes --- */
+.cursor-pointer {
+  cursor: pointer;
+}
+.no-select {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}

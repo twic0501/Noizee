@@ -1,99 +1,126 @@
-/* src/components/products/ProductCard.css */
+/* src/components/product/ProductCard.css */
 .product-card {
-    /* Thêm style đường phố, góc cạnh nếu cần */
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    overflow: hidden; /* Ẩn phần tràn ra của badge */
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+  display: flex; /* Cho phép flex-column trong Card.Body */
+  flex-direction: column;
 }
-
 .product-card:hover {
-    transform: translateY(-5px); /* Nhấc nhẹ card lên */
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12) !important;
 }
 
 .product-card-link {
-    text-decoration: none;
-    color: inherit;
-    display: block; /* Để wrapper ảnh chiếm đúng chỗ */
-    position: relative; /* Cho badge */
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  position: relative;
 }
 
+/* --- KHUNG ẢNH TỶ LỆ 1:1 --- */
 .product-image-wrapper {
-    position: relative;
-    overflow: hidden; /* Đảm bảo ảnh không tràn */
-     background-color: #f8f9fa; /* Màu nền nhẹ cho ảnh */
+  position: relative;
+  overflow: hidden;
+  background-color: #f1f1f1; /* Màu nền nhẹ cho ảnh, hoặc transparent */
+  width: 100%;
+  padding-top: 100%; /* Tạo tỷ lệ 1:1 (height = width) */
 }
+.product-image-wrapper .product-card-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Đảm bảo ảnh fill và cắt nếu cần */
+  transition: transform 0.4s ease;
+}
+/* --- KẾT THÚC KHUNG ẢNH 1:1 --- */
 
-.product-card-img {
-    width: 100%;
-    aspect-ratio: 3 / 4; /* Tỉ lệ ảnh dọc phổ biến cho thời trang */
-    object-fit: cover; /* Đảm bảo ảnh fill */
-    transition: transform 0.5s ease; /* Hiệu ứng zoom nhẹ khi hover card */
-}
 .product-card:hover .product-card-img {
-     transform: scale(1.05);
+  transform: scale(1.05);
 }
 
+.product-card-body {
+  /* display: flex; flex-direction: column; đã được set ở .product-card */
+  /* flex-grow: 1; /* Để body chiếm hết không gian còn lại */
+  /* Các order class sẽ sắp xếp thứ tự */
+}
 
-.product-card-title {
-    font-family: 'Oswald', sans-serif; /* Font tiêu đề SP */
-    font-size: 1rem;
-    font-weight: 500;
-    text-transform: uppercase;
-     /* Giới hạn 2 dòng text */
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-clamp: 2;
-    min-height: 2.4em; /* Đảm bảo chiều cao tối thiểu cho 2 dòng */
+.product-card-title { /* order-1 */
+  font-family: var(--font-family-heading-sub); /* Oswald hoặc Archivo Black tùy ý */
+  font-size: 0.9rem; /* Điều chỉnh nếu cần */
+  font-weight: 500;
+  text-transform: uppercase;
+  line-height: 1.3;
+  /* Giới hạn 2 dòng text */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: calc(1.3em * 2); /* Đảm bảo chiều cao cho 2 dòng */
 }
 .product-card-title a:hover {
-    color: var(--bs-primary) !important; /* Hoặc màu accent */
+  color: var(--color-primary) !important;
 }
 
-.product-card-price {
-    font-family: 'Roboto Mono', monospace; /* Font giá */
-    font-weight: 500;
-    color: #333;
-    font-size: 0.95rem;
+.product-card-selectors { /* order-2 */
+  /* Style cho container của SizeSelector và ColorSelector nếu cần */
 }
 
-.add-to-cart-btn {
-    /* Style nút icon cart */
-    padding: 0.3rem 0.6rem;
-    line-height: 1; /* Đảm bảo icon căn giữa */
-    border-radius: 4px; /* Hơi vuông */
+.product-card-price { /* order-3 */
+  font-family: var(--font-family-monospace);
+  font-weight: 700; /* Đậm hơn */
+  color: var(--color-dark);
+  font-size: 1rem; /* To hơn chút */
+}
+
+.variant-message { /* order-4 */
+    font-size: 0.75rem;
+    min-height: 1.2em; /* Giữ khoảng trống nhỏ ngay cả khi không có message */
+}
+
+
+.add-to-cart-btn { /* order-5 */
+  padding: 0.5rem 0.75rem; /* Padding lớn hơn chút */
+  line-height: 1.2;
+  border-radius: 0.2rem;
+  font-family: var(--font-family-heading-sub);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
 }
 .add-to-cart-btn i {
-    font-size: 1rem;
-    vertical-align: middle;
+  font-size: 1rem;
 }
 
 /* Badges */
-.sold-out-badge, .new-arrival-badge {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    font-size: 0.7rem;
-    font-family: 'Oswald', sans-serif;
-    text-transform: uppercase;
-    padding: 0.3em 0.6em;
-    z-index: 2; /* Nổi lên trên ảnh */
+.product-badge {
+  position: absolute;
+  top: 10px;
+  font-size: 0.65rem;
+  font-family: var(--font-family-heading-sub);
+  text-transform: uppercase;
+  padding: 0.3em 0.7em;
+  z-index: 2;
+  border-radius: 0.2rem;
+  letter-spacing: 0.5px;
 }
- .sold-out-badge {
-    background-color: rgba(0,0,0,0.8) !important;
-    color: white !important;
- }
- .new-arrival-badge {
-     background-color: #dc3545 !important; /* Màu đỏ */
- }
+.new-arrival-badge {
+  left: 10px;
+  background-color: var(--color-danger) !important;
+  color: white !important;
+}
+.out-of-stock-badge {
+  /* Có thể đặt ở góc khác hoặc cùng vị trí */
+  left: 10px; /* Hoặc right: 10px */
+  background-color: rgba(0,0,0,0.75) !important;
+  color: white !important;
+}
 
-/* Responsive Image Button Placeholder */
-.change-image-btn {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    z-index: 2;
-    /* Style nút này */
-}
+/* Sắp xếp thứ tự bằng order class nếu flex-direction: column */
+.order-1 { order: 1; }
+.order-2 { order: 2; }
+.order-3 { order: 3; }
+.order-4 { order: 4; }
+.order-5 { order: 5; }

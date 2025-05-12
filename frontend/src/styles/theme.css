@@ -1,70 +1,120 @@
 /* src/styles/theme.css */
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,700;1,400&family=Oswald:wght@300;400;500;700&family=Roboto+Mono:wght@400;500;700&display=swap');
+
 :root {
-    /* --- Font Families --- */
-    --font-family-sans-serif: 'Roboto Mono', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-    --font-family-monospace: 'Roboto Mono', SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    --font-family-heading-main: 'Archivo Black', var(--font-family-sans-serif); /* Tiêu đề chính, logo */
-    --font-family-heading-sub: 'Oswald', var(--font-family-sans-serif); /* Tiêu đề phụ, button, nav */
-    --font-family-accent: 'Cormorant Garamond', serif; /* Font accent */
-  
-    /* --- Colors (Theme Trắng/Đen) --- */
-    --color-text-base: #212529;       /* Màu chữ chính (đen) */
-    --color-text-muted: #6c757d;      /* Màu chữ phụ (xám) */
-    --color-background: #ffffff;     /* Màu nền chính (trắng) */
-    --color-dark: #000000;           /* Màu đen tuyền */
-    --color-light: #f8f9fa;          /* Màu trắng ngà/xám nhạt */
-    --color-border: #dee2e6;        /* Màu đường viền */
-    --color-primary: #0d6efd;       /* Giữ màu Primary của Bootstrap hoặc đổi thành màu accent của bạn */
-    --color-danger: #dc3545;        /* Màu đỏ cho lỗi/cảnh báo */
-    --color-success: #198754;       /* Màu xanh lá cho thành công */
-  
-    /* --- Bootstrap Overrides (Optional) --- */
-    /* Ghi đè trực tiếp biến Bootstrap nếu cần */
-    /* --bs-body-font-family: var(--font-family-sans-serif); */
-    /* --bs-body-color: var(--color-text-base); */
-    /* --bs-body-bg: var(--color-background); */
-    /* --bs-primary: var(--color-primary); */
-    /* --bs-dark: var(--color-dark); */
-  }
-  
-  /* Áp dụng font cơ bản */
-  body {
-    font-family: var(--font-family-sans-serif);
-    color: var(--color-text-base);
-    background-color: var(--color-background);
-  }
-  
-  /* Áp dụng font cho các tiêu đề (ví dụ) */
-  h1, h2, h3, .logo-text /* Thêm class logo từ Header.css */ {
-    font-family: var(--font-family-heading-main);
-    color: var(--color-dark); /* Tiêu đề chính màu đen */
-  }
-  
-  h4, h5, h6, button, .btn, .nav-link /* Cần xem xét lại các nav-link */ {
+  /* --- Font Families --- */
+  --font-family-sans-serif: 'Roboto Mono', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-family-monospace: 'Roboto Mono', SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-family-heading-main: 'Archivo Black', var(--font-family-sans-serif); /* Tiêu đề chính, logo */
+  --font-family-heading-sub: 'Oswald', var(--font-family-sans-serif);        /* Tiêu đề phụ, button, nav */
+  --font-family-accent: 'Cormorant Garamond', serif;                         /* Font accent, mô tả đặc biệt */
+
+  /* --- Colors (Theme Trắng/Đen với điểm nhấn) --- */
+  --color-text-base: #212529;        /* Màu chữ chính (gần đen) */
+  --color-text-muted: #6c757d;       /* Màu chữ phụ (xám đậm) */
+  --color-text-light: #f8f9fa;       /* Màu chữ sáng (cho nền tối) */
+  --color-text-inverted: #ffffff;    /* Màu chữ đảo ngược (trắng) */
+
+  --color-background: #ffffff;        /* Màu nền chính (trắng) */
+  --color-background-alt: #f8f9fa;   /* Màu nền phụ (xám rất nhạt) */
+  --color-dark: #000000;              /* Màu đen tuyền */
+  --color-light: #ffffff;             /* Màu trắng (đã có background, dùng cho component nền trắng) */
+
+
+  --color-border: #dee2e6;           /* Màu đường viền mặc định */
+  --color-border-light: #f1f1f1;     /* Màu đường viền nhạt hơn */
+  --color-border-dark: #343a40;      /* Màu đường viền tối */
+
+  /* Màu sắc chủ đạo và nhấn mạnh (Giữ nguyên Bootstrap hoặc tùy chỉnh) */
+  /* Bạn có thể chọn một màu làm màu chủ đạo cho NOIZEE, ví dụ một màu cam cháy, vàng mù tạt, hoặc giữ đen/trắng làm chủ đạo */
+  --bs-primary-rgb: 13, 110, 253; /* Giữ nguyên Bootstrap Blue làm ví dụ */
+  --color-primary: rgb(var(--bs-primary-rgb));
+  /* --color-accent-noizee: #FF4500; */ /* Ví dụ: OrangeRed làm màu nhấn NOIZEE */
+
+
+  --bs-danger-rgb: 220, 53, 69;
+  --color-danger: rgb(var(--bs-danger-rgb));
+  --bs-success-rgb: 25, 135, 84;
+  --color-success: rgb(var(--bs-success-rgb));
+  --bs-warning-rgb: 255, 193, 7;
+  --color-warning: rgb(var(--bs-warning-rgb));
+  --bs-info-rgb: 13, 202, 240;
+  --color-info: rgb(var(--bs-info-rgb));
+
+
+  /* --- Layout Variables --- */
+  --header-height: 70px; /* Chiều cao trung bình của Header, điều chỉnh nếu cần */
+  --container-padding-x: 1.5rem; /* Padding ngang cho container chung */
+
+  /* --- Component Specific (tùy chọn) --- */
+  --card-border-radius: 0.3rem;
+  --button-border-radius: 0.25rem;
+}
+
+/* Áp dụng font cơ bản cho body (đã có trong index.css nhưng nhắc lại ở đây) */
+body {
+  font-family: var(--font-family-sans-serif);
+  color: var(--color-text-base);
+  background-color: var(--color-background);
+}
+
+/* Áp dụng font cho các tiêu đề (ví dụ) */
+h1, h2, h3, .logo-text {
+  font-family: var(--font-family-heading-main);
+  color: var(--color-dark);
+  font-weight: normal; /* Archivo Black đã tự đậm */
+}
+
+h4, h5, h6, button, .btn, .nav-link.main-menu-link /* Áp dụng cho menu chính */ {
+  font-family: var(--font-family-heading-sub);
+  /* text-transform: uppercase; */ /* Oswald thường đẹp khi uppercase */
+}
+.nav-link.account-nav-link, /* Menu tài khoản */
+.nav-link.mobile-menu-link /* Menu mobile */ {
     font-family: var(--font-family-heading-sub);
-     /* text-transform: uppercase; */ /* Oswald thường đi với uppercase */
-  }
-  
-  blockquote, .hero-subtitle /* Thêm class cho subtitle */ {
-      font-family: var(--font-family-accent);
-  }
-  
-  /* Các overrides khác cho Bootstrap nếu cần */
-  .btn-dark {
-      background-color: var(--color-dark);
-      border-color: var(--color-dark);
-      font-family: var(--font-family-heading-sub);
-      text-transform: uppercase;
-      /* Thêm style riêng cho nút đen */
-  }
-  .btn-dark:hover {
-       background-color: #333;
-       border-color: #333;
-  }
-  
-  a {
-      color: var(--color-primary);
-  }
-  a:hover {
-       color: darken(var(--color-primary), 10%); /* Làm tối màu primary khi hover */
-  }
+}
+
+
+blockquote, .hero-subtitle, .product-description p, .footer-text.text-white-50 /* Các đoạn text mô tả, trích dẫn */ {
+  font-family: var(--font-family-accent);
+}
+.product-card-price, .product-price, .cart-item-price, .checkout-item-price, .order-totals-summary span, .profile-balance-box .h4 {
+    font-family: var(--font-family-monospace); /* Giá tiền, số liệu */
+}
+
+
+/* Ghi đè một vài style Bootstrap nếu cần thiết */
+.btn-dark {
+  background-color: var(--color-dark) !important;
+  border-color: var(--color-dark) !important;
+  color: var(--color-text-inverted) !important;
+  font-family: var(--font-family-heading-sub);
+  text-transform: uppercase;
+  /* Thêm các style khác nếu cần */
+}
+.btn-dark:hover, .btn-dark:focus {
+  background-color: #2a2a2a !important; /* Tối hơn chút khi hover */
+  border-color: #2a2a2a !important;
+  color: var(--color-text-inverted) !important;
+}
+
+.btn-outline-dark {
+    border-color: var(--color-dark) !important;
+    color: var(--color-dark) !important;
+    font-family: var(--font-family-heading-sub);
+    text-transform: uppercase;
+}
+.btn-outline-dark:hover, .btn-outline-dark:focus {
+    background-color: var(--color-dark) !important;
+    color: var(--color-text-inverted) !important;
+}
+
+
+a {
+  color: var(--color-text-base); /* Link màu đen mặc định */
+  text-decoration: none; /* Bỏ gạch chân mặc định */
+}
+a:hover {
+  color: var(--color-primary); /* Link chuyển màu primary khi hover */
+  text-decoration: none; /* Giữ không gạch chân */
+}

@@ -16,7 +16,7 @@ const ORDER_LIST_FIELDS = gql`
   }
 `;
 
-n
+
 export const GET_ADMIN_SALES_QUERY = gql`
   ${ORDER_LIST_FIELDS}
   query AdminGetAllSales($limit: Int, $offset: Int, $filter: AdminSaleFilterInput) {

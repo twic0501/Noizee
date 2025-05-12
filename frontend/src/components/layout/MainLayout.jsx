@@ -1,28 +1,21 @@
 // src/components/layout/MainLayout.jsx
 import React from 'react';
-import { Outlet } from 'react-router-dom'; // Để render nội dung của route con
-import Header from './Header';             // Import Header component
-import Footer from './Footer';             // Import Footer component
-import FloatingChatIcon from '../common/FloatingChatIcon'; // Import Icon Chat
+import { Outlet } from 'react-router-dom';
+import Header from './Header';
+import Footer from './Footer';
+import FloatingChatIcon from '../common/FloatingChatIcon';
+// import './MainLayout.css'; // Nếu bạn có CSS riêng cho MainLayout
 
-// Component Layout chính bao gồm Header, Footer và phần nội dung thay đổi (Outlet)
 const MainLayout = () => {
   return (
-    <>
-      {/* Header sẽ được hiển thị ở đây */}
+    <div className="d-flex flex-column min-vh-100"> {/* Đảm bảo footer luôn ở cuối */}
       <Header />
-
-      {/* Phần nội dung chính của các trang con sẽ được render vào <Outlet /> */}
-      <main>
+      <main className="flex-grow-1 site-main-content"> {/* CSS: Thêm class để style nếu cần */}
         <Outlet />
       </main>
-
-      {/* Footer sẽ được hiển thị ở đây */}
-      <Footer />
-
-      {/* Icon chat nổi (hiển thị trên tất cả các trang dùng layout này) */}
       <FloatingChatIcon />
-    </>
+      <Footer />
+    </div>
   );
 };
 

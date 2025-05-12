@@ -1,0 +1,120 @@
+/* src/pages/ProductDetailPage.css */
+.product-detail-page .breadcrumb-style .breadcrumb-item a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-family: var(--font-family-monospace);
+    font-size: 0.85rem;
+}
+.product-detail-page .breadcrumb-style .breadcrumb-item a:hover {
+    color: var(--color-primary);
+}
+.product-detail-page .breadcrumb-style .breadcrumb-item.active {
+    color: var(--color-text-base);
+    font-family: var(--font-family-monospace);
+    font-size: 0.85rem;
+}
+
+.product-images-col .product-main-image {
+    border-radius: 0.3rem;
+    /* max-height: 70vh; */ /* Giới hạn chiều cao ảnh chính */
+    /* object-fit: contain; */ /* Đảm bảo thấy toàn bộ ảnh */
+     border: 1px solid var(--color-border);
+}
+.product-detail-carousel .carousel-image {
+    object-fit: contain !important; /* Ghi đè nếu cần */
+    max-height: 70vh; /* Hoặc một giá trị cố định */
+    border-radius: 0.25rem;
+}
+.product-detail-carousel .carousel-control-prev-icon,
+.product-detail-carousel .carousel-control-next-icon {
+    background-color: rgba(0,0,0,0.3);
+    border-radius: 50%;
+    padding: 0.8rem;
+    width: 20px; /* Điều chỉnh kích thước của icon bên trong */
+    height: 20px;
+}
+.product-detail-carousel .carousel-indicators [data-bs-target] {
+    background-color: var(--color-dark);
+}
+
+
+.product-info-col .product-badge {
+    font-size: 0.7rem;
+    padding: 0.3em 0.6em;
+    text-transform: uppercase;
+    font-family: var(--font-family-heading-sub);
+}
+
+.product-title {
+  font-family: var(--font-family-heading-main); /* Archivo Black */
+  font-size: clamp(1.8rem, 4vw, 2.8rem); /* Responsive */
+  font-weight: bold;
+  line-height: 1.2;
+  color: var(--color-dark);
+}
+
+.product-price {
+  font-family: var(--font-family-heading-main); /* Archivo Black */
+  color: var(--color-primary); /* Hoặc màu accent khác */
+  font-weight: bold;
+  font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+}
+.product-category-info a {
+    font-family: var(--font-family-heading-sub);
+    color: var(--color-text-muted);
+}
+.product-category-info a:hover {
+    color: var(--color-primary);
+}
+
+
+.quantity-selector .qty-label {
+  font-family: var(--font-family-heading-sub);
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+.quantity-selector .quantity-input {
+    font-family: var(--font-family-monospace);
+    font-weight: 500;
+    border-left: none;
+    border-right: none;
+    border-radius: 0;
+    box-shadow: none !important;
+}
+.quantity-selector .btn {
+    border-radius: 0.2rem; /* Giữ border radius cho nút */
+}
+
+
+.add-to-cart-main-btn {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: var(--font-family-heading-sub);
+    font-weight: 500;
+}
+.add-to-cart-main-btn i {
+    font-size: 1.1rem;
+}
+
+
+.product-description .section-sub-title {
+  font-family: var(--font-family-heading-sub); /* Oswald */
+  text-transform: uppercase;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.5rem;
+}
+.product-description p {
+  font-family: var(--font-family-sans-serif); /* Roboto Mono hoặc Sans Serif */
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.related-products-section .section-title {
+    font-family: var(--font-family-heading-main);
+}

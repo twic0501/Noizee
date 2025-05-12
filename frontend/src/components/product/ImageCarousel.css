@@ -1,0 +1,61 @@
+/* src/components/product/ImageCarousel.css */
+.image-carousel .carousel-item {
+  /* Đảm bảo item có chiều cao */
+}
+
+.image-carousel .carousel-image {
+  /* object-fit: cover; /* Đảm bảo ảnh fill mà không bị méo */
+  /* height: 100%; /* Chiếm toàn bộ chiều cao của Carousel.Item */
+  /* Đã chuyển style này inline vào component để dễ tùy chỉnh bằng props */
+}
+
+.image-carousel .carousel-custom-caption {
+  background-color: rgba(0, 0, 0, 0.3); /* Nền mờ cho caption dễ đọc hơn */
+  border-radius: 0.25rem;
+  padding: 1.5rem 2rem;
+  bottom: 10%; /* Điều chỉnh vị trí caption */
+  left: 5%;
+  right: 5%;
+  text-align: left; /* Căn trái caption */
+}
+
+.image-carousel .carousel-caption-title {
+  font-family: var(--font-family-heading-main); /* Archivo Black */
+  font-size: 2.5rem; /* Kích thước lớn */
+  margin-bottom: 0.5rem;
+  color: #fff;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+}
+
+.image-carousel .carousel-caption-text {
+  font-family: var(--font-family-accent); /* Cormorant Garamond */
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #f8f9fa;
+}
+.image-carousel .carousel-caption-button {
+    font-family: var(--font-family-heading-sub); /* Oswald */
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 0.75rem 1.5rem;
+}
+
+
+/* Responsive cho caption */
+@media (max-width: 768px) {
+  .image-carousel .carousel-custom-caption {
+    padding: 1rem;
+    bottom: 5%;
+  }
+  .image-carousel .carousel-caption-title {
+    font-size: 1.8rem;
+  }
+  .image-carousel .carousel-caption-text {
+    font-size: 1rem;
+    margin-bottom: 0.8rem;
+  }
+   .image-carousel .carousel-caption-button {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+  }
+}

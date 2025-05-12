@@ -1,0 +1,71 @@
+/* src/components/cart/CartItem.css (Tạo file này nếu chưa có) */
+.cart-item-image {
+  width: 70px;
+  height: 90px; /* Hoặc aspect-ratio */
+  object-fit: cover;
+  border-radius: 0.25rem;
+}
+
+.cart-item-name {
+  font-size: 0.95rem;
+}
+.cart-item-name:hover {
+  color: var(--bs-primary) !important;
+}
+
+.cart-item-variants span {
+  font-size: 0.8rem;
+}
+
+.cart-item-qty-input {
+  width: 65px;
+  display: inline-block;
+  text-align: center;
+  padding-left: 0.5rem; /* Điều chỉnh padding để số ở giữa hơn */
+  padding-right: 0.5rem;
+}
+/* Tùy chỉnh cho input number arrows (ẩn nếu muốn) */
+.cart-item-qty-input::-webkit-outer-spin-button,
+.cart-item-qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.cart-item-qty-input {
+  width: 65px;
+  display: inline-block;
+  text-align: center;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  /* Thêm appearance: none; và -webkit-appearance: none; để xóa mũi tên mặc định trên Chrome/Safari/Edge */
+  appearance: none; /* Chuẩn */
+  -webkit-appearance: none; /* Cho Safari/Chrome/Edge cũ hơn */
+  -moz-appearance: textfield; /* Giữ lại cho Firefox cũ hơn nếu bạn muốn loại bỏ spinner của Firefox */
+}
+
+/* Nếu bạn muốn giữ spinner của Firefox cho input number, thì không cần -moz-appearance: textfield; */
+/* Để ẩn spinner trên Chrome/Safari/Edge, thường dùng: */
+.cart-item-qty-input::-webkit-outer-spin-button,
+.cart-item-qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.cart-item-remove-btn i {
+  font-size: 1.1rem;
+}
+.cart-item-remove-btn:hover i {
+  color: darkred !important;
+}
+
+@media (max-width: 767.98px) {
+  .cart-item-details {
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+  .cart-item-image {
+    width: 60px;
+    height: auto; /* Giữ tỷ lệ */
+    max-height: 80px;
+  }
+}

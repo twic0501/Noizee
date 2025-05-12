@@ -1,0 +1,64 @@
+/* src/pages/TheNoizeePage.css */
+.the-noizee-page .the-noizee-hero {
+  background-color: var(--color-dark); /* Hoặc ảnh nền tối */
+  /* background-image: url('/images/banners/the-noizee-hero.jpg'); */
+  background-size: cover;
+  background-position: center;
+  padding: 6rem 1rem;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+}
+
+.the-noizee-page .hero-title-noizee {
+  font-family: var(--font-family-heading-main);
+  font-size: clamp(2.8rem, 7vw, 5rem);
+  color: #fff;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  margin-bottom: 1rem;
+}
+
+.the-noizee-page .hero-subtitle-noizee {
+  font-family: var(--font-family-accent);
+  font-size: clamp(1.2rem, 3vw, 1.6rem);
+  color: rgba(255,255,255,0.85);
+  max-width: 700px;
+}
+.the-noizee-page .hero-subtitle-noizee + .btn { /* Nút dưới subtitle */
+    font-family: var(--font-family-heading-sub);
+    text-transform: uppercase;
+}
+
+.the-noizee-page .section-title-noizee {
+  font-family: var(--font-family-heading-main);
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+  position: relative;
+  padding-bottom: 0.5rem;
+}
+/* Gạch chân cho tiêu đề section */
+.the-noizee-page .section-title-noizee::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0; /* Căn trái cho gạch chân */
+    width: 60px; /* Độ dài gạch chân */
+    height: 3px;
+    background-color: var(--color-primary); /* Hoặc var(--color-dark) */
+}
+.the-noizee-page .text-center .section-title-noizee::after {
+    left: 50%; /* Căn giữa nếu tiêu đề căn giữa */
+    transform: translateX(-50%);
+}
+
+
+.the-noizee-page .featured-products-noizee {
+    /* background-color: var(--color-light); */
+    /* padding-top: 3rem;
+    padding-bottom: 3rem; */
+}
+.the-noizee-page .view-all-btn {
+    font-family: var(--font-family-heading-sub);
+    text-transform: uppercase;
+}

@@ -1,3 +1,4 @@
+// src/api/graphql/mutations/authMutations.js
 import { gql } from '@apollo/client';
 
 // Mutation đăng nhập (trả về AuthPayload)
@@ -46,11 +47,11 @@ export const RESET_PASSWORD_MUTATION = gql`
     resetPassword(token: $token, newPassword: $newPassword) {
       success
       message
-      token    # Token đăng nhập mới nếu có
+      token      # Token đăng nhập mới nếu có
       customer { # Thông tin user nếu có
-         customer_id
-         customer_name
-         # ... các trường khác cần thiết
+        customer_id
+        customer_name
+        # ... các trường khác cần thiết
       }
     }
   }

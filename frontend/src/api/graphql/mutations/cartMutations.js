@@ -1,3 +1,4 @@
+// src/api/graphql/mutations/cartMutations.js
 import { gql } from '@apollo/client';
 
 // Đảm bảo input $items giờ đây có thể nhận SaleItemInput với sizeId, colorId
@@ -10,11 +11,11 @@ export const CREATE_SALE_MUTATION = gql`
       totals {
         total_amount
       }
-      customer {
+      customer { # Lấy thông tin customer để cập nhật virtual_balance
         customer_id
-        virtual_balance
+        virtual_balance # Số dư ảo sau khi trừ
       }
-      # Có thể bỏ items ở đây nếu không cần hiển thị lại ngay sau khi đặt
+      # Không nhất thiết phải lấy lại items ở đây nếu không hiển thị ngay
       # items {
       #   sale_item_id
       #   product_qty

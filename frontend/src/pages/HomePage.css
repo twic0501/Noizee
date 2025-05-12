@@ -1,0 +1,103 @@
+/* src/pages/HomePage.css */
+
+/* Hero Section */
+.hero-section {
+  min-height: 90vh; /* Chiều cao tối thiểu, có thể dùng 100vh */
+  /* background-image: url('/images/hero-bg.jpg');  Cân nhắc dùng ảnh nền thật */
+  background-color: #e0e0e0; /* Fallback color */
+  background-size: cover;
+  background-position: center center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-dark); /* Chữ màu tối trên nền sáng, hoặc ngược lại nếu ảnh nền tối */
+  padding: 2rem 0;
+  position: relative; /* Cho các element con absolute (nếu có) */
+}
+.hero-section::before { /* Overlay mờ nếu ảnh nền quá sáng/tối */
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    /* background-color: rgba(0,0,0,0.1); */ /* Ví dụ overlay tối nhẹ */
+}
+
+.hero-section .container {
+    position: relative; /* Để nội dung nổi trên overlay */
+    z-index: 1;
+}
+
+.hero-title {
+  font-family: 'Archivo Black', sans-serif; /* Hoặc var(--font-family-heading-main) */
+  font-size: clamp(2.5rem, 8vw, 5.5rem); /* Responsive font size */
+  font-weight: bold; /* Archivo Black đã đậm */
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  line-height: 1.1;
+  color: var(--color-dark); /* Hoặc #fff nếu nền tối */
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1); /* Bóng đổ nhẹ */
+}
+
+.hero-subtitle {
+  font-family: 'Cormorant Garamond', serif; /* Hoặc var(--font-family-accent) */
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
+  color: var(--color-text-muted); /* Hoặc #e0e0e0 nếu nền tối */
+  font-weight: 400; /* Cormorant Garamond thường mảnh */
+}
+.hero-cta-button {
+    font-family: var(--font-family-heading-sub); /* Oswald */
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 0.8rem 2rem;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+    border-width: 2px;
+    /* Điều chỉnh màu sắc nút cho phù hợp với nền */
+}
+.hero-cta-button:hover {
+    /* background-color: var(--color-dark) !important;
+    color: var(--color-background) !important; */
+}
+
+
+/* Separator Bar */
+.separator-bar {
+  height: 5px;
+  margin: 4rem 0; /* Khoảng cách trên dưới */
+  /* background-color: var(--color-dark); /* Đã có trong inline style */
+}
+
+/* New Arrivals Section / Common Section Styling */
+.new-arrivals-section, .featured-collection-section {
+  /* padding-top: 4rem;
+  padding-bottom: 4rem; */
+}
+
+.section-title {
+  font-family: var(--font-family-heading-main); /* Archivo Black */
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  text-transform: uppercase;
+  margin-bottom: 0.75rem !important;
+  letter-spacing: 0.5px;
+}
+
+.section-subtitle {
+  font-family: var(--font-family-monospace); /* Roboto Mono */
+  font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+  max-width: 700px;
+  line-height: 1.7;
+}
+.view-all-btn {
+    font-family: var(--font-family-heading-sub); /* Oswald */
+    text-transform: uppercase;
+    font-weight: 500;
+    padding: 0.75rem 2.5rem;
+    letter-spacing: 0.5px;
+}
+
+/* Featured Carousel Section */
+.featured-carousel-section {
+  /* Có thể thêm padding nếu Carousel không full-width */
+}

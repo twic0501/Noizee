@@ -1,0 +1,40 @@
+/* src/pages/CollectionsPage.css */
+.collections-page .collection-hero {
+  /* background-image: url('/images/banners/default-collection-banner.jpg'); */
+  background-color: var(--color-light);
+  background-size: cover;
+  background-position: center;
+  padding: 3rem 1rem; /* Tăng padding */
+  border-radius: 0.3rem;
+  margin-bottom: 2.5rem !important; /* Tăng margin bottom */
+  text-align: center;
+}
+
+.collections-page .collection-page-title {
+  font-family: var(--font-family-heading-main); /* Archivo Black */
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  color: var(--color-dark);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.collections-page .collection-hero-content p {
+    font-family: var(--font-family-monospace);
+    color: var(--color-text-muted);
+}
+
+
+.filter-sidebar-col {
+  /* Style cho cột filter nếu cần */
+}
+.product-grid-col {
+  /* Style cho cột sản phẩm */
+}
+
+.results-header {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.75rem;
+}
+.results-header .results-count {
+    font-family: var(--font-family-heading-sub);
+    font-weight: 500;
+}   

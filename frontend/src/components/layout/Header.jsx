@@ -1,98 +1,118 @@
 // src/components/layout/Header.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Navbar, Nav, Container, Button } from 'react-bootstrap';
+import { Navbar, Nav, Container, Button, Offcanvas } from 'react-bootstrap'; // Thêm Offcanvas
 import { useScrollPosition } from '../../hooks/useScrollPosition';
-import './Header.css'; // File CSS riêng cho Header
+import { useAuth } from '../../hooks/useAuth'; // Để kiểm tra đăng nhập
+import { useCart } from '../../hooks/useCart';   // Để lấy số lượng item trong giỏ
+import './Header.css';
 
-// Logo Placeholder (Thay bằng component/ảnh logo thật)
 const Logo = () => (
-    <Link to="/" className="navbar-brand logo-text"> {/* CSS: Add Archivo Black font */}
+    <Link to="/" className="navbar-brand logo-text" aria-label="Noizee Homepage">
         NOIZEE
     </Link>
 );
 
 function Header() {
     const location = useLocation();
-    const isScrolled = useScrollPosition(50); // Ngưỡng scroll để thay đổi header (vd: 50px)
+    const { isAuthenticated, userInfo } = useAuth(); // Lấy trạng thái đăng nhập
+    const { totalItems: cartItemCount } = useCart(); // Lấy số lượng item trong giỏ
 
-    // Kiểm tra xem có phải trang New Arrivals không
-    const isNewArrivalsPage = location.pathname === '/'; // Hoặc path khác nếu trang chủ là trang khác
+    const isScrolled = useScrollPosition(50);
+    const isHomePage = location.pathname === '/';
 
-    // State cho trạng thái header (trong suốt hoặc trắng)
-    const [isHeaderWhite, setIsHeaderWhite] = useState(!isNewArrivalsPage); // Mặc định trắng nếu ko phải trang chủ
-    // State cho việc hiển thị menubar (chỉ áp dụng cho trang New Arrivals)
-    const [showMenuBar, setShowMenuBar] = useState(!isNewArrivalsPage);
+    const [headerBackground, setHeaderBackground] = useState(isHomePage && !isScrolled ? 'header-transparent' : 'header-white');
+    const [showMenuText, setShowMenuText] = useState(isHomePage && !isScrolled ? false : true);
+    const [showOffcanvas, setShowOffcanvas] = useState(false); // State cho Offcanvas menu mobile
+
+    const handleCloseOffcanvas = () => setShowOffcanvas(false);
+    const handleShowOffcanvas = () => setShowOffcanvas(true);
 
     useEffect(() => {
-        if (isNewArrivalsPage) {
-            // Ở trang New Arrivals:
-            // - Header trắng và hiện menu khi cuộn xuống
-            // - Header trong suốt và ẩn menu khi ở trên cùng
-            setIsHeaderWhite(isScrolled);
-            setShowMenuBar(isScrolled);
+        if (isHomePage) {
+            setHeaderBackground(isScrolled ? 'header-white' : 'header-transparent');
+            setShowMenuText(isScrolled);
         } else {
-            // Ở các trang khác, header luôn trắng và hiện menu
-            setIsHeaderWhite(true);
-            setShowMenuBar(true);
+            setHeaderBackground('header-white');
+            setShowMenuText(true);
         }
-    }, [isScrolled, isNewArrivalsPage]);
+    }, [isScrolled, isHomePage, location.pathname]); // Thêm location.pathname để cập nhật khi chuyển trang
 
-    // Menu Items
     const menuItems = [
-        { path: "/", name: "New arrivals" },       // Trang chủ
-        { path: "/collections", name: "Collections" }, // Ánh xạ tới trang collections
+        { path: "/", name: "New arrivals", exact: true },
+        { path: "/collections", name: "Collections" },
         { path: "/accessories", name: "Accessories" },
-        { path: "/the-noizee", name: "The Noizee" },  // Ánh xạ tới trang The Noizee
-        // { path: "/about", name: "About us" }, // Xem xét lại mapping này
+        { path: "/the-noizee", name: "The Noizee" },
     ];
 
+    const navLinkClass = ({ isActive }) =>
+        `nav-link main-menu-link ${isActive ? 'active' : ''} ${!showMenuText && isHomePage ? 'text-transparent-strict' : ''}`;
+
+
     return (
-        <Navbar
-            expand="lg"
-            fixed="top" // Giữ header ở trên cùng
-            className={`
-                main-header
-                ${isHeaderWhite ? 'header-white' : 'header-transparent'}
-                ${showMenuBar ? 'menu-visible' : 'menu-hidden'}
-            `} /* CSS: Add transition effect */
-        >
-            <Container fluid className="header-container"> {/* CSS: Có thể cần custom container */}
-                {/* Logo bên trái */}
-                <Logo />
-
-                {/* Navbar Toggler for mobile */}
-                <Navbar.Toggle aria-controls="basic-navbar-nav" />
-
-                {/* Navbar Collapse */}
-                <Navbar.Collapse id="basic-navbar-nav">
-                    {/* Menu ở giữa (chỉ hiển thị khi showMenuBar là true) */}
-                    <Nav className={`mx-auto main-menu ${!showMenuBar && isNewArrivalsPage ? 'd-none' : ''}`}>
-                      {/* CSS: Thêm font Oswald, style active */}
-                      {menuItems.map(item => (
-                          <NavLink key={item.path} to={item.path} className="nav-link">
-                              {item.name}
-                          </NavLink>
-                      ))}
+        <>
+            <Navbar
+                expand="lg"
+                fixed="top"
+                className={`main-header ${headerBackground} ${showMenuText || !isHomePage ? 'menu-text-visible' : 'menu-text-hidden'}`}
+                variant={headerBackground === 'header-white' || showOffcanvas ? 'light' : 'dark'} // Đảm bảo variant đúng cho Offcanvas
+            >
+                <Container fluid className="header-container px-md-3 px-lg-5">
+                    <Logo />
+                    <Navbar.Toggle aria-controls="main-navbar-nav" onClick={handleShowOffcanvas} className="ms-auto me-2 d-lg-none custom-toggler"/>
+                    <Nav className={`mx-auto main-menu d-none d-lg-flex ${!showMenuText && isHomePage ? 'invisible-on-hero' : ''}`}>
+                        {menuItems.map(item => (
+                            <NavLink key={item.path} to={item.path} className={navLinkClass} end={item.exact}>
+                                {item.name}
+                            </NavLink>
+                        ))}
                     </Nav>
-
-                    {/* Icons bên phải */}
-                    <Nav className="header-icons"> {/* CSS: Style các icon */}
-                        <Nav.Link href="#search" title="Search"> {/* TODO: Implement search */}
+                    <Nav className="header-icons d-none d-lg-flex align-items-center">
+                        <Nav.Link href="#search" title="Search" className="header-icon-link p-0">
                             <i className="bi bi-search"></i>
                         </Nav.Link>
-                        <Nav.Link as={Link} to="/account" title="Account"> {/* TODO: Kiểm tra đăng nhập để link đến login/account */}
+                        <Nav.Link as={Link} to={isAuthenticated ? "/account" : "/login"} title={isAuthenticated ? (userInfo?.customer_name || "Tài khoản") : "Đăng nhập"} className="header-icon-link p-0">
                             <i className="bi bi-person"></i>
                         </Nav.Link>
-                        <Nav.Link as={Link} to="/cart" title="Cart">
-                            <i className="bi bi-cart3"></i>
-                            {/* TODO: Hiển thị số lượng item trong giỏ hàng */}
-                            {/* <span className="cart-count">0</span> */}
+                        <Nav.Link as={Link} to="/cart" title="Giỏ hàng" className="header-icon-link p-0 position-relative">
+                            <i className="bi bi-bag"></i>
+                            {cartItemCount > 0 && (
+                                <Badge pill bg="danger" className="cart-count-badge">
+                                    {cartItemCount}
+                                </Badge>
+                            )}
                         </Nav.Link>
                     </Nav>
-                </Navbar.Collapse>
-            </Container>
-        </Navbar>
+                </Container>
+            </Navbar>
+
+            {/* Offcanvas Menu for Mobile */}
+            <Offcanvas show={showOffcanvas} onHide={handleCloseOffcanvas} placement="end" className="mobile-offcanvas">
+                <Offcanvas.Header closeButton>
+                    <Offcanvas.Title><Logo /></Offcanvas.Title>
+                </Offcanvas.Header>
+                <Offcanvas.Body className="d-flex flex-column">
+                    <Nav className="flex-column mobile-main-menu mb-auto">
+                        {menuItems.map(item => (
+                            <NavLink key={`mobile-${item.path}`} to={item.path} className="nav-link mobile-menu-link" onClick={handleCloseOffcanvas} end={item.exact}>
+                                {item.name}
+                            </NavLink>
+                        ))}
+                    </Nav>
+                    <Nav className="flex-column mobile-icon-menu mt-3">
+                         <Nav.Link as={Link} to={isAuthenticated ? "/account" : "/login"} className="nav-link mobile-icon-link" onClick={handleCloseOffcanvas}>
+                            <i className="bi bi-person me-2"></i>{isAuthenticated ? (userInfo?.customer_name || "Tài khoản") : "Đăng nhập / Đăng ký"}
+                        </Nav.Link>
+                        <Nav.Link as={Link} to="/cart" className="nav-link mobile-icon-link" onClick={handleCloseOffcanvas}>
+                            <i className="bi bi-bag me-2"></i>Giỏ hàng {cartItemCount > 0 && `(${cartItemCount})`}
+                        </Nav.Link>
+                        <Nav.Link href="#search" className="nav-link mobile-icon-link" onClick={handleCloseOffcanvas}>
+                            <i className="bi bi-search me-2"></i>Tìm kiếm
+                        </Nav.Link>
+                    </Nav>
+                </Offcanvas.Body>
+            </Offcanvas>
+        </>
     );
 }
 
