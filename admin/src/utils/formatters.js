@@ -50,7 +50,23 @@ export const formatDate = (dateInput, fallback = 'N/A') => {
     return fallback;
   }
 };
+export const getLocalizedField = (item, fieldPrefix, lang = 'vi', fallbackLang = 'vi') => {
+    if (!item) return '';
+    const langField = `<span class="math-inline">\{fieldPrefix\}\_</span>{lang}`;
+    const fallbackField = `<span class="math-inline">\{fieldPrefix\}\_</span>{fallbackLang}`;
 
+    if (item[langField] !== null && item[langField] !== undefined && item[langField] !== '') {
+        return item[langField];
+    }
+    if (item[fallbackField] !== null && item[fallbackField] !== undefined && item[fallbackField] !== '') {
+        return item[fallbackField];
+    }
+    // Nếu cả hai đều không có, thử tìm trường gốc không có hậu tố (nếu có)
+    if (item[fieldPrefix] !== null && item[fieldPrefix] !== undefined) {
+         return item[fieldPrefix];
+    }
+    return ''; // Hoặc 'N/A'
+};
 // Định dạng ngày giờ đầy đủ (ví dụ: 14:52:01, 25/04/2025)
 export const formatDateTime = (dateTimeInput, fallback = 'N/A') => {
     const date = parseDateTimeSafe(dateTimeInput);

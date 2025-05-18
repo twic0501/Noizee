@@ -1,7 +1,7 @@
+// src/api/mutations/authMutations.js
 import { gql } from '@apollo/client';
 
-
-export const LOGIN_ADMIN_MUTATION = gql`
+export const ADMIN_LOGIN_MUTATION = gql` 
   mutation LoginAdmin($identifier: String!, $password: String!) {
     login(identifier: $identifier, customer_password: $password) {
       token
@@ -13,4 +13,3 @@ export const LOGIN_ADMIN_MUTATION = gql`
     }
   }
 `;
-

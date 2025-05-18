@@ -1,69 +1,71 @@
-// models/index.js (ĐÃ REFACTOR HOÀN TOÀN)
+// backend/models/index.js
 'use strict';
 
-const fs = require('fs');             // Module xử lý file system
-const path = require('path');           // Module xử lý đường dẫn
+const fs = require('fs');
+const path = require('path');
 const Sequelize = require('sequelize'); // Class Sequelize
-const basename = path.basename(__filename); // Tên file hiện tại (index.js)
-const db = {};                       // Object để chứa các model và instance sequelize
+const process = require('process'); // Để truy cập process.env
+const basename = path.basename(__filename);
+const logger = require('../utils/logger'); // Giả sử bạn có logger ở utils
+
+const db = {};
 
 // Import sequelize instance đã được cấu hình từ config/db.js
-const { sequelize } = require('../config/db'); //
+// Đây là instance đã kết nối và cấu hình với database của bạn.
+const { sequelize } = require('../config/db'); // Đảm bảo đường dẫn này chính xác
 
-// Kiểm tra xem sequelize instance có tồn tại không
 if (!sequelize) {
-  console.error("FATAL ERROR: Sequelize instance not imported from config/db.js");
+  logger.error("FATAL ERROR: Sequelize instance not properly imported from config/db.js. Check config/db.js export.");
   process.exit(1);
 }
 
-console.log('[models/index.js] Loading model files...'); //
+logger.info('[models/index.js] Starting to load model files...');
 
-// Đọc tất cả các file trong thư mục hiện tại (__dirname là models)
 fs
   .readdirSync(__dirname)
-  // Lọc ra các file JavaScript, không phải là file ẩn, không phải là index.js, và không phải file test
   .filter(file => {
     return (
-      file.indexOf('.') !== 0 &&         // Không phải file ẩn
-      file !== basename &&               // Không phải là index.js
-      file.slice(-3) === '.js' &&        // Là file .js
-      file.indexOf('.test.js') === -1    // Không phải file test
+      file.indexOf('.') !== 0 &&         // Không phải file ẩn (bắt đầu bằng '.')
+      file !== basename &&               // Không phải chính file index.js này
+      file.slice(-3) === '.js' &&        // Phải là file JavaScript
+      file.indexOf('.test.js') === -1    // Loại trừ các file test (nếu có)
     );
   })
-  // Duyệt qua từng file model tìm được
   .forEach(file => {
     try {
-      // Import model definition function từ file
-      // Hàm này nhận (sequelize, DataTypes) làm tham số
+      // Import mỗi file model.
+      // Hàm require trả về một function (được export từ mỗi file model),
+      // sau đó gọi function đó với (sequelize, Sequelize.DataTypes).
       const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
-      // Nếu import thành công và trả về một model hợp lệ (có name)
-      if (model && model.name) {
-        db[model.name] = model; // Thêm model vào db object với key là tên model
+      if (model && model.name) { // Kiểm tra xem model có được định nghĩa hợp lệ không
+        db[model.name] = model; // Thêm model vào db object (ví dụ: db.Product, db.Customer)
+        // logger.debug(`[models/index.js] Successfully loaded model: ${model.name} from ${file}`);
       } else {
-         console.warn(`[models/index.js] Warning: File ${file} did not export a valid Sequelize model.`);
+         logger.warn(`[models/index.js] Warning: File ${file} did not export a valid Sequelize model or model.name is missing.`);
       }
     } catch (error) {
-       console.error(`[models/index.js] Error loading model file ${file}:`, error); // Log lỗi nếu không import được model
+       logger.error(`[models/index.js] Error loading model file ${file}:`, error.message);
+       // Log thêm stack trace nếu ở development để dễ debug
+       if (process.env.NODE_ENV === 'development') {
+           logger.error(error.stack);
+       }
     }
-  }); //
+  });
 
-console.log('[models/index.js] Finished loading model files. Loaded models:', Object.keys(db).join(', ')); // Log các model đã load
+logger.info(`[models/index.js] Finished loading model files. Loaded models: ${Object.keys(db).join(', ')}`);
 
-console.log('[models/index.js] Associating models...'); //
-
-// Sau khi tất cả các model đã được import và thêm vào db object,
-// duyệt qua từng model và gọi hàm `associate` của nó (nếu có)
-// Hàm associate dùng để định nghĩa các mối quan hệ giữa các model
+logger.info('[models/index.js] Associating models...');
 Object.keys(db).forEach(modelName => {
-  if (db[modelName].associate) { // Kiểm tra xem model có hàm associate không
-    db[modelName].associate(db); // Gọi hàm associate và truyền vào db object (chứa tất cả các model khác)
+  if (db[modelName].associate) {
+    // Gọi hàm associate của mỗi model (nếu có) để thiết lập các mối quan hệ
+    db[modelName].associate(db); // Truyền toàn bộ db object (chứa tất cả các model) vào hàm associate
+    // logger.debug(`[models/index.js] Called associate for model: ${modelName}`);
   }
-}); //
+});
+logger.info('[models/index.js] Finished model associations.');
 
-console.log('[models/index.js] Finished model associations.'); //
+// Gắn sequelize instance và class Sequelize vào db object để tiện truy cập từ các nơi khác
+db.sequelize = sequelize;
+db.Sequelize = Sequelize;
 
-// Gắn sequelize instance và Sequelize class vào db object để tiện sử dụng ở nơi khác
-db.sequelize = sequelize; //
-db.Sequelize = Sequelize; //
-
-module.exports = db; // Export db object chứa các model và sequelize
+module.exports = db; // Export db object chứa tất cả các model và sequelize instance

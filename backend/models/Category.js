@@ -1,4 +1,4 @@
-// models/Category.js
+// backend/models/Category.js
 module.exports = (sequelize, DataTypes) => {
     const Category = sequelize.define('Category', {
         category_id: {
@@ -6,24 +6,27 @@ module.exports = (sequelize, DataTypes) => {
             autoIncrement: true,
             primaryKey: true
         },
-        category_name: {
+        category_name_vi: {
             type: DataTypes.STRING(50),
             allowNull: false,
-            unique: true // Đảm bảo tên category không trùng lặp
+            unique: true,
+            comment: 'Tên loại sản phẩm (Tiếng Việt)'
+        },
+        category_name_en: {
+            type: DataTypes.STRING(50),
+            allowNull: true,
+            unique: true,
+            comment: 'Tên loại sản phẩm (Tiếng Anh)'
         }
     }, {
-        tableName: 'Categories', // Chỉ định rõ tên bảng trong database
-        timestamps: false // Không sử dụng createdAt và updatedAt
-    }); //
+        tableName: 'Categories',
+        timestamps: false,
+        comment: 'Bảng lưu các loại sản phẩm (Đa ngôn ngữ)'
+    });
 
-    // Định nghĩa mối quan hệ (Association)
-    Category.associate = (models) => {
-        // Một Category có thể có nhiều Product (One-to-Many)
-        Category.hasMany(models.Product, {
-            foreignKey: 'category_id', // Khóa ngoại trong bảng Products
-            as: 'products'            // Bí danh khi truy vấn include
-        }); //
-    };
+    // Category.associate = (models) => {
+    //     // Associations được định nghĩa trong config/db.js
+    // };
 
     return Category;
 };

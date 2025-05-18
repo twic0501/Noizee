@@ -1,49 +1,47 @@
-// models/SalesHistory.js (Đã thêm Association)
+// backend/models/SalesHistory.js
 module.exports = (sequelize, DataTypes) => {
     const SalesHistory = sequelize.define('SalesHistory', {
-        history_id: { // Khóa chính tự tăng
+        history_id: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
             primaryKey: true
         },
-        sale_id: { // Khóa ngoại đến Sales
+        sale_id: {
             type: DataTypes.INTEGER,
-            allowNull: false, // Nên NOT NULL
-            references: {
-                model: 'Sales', // Tham chiếu đến bảng Sales
-                key: 'sale_id'
-            },
-            onDelete: 'CASCADE', // Quan trọng: Nếu Sale bị xóa, lịch sử cũng bị xóa
-            onUpdate: 'CASCADE'
-        },
-        history_date: { // Dùng DATETIME để lưu cả ngày và giờ
-            type: DataTypes.DATE, // Kiểu DATE của Sequelize tương ứng DATETIME/TIMESTAMP SQL
             allowNull: false,
-            defaultValue: DataTypes.NOW // Tự động lấy giờ hiện tại khi tạo
+            references: {
+                model: 'Sales',
+                key: 'sale_id'
+            }
         },
-        history_status: { // Trạng thái tại thời điểm đó
+        history_date: {
+            type: DataTypes.DATE,
+            allowNull: false,
+            defaultValue: DataTypes.NOW
+        },
+        history_status: {
             type: DataTypes.STRING(50),
-            allowNull: false
+            allowNull: false,
+            comment: 'Trạng thái tại thời điểm ghi lịch sử'
         },
-        history_notes: { // Ghi chú thêm (ví dụ: lý do hủy, người cập nhật)
+        history_notes: {
             type: DataTypes.TEXT,
-            allowNull: true
+            allowNull: true,
+            comment: 'Ghi chú cho lần thay đổi trạng thái'
         }
     }, {
-        tableName: 'SalesHistory', // Tên bảng
-        timestamps: false, // Không dùng timestamps của Sequelize vì đã có history_date
-        indexes: [ // Đảm bảo có index trên sale_id để tăng tốc truy vấn lịch sử của 1 đơn hàng
-            { fields: ['sale_id'] }
-        ]
-    }); //
+        tableName: 'SalesHistory',
+        timestamps: false, // history_date đã có, không cần timestamps của Sequelize
+        comment: 'Bảng lưu lịch sử thay đổi trạng thái đơn hàng'
+    });
 
-    // --- Định nghĩa Associations ---
     SalesHistory.associate = (models) => {
-        // Một SalesHistory thuộc về một Sale (Many-to-One)
         SalesHistory.belongsTo(models.Sale, {
-            foreignKey: 'sale_id', // Khóa ngoại trong SalesHistory
-            as: 'sale' // Alias khi include Sale từ SalesHistory
-        }); //
+            foreignKey: 'sale_id',
+            as: 'sale',
+            onDelete: 'CASCADE',
+            onUpdate: 'CASCADE'
+        });
     };
 
     return SalesHistory;

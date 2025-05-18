@@ -11,38 +11,41 @@ const typeDefs = require('./graphql/typeDefs');
 const resolvers = require('./graphql/resolvers');
 const logger = require('./utils/logger');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorMiddleware');
-
-// >>> SỬA Ở ĐÂY: Import db từ models/index.js <<<
-const db = require('./models'); // Đây là đối tượng db đã được models/index.js xử lý
-const sequelize = db.sequelize; // Lấy sequelize instance từ db object này
-const Customer = db.Customer; // Lấy model Customer (ví dụ)
+const { db, sequelize } = require('./config/db');
 
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const saleRoutes = require('./routes/saleRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 
-// Hàm verifyToken của bạn
-const verifyToken = (token) => {
-    if (!token || !process.env.JWT_SECRET) {
-        // logger.debug('[verifyToken] No token or JWT_SECRET missing');
+const verifyToken = (tokenToVerify) => {
+    if (!tokenToVerify) {
+        return null;
+    }
+    if (!process.env.JWT_SECRET) {
+        logger.error("[verifyToken] FATAL ERROR: JWT_SECRET is not defined in .env file!");
         return null;
     }
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // Quan trọng: Đảm bảo payload của token khi được tạo có dạng { user: { id: ..., isAdmin: ... } }
-        // Hoặc nếu payload của bạn trực tiếp chứa id, isAdmin thì return decoded;
-        // Dựa trên generateToken của bạn, nó sẽ là decoded.user
-        return decoded.user || null; // Nếu không có decoded.user thì có thể là token không đúng định dạng
+        const decoded = jwt.verify(tokenToVerify, process.env.JWT_SECRET);
+        return decoded.user || null;
     } catch (err) {
-        //logger.warn(`[verifyToken] Token verification failed: ${err.message}`);
+        console.error("!!! DEBUG: Token Verification Error Details !!!");
+        console.error("Error Name:", err.name);
+        console.error("Error Message:", err.message);
+        console.error("Token (first 20 chars):", tokenToVerify.substring(0, 20) + '...');
+        logger.warn('[verifyToken] Token verification failed:', {
+            errorName: err.name,
+            errorMessage: err.message,
+            tokenAttempted: tokenToVerify.substring(0, 20) + '...'
+        });
         return null;
     }
 };
 
 async function createApp() {
     const app = express();
-    app.use(cors()); // Cân nhắc cấu hình chặt chẽ hơn cho production
+    app.use(cors());
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
     app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
@@ -58,18 +61,20 @@ async function createApp() {
     app.use('/api/products', productRoutes);
     app.use('/api/uploads', uploadRoutes);
     app.use('/api/sales', saleRoutes);
+    console.log("!!! DEBUG: JWT_SECRET from process.env in app.js:", process.env.JWT_SECRET);
 
     const server = new ApolloServer({
         typeDefs,
         resolvers,
         introspection: process.env.NODE_ENV !== 'production',
-        formatError: (formattedError, error) => { // Tùy chọn: custom format error để log rõ hơn
+        formatError: (formattedError, error) => {
             logger.error("GraphQL Execution Error:", {
                 message: formattedError.message,
                 locations: formattedError.locations,
                 path: formattedError.path,
                 extensions: formattedError.extensions,
-                originalError: error?.originalError // Log lỗi gốc nếu có
+                originalErrorName: error?.originalError?.name,
+                originalErrorMessage: error?.originalError?.message,
             });
             return formattedError;
         }
@@ -77,58 +82,82 @@ async function createApp() {
 
     await server.start();
     logger.info('Apollo Server for backend has started.');
-
+    
     const graphqlPath = process.env.GRAPHQL_PATH || '/graphql';
     app.use(
         graphqlPath,
-        cors(), // Đảm bảo cors cho GraphQL endpoint
+        cors(),
         express.json(),
         expressMiddleware(server, {
             context: async ({ req }) => {
                 let userForContext = null;
                 const authHeader = req.headers.authorization || '';
-                const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
-                const decodedPayload = verifyToken(token); 
+                
+                // Khởi tạo token, giá trị sẽ được gán nếu header hợp lệ
+                let token = null; 
 
-                if (decodedPayload && decodedPayload.id) {
-                    try {
-                        // Lấy thông tin user TƯƠI từ DB để đảm bảo quyền là mới nhất
-                        const dbUser = await Customer.findByPk(decodedPayload.id, {
-                            attributes: ['customer_id', 'username', 'isAdmin', 'customer_name', 'customer_email', 'virtual_balance']
-                        });
-
-                        if (dbUser) {
-                            // Xây dựng object user cho context, đảm bảo có isAdmin
-                            userForContext = {
-                                id: dbUser.customer_id,
-                                username: dbUser.username,
-                                isAdmin: dbUser.isAdmin, // <<<< GIÁ TRỊ NÀY PHẢI LÀ BOOLEAN true TỪ DB
-                                name: dbUser.customer_name,
-                                email: dbUser.customer_email,
-                                virtual_balance: dbUser.virtual_balance
-                            };
-                            // console.log('[Backend Apollo Context] User populated for context:', userForContext);
-                        } else {
-                            logger.warn(`[Backend Apollo Context] User ID ${decodedPayload.id} from token not found in DB.`);
-                        }
-                    } catch (dbError) {
-                        logger.error(`[Backend Apollo Context] DB Error fetching user ${decodedPayload.id}:`, dbError);
-                    }
-                } else if (token) { // Có token nhưng không giải mã được hoặc payload không hợp lệ
-                    logger.warn('[Backend Apollo Context] Token provided but payload was invalid or missing expected fields (like id). Decoded:', decodedPayload);
+                if (authHeader.startsWith('Bearer ')) {
+                    token = authHeader.substring(7); // Lấy token
+                    // logger.debug('[Apollo Context] Token extracted from Authorization header:', token.substring(0, 20) + '...');
+                } else if (authHeader) { // Nếu có authHeader nhưng không phải Bearer
+                    logger.warn('[Apollo Context] Authorization header found, but not a Bearer token.');
                 }
-                // Truyền db và sequelize instance vào context nếu các resolver của bạn cần
-                return { user: userForContext, db, sequelize };
+
+                // Chỉ gọi verifyToken một lần
+                const decodedUserFromToken = verifyToken(token);
+                // logger.debug('[Apollo Context] Decoded user payload from verifyToken:', decodedUserFromToken);
+
+                if (decodedUserFromToken && decodedUserFromToken.id) {
+                    // logger.debug(`[Apollo Context] Valid user payload from token. User ID: ${decodedUserFromToken.id}, isAdmin from token: ${decodedUserFromToken.isAdmin}`);
+                    if (db && db.Customer) { // Kiểm tra db.Customer trước khi sử dụng
+                        try {
+                            const dbUser = await db.Customer.findByPk(decodedUserFromToken.id, {
+                                attributes: ['customer_id', 'username', 'isAdmin', 'customer_name', 'customer_email', 'virtual_balance']
+                            });
+
+                            if (dbUser) {
+                                // logger.debug(`[Apollo Context] User found in DB. DB isAdmin: ${dbUser.isAdmin}, DB User data:`, dbUser.toJSON());
+                                userForContext = {
+                                    id: dbUser.customer_id,
+                                    username: dbUser.username,
+                                    isAdmin: dbUser.isAdmin, // Đảm bảo đây là boolean từ DB
+                                    name: dbUser.customer_name,
+                                    email: dbUser.customer_email,
+                                    virtual_balance: dbUser.virtual_balance
+                                };
+                                // logger.debug('[Apollo Context] User object constructed for context:', userForContext);
+                            } else {
+                                logger.warn(`[Apollo Context] User ID ${decodedUserFromToken.id} from token NOT FOUND in DB.`);
+                            }
+                        } catch (dbError) {
+                            logger.error(`[Apollo Context] DB Error fetching user by ID ${decodedUserFromToken.id}:`, dbError);
+                        }
+                    } else {
+                        logger.error("[Apollo Context] db.Customer model is not available. Check model loading in models/index.js.");
+                    }
+                } else if (token) { // Nếu có token nhưng verify không thành công hoặc payload không hợp lệ
+                    logger.warn('[Backend Apollo Context] Token provided but payload was invalid or missing expected fields (like id). Decoded from token attempt:', decodedUserFromToken);
+                }
+
+                let lang = 'vi'; // Ngôn ngữ mặc định
+                // Ưu tiên lấy lang từ query param nếu có và hợp lệ
+                if (req.query.lang && ['vi', 'en'].includes(req.query.lang)) {
+                    lang = req.query.lang;
+                } else if (req.headers['accept-language']) { // Sau đó thử lấy từ header
+                    const acceptedLangs = req.headers['accept-language'].split(',');
+                    if (acceptedLangs[0].startsWith('en')) lang = 'en';
+                    // Bạn có thể thêm logic phức tạp hơn để xử lý accept-language nếu cần
+                }
+                // logger.debug(`[Apollo Context] Language set to: ${lang}`);
+                
+                return { user: userForContext, db, sequelize, lang };
             },
         })
     );
 
-    app.get('/', (req, res) => {
-        res.send('API Server is running. GraphQL available at ' + graphqlPath);
-    });
-
+    app.get('/', (req, res) => res.send(`API Server is running. GraphQL available at ${graphqlPath}`));
     app.use(notFoundHandler);
-    app.use(errorHandler); // Middleware xử lý lỗi phải ở cuối cùng
+    app.use(errorHandler);
     return app;
 }
 

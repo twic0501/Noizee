@@ -1,15 +1,19 @@
-import React from 'react';
-import AppRoutes from './routes/index.jsx'; // Import cấu hình routes
+    // admin-frontend/src/App.jsx
+    import React from 'react';
+    import AppRoutes from './routes'; // Đảm bảo đường dẫn đúng (thường là './routes/index.jsx')
 
-function App() {
-  // Component App có thể chứa các logic toàn cục khác nếu cần,
-  // nhưng thường chỉ render Routes là đủ cho trang admin này.
-  return (
-    <>
-      {/* Render bộ định tuyến */}
-      <AppRoutes />
-    </>
-  );
-}
+    // Import CSS toàn cục ở đây hoặc trong main.jsx
+    // import 'bootstrap/dist/css/bootstrap.min.css';
+    // import 'bootstrap-icons/font/bootstrap-icons.css';
+    // import './styles/index.css'; // Nếu có file styles/index.css
 
-export default App;
+    function App() {
+      return (
+        <>
+          <AppRoutes />
+        </>
+      );
+    }
+
+    export default App;
+    

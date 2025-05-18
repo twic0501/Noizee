@@ -1,24 +1,38 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom'; // Outlet để render các route con
-import Sidebar from './Sidebar';
-import AdminNavbar from './Navbar';
-import './Layout.css' // Import CSS cho layout
+    // admin-frontend/src/components/layout/AdminLayout.jsx
+    import React, { useState } from 'react';
+    import { Outlet } from 'react-router-dom';
+    import Sidebar from './Sidebar';        // Đảm bảo Sidebar.jsx đã được cập nhật
+    import AdminNavbar from './AdminNavbar';  // Đảm bảo AdminNavbar.jsx đã được cập nhật
+    import './Layout.css';                 // Import CSS cho layout
 
-function AdminLayout() {
-    return (
-        <div className="d-flex"> {/* Sử dụng flexbox để xếp sidebar và content */}
-            <div style={{ minWidth: '250px' }}> {/* Đặt chiều rộng cố định hoặc tùy chỉnh cho sidebar */}
-               <Sidebar />
-            </div>
-            <div className="flex-grow-1"> {/* Phần content chiếm phần còn lại */}
-                <AdminNavbar />
-                <main className="p-3"> {/* Padding cho content area */}
-                    <Outlet /> {/* Đây là nơi các component Page sẽ được render */}
-                </main>
-                {/* <Footer /> */} {/* Optional Footer */}
-            </div>
-        </div>
-    );
-}
+    function AdminLayout() {
+        const [isSidebarToggled, setIsSidebarToggled] = useState(false);
 
-export default AdminLayout;
+        const toggleSidebar = () => {
+            setIsSidebarToggled(!isSidebarToggled);
+        };
+
+        return (
+            <div className={`admin-layout-wrapper ${isSidebarToggled ? 'sidebar-toggled' : ''}`}> {/* Class để CSS có thể bắt */}
+                <div className="sidebar-container"> {/* Container cho Sidebar */}
+                    <Sidebar />
+                </div>
+                <div className="content-container"> {/* Container cho Navbar và Content chính */}
+                    <AdminNavbar 
+                        onToggleSidebar={toggleSidebar} 
+                        isSidebarToggled={isSidebarToggled} 
+                    />
+                    <main className="main-content-area p-3 p-md-4"> {/* Padding cho nội dung chính */}
+                        <Outlet /> {/* Nơi các component của Route con sẽ được render */}
+                    </main>
+                    {/* <footer className="admin-footer bg-light p-3 text-center mt-auto border-top">
+                        <small>&copy; {new Date().getFullYear()} Your Admin Panel. All rights reserved.</small>
+                    </footer> 
+                    */}
+                </div>
+            </div>
+        );
+    }
+
+    export default AdminLayout;
+    

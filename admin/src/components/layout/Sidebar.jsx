@@ -1,25 +1,22 @@
+// admin-frontend/src/components/layout/Sidebar.jsx
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom'; // Dùng NavLink để active state
-import { Nav, Collapse } from 'react-bootstrap'; // Sử dụng component của React Bootstrap nếu đã cài đặt, hoặc dùng class CSS thường
-import 'bootstrap-icons/font/bootstrap-icons.css'; // Import CSS của Bootstrap Icons
+import { NavLink } from 'react-router-dom';
+import { Nav, Collapse } from 'react-bootstrap';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 function Sidebar() {
-    // State để quản lý việc mở/đóng submenu (ví dụ cho Products)
     const [openProducts, setOpenProducts] = useState(false);
     const [openMarketing, setOpenMarketing] = useState(false);
-    // Thêm state cho các menu khác nếu cần
+    const [openBlog, setOpenBlog] = useState(false); // State cho menu Blog
 
-    // Hàm kiểm tra active cho NavLink để bao gồm cả route con
     const checkActive = (match, location, path) => {
         if (!location) return false;
-        // Active nếu path là chính xác hoặc là cha của location hiện tại
         return location.pathname === path || location.pathname.startsWith(path + '/');
     };
 
     return (
-        <Nav className="flex-column bg-dark vh-100 p-3 sidebar" id="sidebar"> {/* Thêm id và class tùy chỉnh nếu cần */}
+        <Nav className="flex-column bg-dark vh-100 p-3 sidebar" id="sidebar">
             <Nav.Item className="mb-2 text-white">
-                {/* Có thể thêm logo hoặc tên cửa hàng ở đây */}
                 <h4>Admin Panel</h4>
             </Nav.Item>
             <hr className="text-secondary" />
@@ -33,7 +30,7 @@ function Sidebar() {
                 </NavLink>
             </Nav.Item>
 
-            {/* Menu Products với Submenu */}
+            {/* Menu Products */}
             <Nav.Item>
                 <Nav.Link
                     onClick={() => setOpenProducts(!openProducts)}
@@ -69,6 +66,38 @@ function Sidebar() {
                 </Collapse>
             </Nav.Item>
 
+            {/* === THÊM MENU BLOG === */}
+            <Nav.Item>
+                <Nav.Link
+                    onClick={() => setOpenBlog(!openBlog)}
+                    aria-controls="blog-collapse-menu"
+                    aria-expanded={openBlog}
+                    className="text-white d-flex justify-content-between align-items-center"
+                    style={{ cursor: 'pointer' }}
+                >
+                    <span><i className="bi bi-pencil-square me-2"></i> Blog</span>
+                    <i className={`bi bi-chevron-${openBlog ? 'down' : 'right'}`}></i>
+                </Nav.Link>
+                <Collapse in={openBlog}>
+                    <div id="blog-collapse-menu" className="ms-3">
+                        <NavLink to="/blog/posts" className={({ isActive, location }) => "nav-link text-white-50" + (checkActive(isActive, location, '/blog/posts') ? " active fw-bold text-white" : "")}>
+                            All Posts
+                        </NavLink>
+                        <NavLink to="/blog/posts/new" className={({ isActive }) => "nav-link text-white-50" + (isActive ? " active fw-bold text-white" : "")}>
+                            Add New Post
+                        </NavLink>
+                        <NavLink to="/blog/tags" className={({ isActive, location }) => "nav-link text-white-50" + (checkActive(isActive, location, '/blog/tags') ? " active fw-bold text-white" : "")}>
+                            Tags
+                        </NavLink>
+                        <NavLink to="/blog/comments" className={({ isActive, location }) => "nav-link text-white-50" + (checkActive(isActive, location, '/blog/comments') ? " active fw-bold text-white" : "")}>
+                            Comments
+                        </NavLink>
+                    </div>
+                </Collapse>
+            </Nav.Item>
+            {/* === KẾT THÚC MENU BLOG === */}
+
+
             <Nav.Item>
                 <NavLink
                     to="/orders"
@@ -87,7 +116,6 @@ function Sidebar() {
                 </NavLink>
             </Nav.Item>
 
-            {/* Menu Marketing với Submenu (Placeholder) */}
             <Nav.Item>
                 <Nav.Link
                     onClick={() => setOpenMarketing(!openMarketing)}
@@ -110,7 +138,6 @@ function Sidebar() {
                     </div>
                 </Collapse>
             </Nav.Item>
-            {/* Thêm các mục menu khác ở đây (Settings, etc.) */}
         </Nav>
     );
 }

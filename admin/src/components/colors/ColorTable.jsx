@@ -1,96 +1,74 @@
-import React, { useState } from 'react';
-import { Table, Button, Badge } from 'react-bootstrap';
-import ModalConfirm from '../common/ModalConfirm'; // Import ModalConfirm
+// admin-frontend/src/components/colors/ColorTable.jsx
+import React from 'react';
+import { Table, Button } from 'react-bootstrap';
+// ADMIN_LANGUAGE_KEY không cần thiết nếu tên màu không dịch
 
-// Component hiển thị bảng danh sách màu sắc
-function ColorTable({ colors = [], onEdit, onDelete }) { // Nhận hàm xử lý Edit, Delete
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [itemToDelete, setItemToDelete] = useState(null);
-
-    const openDeleteConfirm = (item) => {
-        setItemToDelete(item); // Lưu cả object vào state nội bộ của ColorTable
-        setShowDeleteModal(true);
-    };
-
-    const closeDeleteModal = () => {
-        setItemToDelete(null);
-        setShowDeleteModal(false);
-    };
-
-    const confirmDelete = () => {
-        if (itemToDelete && onDelete) {
-            // Truyền toàn bộ object lên component cha (ColorListPage)
-            onDelete(itemToDelete);
-        }
-        closeDeleteModal();
-    };
+function ColorTable({ colors = [], onEdit, onDelete }) {
+    // const currentAdminLang = localStorage.getItem(ADMIN_LANGUAGE_KEY) || 'vi'; // Không cần thiết
 
     if (!colors || colors.length === 0) {
-        return <p>No colors found.</p>;
+        return <p className="text-center text-muted my-3">Không tìm thấy màu sắc nào.</p>;
     }
 
     return (
-        <>
-            <Table striped bordered hover responsive size="sm">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Preview</th>
-                        <th>Name</th>
-                        <th>Hex Code</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {colors.map((color) => (
+        <Table striped bordered hover responsive size="sm" className="shadow-sm">
+            <thead className="table-light">
+                <tr>
+                    <th>ID</th>
+                    <th style={{ width: '100px', textAlign: 'center' }}>Xem trước</th>
+                    <th>Tên Màu</th> {/* Chỉ hiển thị Tên Màu */}
+                    <th>Mã Hex</th>
+                    <th style={{ width: '120px' }} className="text-center">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {colors.map((color) => {
+                    // Hiển thị color.color_name trực tiếp
+                    const displayName = color.color_name; 
+                    // Hoặc nếu query trả về trường ảo `name`: const displayName = color.name || color.color_name;
+
+
+                    return (
                         <tr key={color.color_id}>
                             <td>{color.color_id}</td>
-                            <td>
-                                <Badge pill bg="light" text="dark" className="border">
-                                    <span style={{
-                                        display: 'inline-block', width: '15px', height: '15px',
-                                        borderRadius: '50%', backgroundColor: color.color_hex || '#ccc',
-                                        verticalAlign: 'middle', border: '1px solid #eee'
-                                    }}></span>
-                                </Badge>
+                            <td style={{ textAlign: 'center' }}>
+                                <div style={{
+                                    display: 'inline-block',
+                                    width: '24px',
+                                    height: '24px',
+                                    borderRadius: '50%',
+                                    backgroundColor: color.color_hex && /^#([0-9A-F]{3}){1,2}$/i.test(color.color_hex) ? color.color_hex : '#E0E0E0',
+                                    border: '1px solid #BDBDBD',
+                                    verticalAlign: 'middle'
+                                }} title={color.color_hex || 'Màu không hợp lệ'}>
+                                </div>
                             </td>
-                            <td>{color.color_name}</td>
-                            <td>{color.color_hex || 'N/A'}</td>
-                            <td>
+                            <td>{displayName}</td> {/* Hiển thị tên đã xử lý */}
+                            <td>{color.color_hex ? color.color_hex.toUpperCase() : 'N/A'}</td>
+                            <td className="text-center">
                                 <Button
                                     variant="outline-primary"
                                     size="sm"
-                                    className="me-1"
-                                    onClick={() => onEdit(color)} // Truyền cả object color
-                                    title="Edit"
+                                    className="me-2"
+                                    onClick={() => onEdit(color)} // color object giờ sẽ có color_name
+                                    title="Sửa"
                                 >
                                     <i className="bi bi-pencil-fill"></i>
                                 </Button>
                                 <Button
                                     variant="outline-danger"
                                     size="sm"
-                                    onClick={() => openDeleteConfirm(color)} // Mở modal và lưu cả object color
-                                    title="Delete"
+                                    onClick={() => onDelete(color)}
+                                    title="Xóa"
                                 >
                                     <i className="bi bi-trash-fill"></i>
                                 </Button>
                             </td>
                         </tr>
-                    ))}
-                </tbody>
-            </Table>
-
-            {/* Modal Xác nhận Xóa */}
-            <ModalConfirm
-                show={showDeleteModal}
-                handleClose={closeDeleteModal}
-                handleConfirm={confirmDelete} // Hàm này giờ sẽ gọi onDelete với cả object
-                title="Confirm Deletion"
-                body={`Are you sure you want to delete color "${itemToDelete?.color_name}"?`}
-                confirmButtonText="Delete"
-                confirmButtonVariant="danger"
-            />
-        </>
+                    );
+                })}
+            </tbody>
+        </Table>
     );
 }
 

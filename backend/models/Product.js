@@ -1,4 +1,4 @@
-// models/Product.js
+// backend/models/Product.js
 module.exports = (sequelize, DataTypes) => {
     const Product = sequelize.define('Product', {
         product_id: {
@@ -6,92 +6,87 @@ module.exports = (sequelize, DataTypes) => {
             autoIncrement: true,
             primaryKey: true
         },
-        product_name: {
+        product_name_vi: {
             type: DataTypes.STRING(100),
-            allowNull: false
+            allowNull: false,
+            comment: 'Tên sản phẩm (Tiếng Việt)'
         },
-        product_description: {
+        product_name_en: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+            comment: 'Tên sản phẩm (Tiếng Anh)'
+        },
+        product_description_vi: {
             type: DataTypes.TEXT,
-            allowNull: true
+            allowNull: true,
+            comment: 'Mô tả sản phẩm (Tiếng Việt)'
+        },
+        product_description_en: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            comment: 'Mô tả sản phẩm (Tiếng Anh)'
         },
         product_price: {
-            type: DataTypes.DECIMAL(17, 2),
+            type: DataTypes.DECIMAL(10, 2),
             allowNull: false,
-            defaultValue: 0.00,
-            validate: { isDecimal: true, min: 0 }
-        },
-        // XÓA HOÀN TOÀN KHỐI product_stock TỪ ĐÂY
-        // product_stock: {
-        //     type: DataTypes.INTEGER,
-        //     allowNull: false,
-        //     defaultValue: 0,
-        //     validate: { isInt: true, min: 0 }
-        // },
-        imageUrl: {
-            type: DataTypes.STRING(255),
-            allowNull: true
-        },
-        secondaryImageUrl: { // Bạn có thể thêm trường này vào model nếu dùng
-            type: DataTypes.STRING(255),
-            allowNull: true
+            defaultValue: 0.00
         },
         category_id: {
             type: DataTypes.INTEGER,
             allowNull: true,
             references: {
-                model: 'Categories',
+                model: 'Categories', // Tên bảng
                 key: 'category_id'
             }
-        },
-        is_active: { // Bạn nên thêm trường này vào model
-            type: DataTypes.BOOLEAN,
-            allowNull: false,
-            defaultValue: true
         },
         is_new_arrival: {
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: false
+        },
+        is_active: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: true,
+            comment: 'Cờ để ẩn/hiện sản phẩm thay vì xóa'
         }
     }, {
         tableName: 'Products',
-        timestamps: false
+        timestamps: false,
+        comment: 'Bảng lưu thông tin chính của sản phẩm (Đa ngôn ngữ)'
     });
 
     Product.associate = (models) => {
+        // Product -> Category (One-to-Many)
         Product.belongsTo(models.Category, {
             foreignKey: 'category_id',
-            as: 'category'
-        });
-        Product.belongsToMany(models.Size, {
-            through: models.ProductSize,
-            foreignKey: 'product_id',
-            otherKey: 'size_id',
-            as: 'sizes'
-        });
-        Product.hasMany(models.SalesItems, {
-            foreignKey: 'product_id',
-            as: 'saleItems'
-        });
-        Product.belongsToMany(models.Color, {
-            through: models.ProductColor,
-            foreignKey: 'product_id',
-            otherKey: 'color_id',
-            as: 'colors'
-        });
-        Product.belongsToMany(models.Collection, {
-            through: models.ProductCollection,
-            foreignKey: 'product_id',
-            otherKey: 'collection_id',
-            as: 'collections'
+            as: 'category' // Alias for this association
         });
 
-        // >>> THÊM ASSOCIATION VỚI INVENTORY <<<
-        Product.hasMany(models.Inventory, { // Một sản phẩm có nhiều dòng tồn kho (cho các variant)
+        // Product -> ProductImage (One-to-Many)
+        Product.hasMany(models.ProductImage, {
             foreignKey: 'product_id',
-            as: 'inventory' // Alias để include
+            as: 'images', // Alias for this association
+            onDelete: 'CASCADE', // Optional: if deleting a product also deletes its images
+            hooks: true         // Optional: to trigger hooks on associated models
         });
-        // >>> KẾT THÚC THÊM ASSOCIATION <<<
+
+        // Product -> Inventory (One-to-Many)
+        Product.hasMany(models.Inventory, {
+            foreignKey: 'product_id',
+            as: 'inventoryItems', // Using 'inventoryItems' as a common alias. You can also use 'inventory'.
+                                 // This alias MUST be consistent with what you use in resolvers.
+            onDelete: 'CASCADE',
+            hooks: true
+        });
+
+        // Product -> Collection (Many-to-Many through ProductCollection)
+        Product.belongsToMany(models.Collection, {
+            through: models.ProductCollection, // Using the join table model
+            foreignKey: 'product_id',
+            otherKey: 'collection_id',
+            as: 'collections' // Alias for this association
+        });
     };
 
     return Product;

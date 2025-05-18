@@ -1,4 +1,6 @@
-// models/Collection.js
+// backend/models/Collection.js
+const { Op } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
     const Collection = sequelize.define('Collection', {
         collection_id: {
@@ -6,35 +8,56 @@ module.exports = (sequelize, DataTypes) => {
             autoIncrement: true,
             primaryKey: true
         },
-        collection_name: {
+        collection_name_vi: {
             type: DataTypes.STRING(100),
             allowNull: false,
-            unique: true
+            comment: 'Tên bộ sưu tập (Tiếng Việt)'
         },
-        collection_description: {
+        collection_name_en: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+            comment: 'Tên bộ sưu tập (Tiếng Anh)'
+        },
+        collection_description_vi: {
             type: DataTypes.TEXT,
-            allowNull: true
+            allowNull: true,
+            comment: 'Mô tả bộ sưu tập (Tiếng Việt)'
         },
-        slug: { // Thêm trường slug
-            type: DataTypes.STRING(110), // Độ dài slug (tên + buffer)
-            allowNull: true, // Có thể null ban đầu nếu tự tạo từ hook
-            unique: true
-            // Add hook here to auto-generate slug from name if desired
+        collection_description_en: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+            comment: 'Mô tả bộ sưu tập (Tiếng Anh)'
+        },
+        slug: {
+            type: DataTypes.STRING(110),
+            allowNull: false,
+            unique: true,
+            comment: 'Slug cho URL thân thiện (chung cho các ngôn ngữ)'
         }
     }, {
         tableName: 'Collections',
-        timestamps: false // Or true if you want createdAt/updatedAt
-    }); //
+        timestamps: false,
+        indexes: [
+            {
+                unique: true,
+                fields: ['collection_name_vi']
+            },
+            {
+                unique: true,
+                fields: ['collection_name_en'],
+                where: {
+                    collection_name_en: {
+                        [Op.ne]: null
+                    }
+                }
+            }
+        ],
+        comment: 'Bảng lưu các bộ sưu tập sản phẩm (Đa ngôn ngữ)'
+    });
 
-    Collection.associate = (models) => {
-        // Collection thuộc về nhiều Product (Many-to-Many) thông qua bảng ProductCollection
-        Collection.belongsToMany(models.Product, {
-            through: models.ProductCollection, // Tên model của bảng trung gian
-            foreignKey: 'collection_id', // Khóa ngoại trong bảng trung gian trỏ về Collection
-            otherKey: 'product_id',     // Khóa ngoại trong bảng trung gian trỏ về Product
-            as: 'products'              // Bí danh khi include Product từ Collection
-        }); //
-    };
+    // Collection.associate = (models) => {
+    //     // Associations được định nghĩa trong config/db.js
+    // };
 
     return Collection;
 };

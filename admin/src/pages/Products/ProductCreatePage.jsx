@@ -1,146 +1,102 @@
-// src/pages/Products/ProductCreatePage.jsx
-import React, { useState } from 'react';
+// admin-frontend/src/pages/Products/ProductCreatePage.jsx
+import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client';
-import { useNavigate } from 'react-router-dom';
-import { Container, Card,Row,Col } from 'react-bootstrap';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Container, Card, Row, Col, Breadcrumb } from 'react-bootstrap';
 import ProductForm from '../../components/products/ProductForm';
 import { CREATE_PRODUCT_MUTATION } from '../../api/mutations/productMutations';
-import { GET_ADMIN_PRODUCTS_QUERY } from '../../api/queries/productQueries'; // Để refetch hoặc cập nhật cache
-//import AlertMessage from '../../components/common/AlertMessage';
+import { GET_ADMIN_PRODUCTS_QUERY } from '../../api/queries/productQueries';
+import AlertMessage from '../../components/common/AlertMessage';
 import logger from '../../utils/logger';
-import { DEFAULT_PAGE_LIMIT } from '../../utils/constants';
+import { DEFAULT_PAGE_LIMIT, ADMIN_LANGUAGE_KEY } from '../../utils/constants';
+
 function ProductCreatePage() {
     const navigate = useNavigate();
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const location = useLocation();
     const [submitError, setSubmitError] = useState(null);
+    const [successFlashMessage, setSuccessFlashMessage] = useState(location.state?.successMessage || null);
+    const currentAdminLang = localStorage.getItem(ADMIN_LANGUAGE_KEY) || 'vi';
 
-    const [createProductMutation] = useMutation(CREATE_PRODUCT_MUTATION, {
-        // Cập nhật cache của Apollo Client sau khi tạo thành công
-        // Cách 1: Refetch query danh sách sản phẩm
-        //refetchQueries: [
-           // {
-         //       query: GET_ADMIN_PRODUCTS_QUERY,
-          //      variables: { limit: DEFAULT_LIMIT /*Hoặc limit bạn dùng ở ProductListPage*/, offset: 0, filter: {} }
-          //  }
-       // ],
-        // Cách 2: Cập nhật cache thủ công (phức tạp hơn nhưng hiệu quả hơn nếu danh sách lớn)
-        update: (cache, { data: { adminCreateProduct: newProduct } }) => {
-         try {
-               const existingData = cache.readQuery({
-                     query: GET_ADMIN_PRODUCTS_QUERY,
-                    variables: { limit: DEFAULT_PAGE_LIMIT, offset: 0, filter: {} },
-                 });
-        
-                 if (existingData && newProduct) {
-                     cache.writeQuery({
-                  query: GET_ADMIN_PRODUCTS_QUERY,
-                         variables: { limit: DEFAULT_PAGE_LIMIT, offset: 0, filter: {} },
-                        data: {
-                             adminGetAllProducts: {
-                                 ...existingData.adminGetAllProducts,
-                                 count: existingData.adminGetAllProducts.count + 1,
-                                 products: [newProduct, ...existingData.adminGetAllProducts.products],
-                             },
-                         },
-                     });
-                 }
-            } catch (e) {
-                 logger.error("Error updating Apollo cache after product creation:", e);
-             }
-         },
+    useEffect(() => {
+        if (successFlashMessage) {
+            const timer = setTimeout(() => {
+                setSuccessFlashMessage(null);
+                navigate(location.pathname, { replace: true, state: {} });
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [successFlashMessage, location.pathname, navigate]);
+
+    const [createProductMutation, { loading: mutationLoading }] = useMutation(CREATE_PRODUCT_MUTATION, {
+        refetchQueries: [
+            {
+                query: GET_ADMIN_PRODUCTS_QUERY,
+                variables: { limit: DEFAULT_PAGE_LIMIT, offset: 0, filter: {}, lang: currentAdminLang },
+            },
+        ],
         onError: (error) => {
-            logger.error("Error in createProductMutation (onError):", error);
-            setSubmitError(error.graphQLErrors?.[0]?.message || error.message || "Failed to create product.");
-            setIsSubmitting(false);
+            logger.error("Error in createProductMutation (GraphQL):", error);
+            const messages = error.graphQLErrors?.map(e => e.message).join("\n") || error.message || "Tạo sản phẩm thất bại.";
+            setSubmitError(messages);
+        },
+        onCompleted: (data) => {
+            const newProductName = (currentAdminLang === 'en' && data.adminCreateProduct.name_en) // Assuming 'name_en' is available or use 'name(lang:"en")'
+                                 ? data.adminCreateProduct.name_en
+                                 : (data.adminCreateProduct.name_vi || data.adminCreateProduct.name); // Fallback to name_vi or virtual 'name'
+            logger.info('Product created successfully via GraphQL:', data);
+            navigate('/products', { state: { successMessage: `Sản phẩm "${newProductName}" đã được tạo thành công!` } });
         }
     });
 
-    const handleSubmit = async (formDataFromForm, selectedImageFile) => {
-        setIsSubmitting(true);
+    const handleFormSubmit = async (preparedDataFromForm) => {
         setSubmitError(null);
-        let finalImageUrl = null;
+        logger.info("ProductCreatePage: Calling createProduct mutation with input:", preparedDataFromForm);
 
-        // Bước 1: Upload ảnh (nếu có)
-        if (selectedImageFile) {
-            logger.info(`Attempting to upload image: ${selectedImageFile.name}`);
-            const imageUploadFormData = new FormData();
-            imageUploadFormData.append('productImage', selectedImageFile);
-
-            try {
-                const token = localStorage.getItem('admin_token'); // Lấy token admin
-                const uploadRes = await fetch(
-                    // Đảm bảo endpoint upload đúng và backend đã có biến môi trường
-                    `${import.meta.env.VITE_BACKEND_BASE_URL || 'http://localhost:5000'}/api/uploads/image`,
-                    {
-                        method: 'POST',
-                        headers: { 'Authorization': token ? `Bearer ${token}` : '' },
-                        body: imageUploadFormData,
-                    }
-                );
-
-                const uploadData = await uploadRes.json();
-                logger.info("Image upload response data:", uploadData);
-
-                if (!uploadRes.ok || !uploadData.success) {
-                    throw new Error(uploadData.message || `Image upload failed with status ${uploadRes.status}`);
-                }
-                finalImageUrl = uploadData.imageUrl; // URL tương đối từ backend, ví dụ: /uploads/products/filename.jpg
-                logger.info('Image uploaded successfully, server URL:', finalImageUrl);
-            } catch (uploadError) {
-                logger.error("Image upload process error:", uploadError);
-                setSubmitError(`Image upload failed: ${uploadError.message}. Please ensure the image is valid and try again.`);
-                setIsSubmitting(false);
-                return;
-            }
-        }
-
-        // Bước 2: Chuẩn bị input cho GraphQL mutation
-        const productInput = {
-            ...formDataFromForm, // Dữ liệu từ ProductForm
-            imageUrl: finalImageUrl, // Có thể là null nếu không có ảnh mới
-            // categoryId đã có trong formDataFromForm
-            // collectionIds đã có trong formDataFromForm
-            // inventoryItems đã có trong formDataFromForm
-        };
-        // Xóa các trường không cần thiết hoặc frontend-only nếu có
-        delete productInput.selectedFile; // Ví dụ
-
-        logger.info("Calling createProduct mutation with input:", productInput);
-
-        // Bước 3: Gọi GraphQL Mutation
         try {
-            const { data: mutationData } = await createProductMutation({ variables: { input: productInput } });
-            logger.info('Product created successfully via GraphQL:', mutationData);
-            navigate('/products', { state: { successMessage: `Product "${mutationData.adminCreateProduct.product_name}" created successfully!` } });
+            // FIXED: Pass lang variable to the mutation
+            await createProductMutation({ 
+                variables: { 
+                    input: preparedDataFromForm,
+                    lang: currentAdminLang // Pass the current language
+                } 
+            });
         } catch (gqlError) {
-            // Lỗi từ createProductMutation đã được xử lý bởi onError callback của useMutation
-            // Đoạn này có thể không cần thiết nếu onError đã đủ
-            logger.error("Error calling createProductMutation (catch block):", gqlError);
-            if (!submitError) { // Chỉ set nếu onError của mutation chưa set
-                 setSubmitError(gqlError.message || "An unexpected error occurred while creating the product.");
+            if (!submitError && gqlError) {
+                logger.error("Error caught directly in ProductCreatePage handleSubmit:", gqlError);
+                 const messages = gqlError.graphQLErrors?.map(e => e.message).join("\n") || gqlError.message || "Đã xảy ra lỗi không mong muốn.";
+                setSubmitError(messages);
             }
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
     return (
-         <Container fluid className="p-3">
+        <Container fluid className="p-md-4 p-3">
+            <Breadcrumb className="mb-3">
+                <Breadcrumb.Item href="/dashboard">Dashboard</Breadcrumb.Item>
+                <Breadcrumb.Item href="/products">Sản phẩm</Breadcrumb.Item>
+                <Breadcrumb.Item active>Thêm Sản phẩm mới</Breadcrumb.Item>
+            </Breadcrumb>
+
             <Row className="align-items-center mb-3">
                 <Col>
-                    <h1 className="h3 mb-0">Add New Product</h1>
+                    <h1 className="h3 mb-0 text-dark-blue">Thêm Sản phẩm mới</h1>
                 </Col>
             </Row>
-            {/* Bạn có thể muốn hiển thị submitError ở đây bằng AlertMessage nếu ProductForm không xử lý */}
-            {submitError && <AlertMessage variant="danger" className="mb-3">{submitError}</AlertMessage>}
-            <Card className="shadow-sm">
-                <Card.Body>
+
+            {successFlashMessage && <AlertMessage variant="success" dismissible onClose={() => setSuccessFlashMessage(null)}>{successFlashMessage}</AlertMessage>}
+            {submitError && (
+                <AlertMessage variant="danger" className="mb-3" onClose={() => setSubmitError(null)} dismissible>
+                    {submitError.split("\n").map((line, idx) => (<span key={idx}>{line}<br/></span>))}
+                </AlertMessage>
+            )}
+
+            <Card className="shadow-sm border-light">
+                <Card.Body className="p-lg-4 p-3">
                     <ProductForm
-                        onSubmit={handleSubmit}
-                        loading={isSubmitting}
-                        // Nếu ProductForm của bạn có prop để hiển thị lỗi, hãy truyền submitError vào đây
-                        // error={submitError ? { message: submitError } : null} 
+                        onSubmit={handleFormSubmit}
+                        loading={mutationLoading}
                         isEditMode={false}
+                        onCancel={() => navigate('/products')}
                     />
                 </Card.Body>
             </Card>

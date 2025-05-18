@@ -1,71 +1,96 @@
-// models/SalesItems.js (Đã sửa PK, thêm discount_amount, thêm Associations)
+// backend/models/SalesItems.js
 module.exports = (sequelize, DataTypes) => {
     const SalesItems = sequelize.define('SalesItems', {
-        // --- SỬA ĐỔI PK: Dùng sale_item_id làm PK duy nhất ---
         sale_item_id: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
-            primaryKey: true // Khóa chính tự tăng cho mỗi dòng item
+            primaryKey: true
         },
-        sale_id: { // Vẫn là khóa ngoại, bắt buộc, không còn là phần của PK
+        sale_id: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            references: { // Tham chiếu tới bảng Sales
-                 model: 'Sales',
-                 key: 'sale_id'
-             },
-            onDelete: 'CASCADE', // Nếu Sale bị xóa, xóa luôn item này
-            onUpdate: 'CASCADE'
+            references: {
+                model: 'Sales',
+                key: 'sale_id'
+            }
         },
-        product_id: { // Vẫn là khóa ngoại, bắt buộc, không còn là phần của PK
+        product_id: {
+            type: DataTypes.INTEGER,
+            allowNull: true, // Cho phép NULL nếu sản phẩm gốc bị xóa
+            references: {
+                model: 'Products',
+                key: 'product_id'
+            }
+        },
+        size_id: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            references: { model: 'Sizes', key: 'size_id' }
+        },
+        color_id: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+            references: { model: 'Colors', key: 'color_id' }
+        },
+        product_qty: {
             type: DataTypes.INTEGER,
             allowNull: false,
-            references: { // Tham chiếu tới bảng Products
-                 model: 'Products',
-                 key: 'product_id'
-             },
-            onDelete: 'RESTRICT', // QUAN TRỌNG: Không cho xóa Product nếu đã có trong SalesItems
-            onUpdate: 'CASCADE'   // Nếu product_id thay đổi thì cập nhật
+            validate: {
+                min: 1 // Số lượng phải lớn hơn 0
+            }
         },
-        // --- Giữ nguyên các trường khác ---
-        product_qty: { // Số lượng sản phẩm
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            validate: { isInt: true, min: 1 } // Số lượng phải là số nguyên > 0
-        },
-        price_at_sale: { // Giá gốc của sản phẩm tại thời điểm bán
+        price_at_sale: {
             type: DataTypes.DECIMAL(10, 2),
-            allowNull: false // Lưu giá tại lúc bán để tránh thay đổi giá sau này ảnh hưởng đơn cũ
+            allowNull: false,
+            comment: 'Giá sản phẩm tại thời điểm bán'
         },
-        // --- THÊM discount_amount ---
-        discount_amount: { // Số tiền giảm giá áp dụng cho item này (từ virtual_balance)
+        discount_amount: {
             type: DataTypes.DECIMAL(10, 2),
-            allowNull: false, // Nên là NOT NULL
-            defaultValue: 0.00 // Mặc định là không giảm giá
+            allowNull: false,
+            defaultValue: 0.00,
+            comment: 'Số tiền giảm giá cho sản phẩm này'
+        },
+        product_name_at_sale: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+            comment: 'Tên sản phẩm tại thời điểm bán (ngôn ngữ mặc định khi đặt hàng)'
+        },
+        product_sku_at_sale: {
+            type: DataTypes.STRING(100),
+            allowNull: true,
+            comment: 'SKU của biến thể nếu có'
         }
     }, {
-        tableName: 'SalesItems', // Tên bảng
-        timestamps: false, // Không cần timestamps
-        indexes: [ // Thêm indexes cho các khóa ngoại để tăng tốc join
-            { fields: ['sale_id'] },
-            { fields: ['product_id'] }
-        ]
-        // Không cần định nghĩa primary key phức hợp ở đây nữa
-    }); //
+        tableName: 'SalesItems',
+        timestamps: false, // Theo schema SQL
+        comment: 'Bảng lưu chi tiết các sản phẩm trong một đơn hàng'
+    });
 
-    // --- Định nghĩa Associations ---
-     SalesItems.associate = (models) => {
-        // Một SalesItem thuộc về một Sale (Many-to-One)
+    SalesItems.associate = (models) => {
         SalesItems.belongsTo(models.Sale, {
-            foreignKey: 'sale_id', //
-            as: 'sale' // Alias khi include Sale từ SalesItem
-        }); //
-
-        // Một SalesItem thuộc về một Product (Many-to-One)
+            foreignKey: 'sale_id',
+            as: 'sale',
+            onDelete: 'CASCADE',
+            onUpdate: 'CASCADE'
+        });
         SalesItems.belongsTo(models.Product, {
-            foreignKey: 'product_id', //
-            as: 'product' // Alias khi include Product từ SalesItem
-        }); //
+            foreignKey: 'product_id',
+            as: 'product',
+            onDelete: 'SET NULL', // Nếu sản phẩm bị xóa, giữ lại item nhưng product_id là NULL
+            onUpdate: 'CASCADE'
+        });
+        SalesItems.belongsTo(models.Size, {
+            foreignKey: 'size_id',
+            as: 'size',
+            onDelete: 'SET NULL',
+            onUpdate: 'CASCADE'
+        });
+        SalesItems.belongsTo(models.Color, {
+            foreignKey: 'color_id',
+            as: 'color',
+            onDelete: 'SET NULL',
+            onUpdate: 'CASCADE'
+        });
     };
 
     return SalesItems;

@@ -1,157 +1,146 @@
-// src/pages/Products/ProductEditPage.jsx
+// admin-frontend/src/pages/Products/ProductEditPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Container, Card, Button, Row, Col } from 'react-bootstrap';
+import { Container, Card, Button, Row, Col, Breadcrumb } from 'react-bootstrap';
 import ProductForm from '../../components/products/ProductForm';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import AlertMessage from '../../components/common/AlertMessage';
 import { GET_ADMIN_PRODUCT_DETAILS_QUERY, GET_ADMIN_PRODUCTS_QUERY } from '../../api/queries/productQueries';
 import { UPDATE_PRODUCT_MUTATION } from '../../api/mutations/productMutations';
 import logger from '../../utils/logger';
+import { DEFAULT_PAGE_LIMIT, ADMIN_LANGUAGE_KEY } from '../../utils/constants';
 
 function ProductEditPage() {
-    const { id: productId } = useParams(); // Lấy productId từ URL
+    const { id: productId } = useParams();
     const navigate = useNavigate();
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState(null);
-    const [initialFormData, setInitialFormData] = useState(null); // State để giữ initialData cho form
+    const currentAdminLang = localStorage.getItem(ADMIN_LANGUAGE_KEY) || 'vi';
 
-    // Query lấy dữ liệu chi tiết sản phẩm để điền vào form
-    const { loading: queryLoading, error: queryError, data: productDataResult, refetch: refetchProductDetails } = useQuery(GET_ADMIN_PRODUCT_DETAILS_QUERY, {
-        variables: { id: productId },
-        fetchPolicy: 'cache-and-network', // Lấy data mới nhất, nhưng cũng dùng cache
-        onError: (err) => logger.error(`Error fetching product details for ID ${productId}:`, err),
-        onCompleted: (data) => {
-            if (data && data.adminGetProductDetails) {
-                setInitialFormData(data.adminGetProductDetails); // Set initial data cho form khi query hoàn tất
-            }
+    const { loading: queryLoading, error: queryError, data: productQueryResult, refetch: refetchProductDetails } = useQuery(GET_ADMIN_PRODUCT_DETAILS_QUERY, {
+        variables: { id: productId, lang: currentAdminLang },
+        fetchPolicy: 'cache-and-network',
+        onError: (err) => {
+            logger.error(`Error fetching product details for ID ${productId} (GraphQL):`, err);
         }
     });
 
-    // Mutation cập nhật sản phẩm
-    const [updateProductMutation] = useMutation(UPDATE_PRODUCT_MUTATION, {
-        // Apollo Client thường tự động cập nhật cache cho item đã sửa dựa trên ID và __typename.
-        // Nếu cần cập nhật danh sách (ví dụ: tên sản phẩm thay đổi), có thể refetch query danh sách.
+    const [updateProductMutation, { loading: mutationLoading }] = useMutation(UPDATE_PRODUCT_MUTATION, {
         refetchQueries: [
-            { query: GET_ADMIN_PRODUCTS_QUERY, variables: { /* các biến của query list nếu có */ } }
+            // Ensure $lang is passed if the query expects it, which GET_ADMIN_PRODUCT_DETAILS_QUERY does
+            { query: GET_ADMIN_PRODUCT_DETAILS_QUERY, variables: { id: productId, lang: currentAdminLang } },
+            { query: GET_ADMIN_PRODUCTS_QUERY, variables: { limit: DEFAULT_PAGE_LIMIT, offset: 0, filter: {}, lang: currentAdminLang } }
         ],
-        onCompleted: (data) => {
-            logger.info('Product updated successfully via GraphQL:', data);
-            // Cập nhật lại initialFormData để form hiển thị đúng sau khi update (nếu người dùng ở lại trang)
-            // Hoặc tốt hơn là refetch lại product details
-            refetchProductDetails();
-            navigate('/products', { state: { successMessage: `Product "${data.adminUpdateProduct.product_name}" updated successfully!` } });
-        },
         onError: (error) => {
-            logger.error("Error in updateProductMutation (onError):", error);
-            setSubmitError(error.graphQLErrors?.[0]?.message || error.message || "Failed to update product.");
-            setIsSubmitting(false);
+            logger.error("Error in updateProductMutation (GraphQL):", error);
+            const messages = error.graphQLErrors?.map(e => e.message).join("\n") || error.message || "Cập nhật sản phẩm thất bại.";
+            setSubmitError(messages);
+        },
+        onCompleted: (data) => {
+            const updatedProductName = (currentAdminLang === 'en' && data.adminUpdateProduct.name_en) // Assuming 'name_en' or use 'name(lang:"en")'
+                                     ? data.adminUpdateProduct.name_en
+                                     : (data.adminUpdateProduct.name_vi || data.adminUpdateProduct.name); // Fallback
+            logger.info('Product updated successfully via GraphQL:', data);
+            navigate('/products', { state: { successMessage: `Sản phẩm "${updatedProductName}" đã được cập nhật thành công!` } });
         }
     });
 
-    const handleSubmit = async (formDataFromForm, selectedImageFile) => {
-        setIsSubmitting(true);
+    const handleFormSubmit = async (preparedDataFromForm) => {
         setSubmitError(null);
-        let finalImageUrl = formDataFromForm.imageUrl; // Giữ lại ảnh cũ nếu không có ảnh mới
-
-        // Bước 1: Upload ảnh mới (nếu có)
-        if (selectedImageFile) {
-            logger.info(`Attempting to upload new image: ${selectedImageFile.name}`);
-            const imageUploadFormData = new FormData();
-            imageUploadFormData.append('productImage', selectedImageFile);
-            try {
-                const token = localStorage.getItem('admin_token');
-                const uploadRes = await fetch(
-                     `${import.meta.env.VITE_BACKEND_BASE_URL || 'http://localhost:5000'}/api/uploads/image`,
-                    {
-                        method: 'POST',
-                        headers: { 'Authorization': token ? `Bearer ${token}` : '' },
-                        body: imageUploadFormData,
-                    }
-                );
-                const uploadData = await uploadRes.json();
-                 logger.info("New image upload response data:", uploadData);
-                if (!uploadRes.ok || !uploadData.success) {
-                    throw new Error(uploadData.message || `New image upload failed with status ${uploadRes.status}`);
-                }
-                finalImageUrl = uploadData.imageUrl; // URL ảnh mới
-            } catch (uploadError) {
-                logger.error("New image upload process error:", uploadError);
-                setSubmitError(`New image upload failed: ${uploadError.message}. Product data not saved.`);
-                setIsSubmitting(false);
-                return;
-            }
-        }
-
-        // Bước 2: Chuẩn bị input cho GraphQL mutation
-        // Loại bỏ các trường không cần thiết hoặc __typename nếu có từ initialData
-        const { product_id: ignoredProductId,__typename, category, sizes, colors, collections, inventory, createAt,updateAt, ...validFieldsFromInitialData } = initialFormData || {};
-
-        const productInput = {
-        product_name: formDataFromForm.product_name,
-        product_description: formDataFromForm.product_description,
-        product_price: formDataFromForm.product_price, // Đảm bảo đây là số
-        categoryId: formDataFromForm.categoryId,
-        collectionIds: formDataFromForm.collectionIds,
-        imageUrl: finalImageUrl,
-        secondaryImageUrl: formDataFromForm.secondaryImageUrl, // Nếu có
-        isNewArrival: formDataFromForm.isNewArrival,
-        is_active: formDataFromForm.is_active,
-        inventoryItems: formDataFromForm.inventoryItems,
-        };
-        Object.keys(productInput).forEach(key => {
-        if (productInput[key] === undefined) {
-            delete productInput[key];
-        }
-        });
-        // Xóa các key là object rỗng hoặc không nên gửi nếu không thay đổi
-        // Backend resolver nên xử lý việc chỉ cập nhật các trường được cung cấp.
-        // Ví dụ: productInput.category_id thay vì productInput.category = { id: ... }
-
-        logger.info("Calling updateProduct mutation with ID:", productId, "Input:", productInput);
-
-        // Bước 3: Gọi GraphQL Mutation
+        logger.info("ProductEditPage: Calling updateProduct mutation with input:", preparedDataFromForm);
         try {
-            await updateProductMutation({ variables: { id: productId, input: productInput } });
-            // onCompleted sẽ xử lý việc điều hướng
+            // FIXED: Pass lang variable to the mutation
+            await updateProductMutation({ 
+                variables: { 
+                    input: preparedDataFromForm, // preparedDataFromForm already includes 'id'
+                    lang: currentAdminLang // Pass the current language
+                } 
+            });
         } catch (gqlError) {
-            logger.error("Error calling updateProductMutation (catch block):", gqlError);
-             if (!submitError) {
-                setSubmitError(gqlError.message || "An unexpected error occurred while updating the product.");
+            if (!submitError && gqlError) {
+                logger.error("Error caught in ProductEditPage handleSubmit:", gqlError);
+                const messages = gqlError.graphQLErrors?.map(e => e.message).join("\n") || gqlError.message || "Đã xảy ra lỗi không mong muốn.";
+                setSubmitError(messages);
             }
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
-    if (queryLoading) return <LoadingSpinner message="Loading product details..." />;
-    if (queryError) return <Container><AlertMessage variant="danger">Error loading product for editing: {queryError.message}</AlertMessage></Container>;
-    if (!initialFormData && !queryLoading) return <Container><AlertMessage variant="warning">Product with ID {productId} not found.</AlertMessage></Container>;
+    if (queryLoading) return <LoadingSpinner message="Đang tải chi tiết sản phẩm..." />;
+    
+    if (queryError) {
+        return (
+            <Container fluid className="p-md-4 p-3">
+                 <Breadcrumb className="mb-3">
+                    <Breadcrumb.Item href="/dashboard">Dashboard</Breadcrumb.Item>
+                    <Breadcrumb.Item href="/products">Sản phẩm</Breadcrumb.Item>
+                    <Breadcrumb.Item active>Lỗi</Breadcrumb.Item>
+                </Breadcrumb>
+                <AlertMessage variant="danger" className="mb-3">
+                    Lỗi tải sản phẩm: {queryError.message}
+                    <Button variant="outline-primary" size="sm" className="ms-2" onClick={() => refetchProductDetails()}>Thử lại</Button>
+                </AlertMessage>
+            </Container>
+        );
+    }
+
+    const initialProductData = productQueryResult?.adminGetProductDetails;
+
+    if (!initialProductData && !queryLoading) {
+        return (
+            <Container fluid className="p-md-4 p-3">
+                 <Breadcrumb className="mb-3">
+                    <Breadcrumb.Item href="/dashboard">Dashboard</Breadcrumb.Item>
+                    <Breadcrumb.Item href="/products">Sản phẩm</Breadcrumb.Item>
+                    <Breadcrumb.Item active>Không tìm thấy</Breadcrumb.Item>
+                </Breadcrumb>
+                <AlertMessage variant="warning">Không tìm thấy sản phẩm với ID: {productId}.</AlertMessage>
+                <Link to="/products" className="btn btn-outline-secondary btn-sm">
+                    <i className="bi bi-arrow-left me-1"></i> Quay lại Danh sách Sản phẩm
+                </Link>
+            </Container>
+        );
+    }
+    
+    const displayProductName = (currentAdminLang === 'en' && initialProductData?.name_en) 
+                                ? initialProductData.name_en 
+                                : (initialProductData?.name_vi || initialProductData?.name);
 
     return (
-        <Container fluid className="p-3">
+        <Container fluid className="p-md-4 p-3">
+            <Breadcrumb className="mb-3">
+                <Breadcrumb.Item href="/dashboard">Dashboard</Breadcrumb.Item>
+                <Breadcrumb.Item href="/products">Sản phẩm</Breadcrumb.Item>
+                <Breadcrumb.Item active>Chỉnh sửa Sản phẩm</Breadcrumb.Item>
+            </Breadcrumb>
+
             <Row className="align-items-center mb-3">
                 <Col>
-                     <h1 className="h3 mb-0">Edit Product: <span className="text-muted">{initialFormData?.product_name || productId}</span></h1>
+                    <h1 className="h3 mb-0 text-dark-blue">Chỉnh sửa Sản phẩm: <span className="text-primary">{displayProductName || `ID: ${productId}`}</span></h1>
                 </Col>
-                 <Col xs="auto">
+                <Col xs="auto">
                     <Link to="/products">
                         <Button variant="outline-secondary" size="sm">
-                            <i className="bi bi-arrow-left me-1"></i> Back to Product List
+                            <i className="bi bi-arrow-left me-1"></i> Quay lại Danh sách
                         </Button>
                     </Link>
                 </Col>
             </Row>
-            <Card className="shadow-sm">
-                <Card.Body>
-                    {initialFormData && ( // Chỉ render form khi có initialData
+
+            {submitError && (
+                 <AlertMessage variant="danger" className="mb-3" onClose={() => setSubmitError(null)} dismissible>
+                    {submitError.split("\n").map((line, idx) => (<span key={idx}>{line}<br/></span>))}
+                </AlertMessage>
+            )}
+
+            <Card className="shadow-sm border-light">
+                <Card.Body className="p-lg-4 p-3">
+                    {initialProductData && (
                         <ProductForm
-                            initialData={initialFormData}
-                            onSubmit={handleSubmit}
-                            loading={isSubmitting}
-                            error={submitError ? { message: submitError } : null}
+                            initialData={initialProductData}
+                            onSubmit={handleFormSubmit}
+                            loading={mutationLoading}
                             isEditMode={true}
+                            onCancel={() => navigate(`/products`)} // Navigate back to list on cancel
                         />
                     )}
                 </Card.Body>

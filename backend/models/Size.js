@@ -1,4 +1,4 @@
-// models/Size.js
+// backend/models/Size.js
 module.exports = (sequelize, DataTypes) => {
     const Size = sequelize.define('Size', {
         size_id: {
@@ -7,25 +7,29 @@ module.exports = (sequelize, DataTypes) => {
             primaryKey: true
         },
         size_name: {
-            type: DataTypes.STRING(10), // Ví dụ: S, M, L, XL, 38, 39,...
+            type: DataTypes.STRING(10),
             allowNull: false,
-            unique: true // Tên size phải là duy nhất
+            unique: true,
+            comment: 'Tên kích cỡ (thường không cần dịch hoặc quản lý riêng)'
         }
-        // Có thể thêm trường mô tả size nếu cần
-        // size_description: { type: DataTypes.STRING(50), allowNull: true }
     }, {
-        tableName: 'Sizes', // Tên bảng
-        timestamps: false // Không cần timestamps
-    }); //
+        tableName: 'Sizes',
+        timestamps: false,
+        comment: 'Bảng lưu các kích cỡ sản phẩm'
+    });
 
     Size.associate = (models) => {
-        // Size thuộc về nhiều Product (Many-to-Many) thông qua bảng ProductSize
-        Size.belongsToMany(models.Product, {
-            through: models.ProductSize, // Model bảng trung gian
-            foreignKey: 'size_id',      // Khóa ngoại trong bảng trung gian trỏ về Size
-            otherKey: 'product_id',  // Khóa ngoại trong bảng trung gian trỏ về Product
-            as: 'products'           // Alias khi include Product từ Size
-        }); //
+        Size.hasMany(models.Inventory, {
+            foreignKey: 'size_id',
+            as: 'inventoryItems'
+        });
+        // Nếu bạn có bảng ProductSizes cho quan hệ M-M trực tiếp với Product:
+        // Size.belongsToMany(models.Product, {
+        //   through: models.ProductSize,
+        //   foreignKey: 'size_id',
+        //   otherKey: 'product_id',
+        //   as: 'products'
+        // });
     };
 
     return Size;

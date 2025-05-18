@@ -1,16 +1,14 @@
-// config/db.js (Phiên bản đầy đủ đã bổ sung model imports và associations)
-const { Sequelize } = require('sequelize');
-require('dotenv').config(); // [cite: 2]
+// backend/config/db.js
+const { Sequelize, Op } = require('sequelize'); // Thêm Op nếu cần dùng trong file này
+require('dotenv').config();
+const logger = require('../utils/logger');
 
 // Kiểm tra các biến môi trường cần thiết cho DB
-const requiredEnvVars = ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT'];
+const requiredEnvVars = ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT', 'DB_DIALECT'];
 for (const varName of requiredEnvVars) {
   if (!process.env[varName]) {
-    console.error(`Error: Environment variable ${varName} is not set.`);
-    if (process.env.NODE_ENV === 'production') { // Thoát nếu là production [cite: 3]
-        process.exit(1);
-    }
-    // Ở development có thể không thoát ngay để dễ debug, nhưng DB sẽ không kết nối được
+    logger.error(`FATAL ERROR: Environment variable ${varName} is not set.`);
+    process.exit(1);
   }
 }
 
@@ -21,22 +19,23 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    dialect: process.env.DB_DIALECT || 'mysql', // Mặc định là mysql nếu không có
-    logging: process.env.NODE_ENV === 'development' ? console.log : false, // Log SQL queries ở dev
-    // dialectOptions cho các cấu hình đặc biệt của dialect (ví dụ SSL)
+    port: parseInt(process.env.DB_PORT, 10),
+    dialect: process.env.DB_DIALECT,
+    logging: (process.env.NODE_ENV === 'development' && process.env.SEQUELIZE_LOGGING !== 'false') 
+             ? (msg) => logger.debug(`[SEQUELIZE] ${msg}`) 
+             : false,
     dialectOptions: {
-      // Bật SSL nếu cần (ví dụ: kết nối tới PlanetScale, Azure MySQL)
-      // ssl: {
-      //   require: true,
-      //   rejectUnauthorized: false // Có thể cần set false nếu dùng cert tự ký
-      // }
+      // ssl: process.env.DB_SSL === 'true' ? { require: true, rejectUnauthorized: false } : false,
     },
-    pool: { // Cấu hình connection pool [cite: 3]
-      max: 5, // Số kết nối tối đa
-      min: 0, // Số kết nối tối thiểu
-      acquire: 30000, // Timeout khi lấy kết nối (ms)
-      idle: 10000 // Timeout khi kết nối rảnh (ms) trước khi bị giải phóng
+    pool: {
+      max: parseInt(process.env.DB_POOL_MAX, 10) || 5,
+      min: parseInt(process.env.DB_POOL_MIN, 10) || 0,
+      acquire: parseInt(process.env.DB_POOL_ACQUIRE, 10) || 30000,
+      idle: parseInt(process.env.DB_POOL_IDLE, 10) || 10000
+    },
+    define: {
+        // underscored: true, // Nếu muốn các tên cột tự động là snake_case
+        // timestamps: true, // Mặc định là true
     }
   }
 );
@@ -45,105 +44,159 @@ const db = {}; // Object chứa các model và sequelize instance
 
 db.Sequelize = Sequelize; // Class Sequelize
 db.sequelize = sequelize; // Instance sequelize đã cấu hình
+db.Op = Op; // Thêm Op vào db object để tiện sử dụng ở nơi khác nếu cần
 
 // --- Import models ---
-// Import lần lượt các file định nghĩa model và truyền sequelize, Sequelize vào
-db.Customer = require('../models/Customer')(sequelize, Sequelize); // [cite: 4]
-db.Product = require('../models/Product')(sequelize, Sequelize); // [cite: 5]
-db.Sale = require('../models/Sale')(sequelize, Sequelize); // [cite: 5]
-db.SalesHistory = require('../models/SalesHistory')(sequelize, Sequelize); // [cite: 5]
-db.SalesItems = require('../models/SalesItems')(sequelize, Sequelize); // [cite: 5]
-db.SalesTotals = require('../models/SalesTotals')(sequelize, Sequelize); // [cite: 5]
-db.Category = require('../models/Category')(sequelize, Sequelize); // [cite: 6]
-db.Size = require('../models/Size')(sequelize, Sequelize); // [cite: 6]
-db.ProductSize = require('../models/ProductSize')(sequelize, Sequelize); // [cite: 6] Bảng trung gian Product-Size
-db.Color = require('../models/Color')(sequelize, Sequelize); // [cite: 6]
-db.ProductColor = require('../models/ProductColor')(sequelize, Sequelize); // [cite: 6] Bảng trung gian Product-Color
-db.Collection = require('../models/Collection')(sequelize, Sequelize); // [cite: 7]
-db.ProductCollection = require('../models/ProductCollection')(sequelize, Sequelize); // [cite: 7] Bảng trung gian Product-Collection
+// Các model này cần được export dưới dạng function(sequelize, DataTypes)
+db.Customer = require('../models/Customer')(sequelize, Sequelize.DataTypes);
+db.Category = require('../models/Category')(sequelize, Sequelize.DataTypes);
+db.Size = require('../models/Size')(sequelize, Sequelize.DataTypes);
+db.Color = require('../models/Color')(sequelize, Sequelize.DataTypes);
+db.Collection = require('../models/Collection')(sequelize, Sequelize.DataTypes);
+db.Product = require('../models/Product')(sequelize, Sequelize.DataTypes);
+db.ProductImage = require('../models/ProductImage')(sequelize, Sequelize.DataTypes);
+db.Inventory = require('../models/Inventory')(sequelize, Sequelize.DataTypes);
+db.ProductCollection = require('../models/ProductCollection')(sequelize, Sequelize.DataTypes); // Bảng nối Product-Collection
+db.Sale = require('../models/Sale')(sequelize, Sequelize.DataTypes);
+db.SalesHistory = require('../models/SalesHistory')(sequelize, Sequelize.DataTypes);
+db.SalesItems = require('../models/SalesItems')(sequelize, Sequelize.DataTypes);
+db.SalesTotals = require('../models/SalesTotals')(sequelize, Sequelize.DataTypes);
+
+// Blog Models
+db.BlogPost = require('../models/BlogPost')(sequelize, Sequelize.DataTypes);
+db.BlogTag = require('../models/BlogTag')(sequelize, Sequelize.DataTypes);
+db.BlogComment = require('../models/BlogComment')(sequelize, Sequelize.DataTypes);
+db.BlogPostTag = require('../models/BlogPostTag')(sequelize, Sequelize.DataTypes); // Bảng nối BlogPost-BlogTag
 
 // --- Define Associations ---
-// Gọi hàm associate của từng model nếu nó tồn tại
-// Lưu ý: Cách tốt hơn là thực hiện việc này trong file models/index.js
-// Tuy nhiên, làm ở đây cũng hoạt động nếu các model được import đúng thứ tự
-// Hoặc nếu bạn chắc chắn tất cả model đã được load trước khi gọi associate.
+// Gọi hàm associate của từng model nếu nó tồn tại và bạn muốn tách logic associate ra model file.
+// Hoặc định nghĩa trực tiếp ở đây. Để nhất quán với file cũ của bạn, chúng ta định nghĩa ở đây.
 
-// Customer - Sale (One-to-Many)
-db.Customer.hasMany(db.Sale, { foreignKey: 'customer_id', as: 'sales' }); // [cite: 7]
-db.Sale.belongsTo(db.Customer, { foreignKey: 'customer_id', as: 'customer' }); // [cite: 8]
+// Associations cho phần bán hàng
+if (db.Customer && db.Sale) {
+    db.Customer.hasMany(db.Sale, { foreignKey: 'customer_id', as: 'sales' });
+    db.Sale.belongsTo(db.Customer, { foreignKey: 'customer_id', as: 'customer' });
+}
 
-// Sale - SalesHistory (One-to-Many)
-db.Sale.hasMany(db.SalesHistory, { foreignKey: 'sale_id', as: 'history' }); // [cite: 8]
-db.SalesHistory.belongsTo(db.Sale, { foreignKey: 'sale_id', as: 'sale' }); // [cite: 9]
+if (db.Sale && db.SalesHistory) {
+    db.Sale.hasMany(db.SalesHistory, { foreignKey: 'sale_id', as: 'history', onDelete: 'CASCADE' });
+    db.SalesHistory.belongsTo(db.Sale, { foreignKey: 'sale_id', as: 'sale' });
+}
 
-// Sale - SalesItems (One-to-Many)
-db.Sale.hasMany(db.SalesItems, { foreignKey: 'sale_id', as: 'items' }); // [cite: 9]
-db.SalesItems.belongsTo(db.Sale, { foreignKey: 'sale_id', as: 'sale' }); // [cite: 10]
+if (db.Sale && db.SalesItems) {
+    db.Sale.hasMany(db.SalesItems, { foreignKey: 'sale_id', as: 'items', onDelete: 'CASCADE' });
+    db.SalesItems.belongsTo(db.Sale, { foreignKey: 'sale_id', as: 'sale' });
+}
 
-// Product - SalesItems (One-to-Many)
-db.Product.hasMany(db.SalesItems, { foreignKey: 'product_id', as: 'saleItems' }); // [cite: 10]
-db.SalesItems.belongsTo(db.Product, { foreignKey: 'product_id', as: 'product' }); // [cite: 11]
+if (db.Product && db.SalesItems) {
+    db.Product.hasMany(db.SalesItems, { foreignKey: 'product_id', as: 'saleItems' });
+    db.SalesItems.belongsTo(db.Product, { foreignKey: 'product_id', as: 'product', onDelete: 'SET NULL' });
+}
 
-// Sale - SalesTotals (One-to-One)
-db.Sale.hasOne(db.SalesTotals, { foreignKey: 'sale_id', as: 'totals' }); // [cite: 11]
-db.SalesTotals.belongsTo(db.Sale, { foreignKey: 'sale_id', as: 'sale' }); // [cite: 12]
+if (db.Sale && db.SalesTotals) {
+    db.Sale.hasOne(db.SalesTotals, { foreignKey: 'sale_id', as: 'totals', onDelete: 'CASCADE' });
+    db.SalesTotals.belongsTo(db.Sale, { foreignKey: 'sale_id', as: 'sale' });
+}
 
-// Category - Product (One-to-Many)
-db.Category.hasMany(db.Product, { foreignKey: 'category_id', as: 'products' }); // [cite: 12]
-db.Product.belongsTo(db.Category, { foreignKey: 'category_id', as: 'category' }); // [cite: 13]
+if (db.Category && db.Product) {
+    db.Category.hasMany(db.Product, { foreignKey: 'category_id', as: 'products' });
+    db.Product.belongsTo(db.Category, { foreignKey: 'category_id', as: 'category', onDelete: 'SET NULL' });
+}
 
-// Product - Size (Many-to-Many through ProductSize)
-db.Product.belongsToMany(db.Size, {
-  through: db.ProductSize,
-  foreignKey: 'product_id',
-  otherKey: 'size_id',
-  as: 'sizes' // [cite: 13]
-});
-db.Size.belongsToMany(db.Product, {
-  through: db.ProductSize,
-  foreignKey: 'size_id',
-  otherKey: 'product_id',
-  as: 'products' // [cite: 14]
-});
+if (db.Product && db.ProductImage) {
+    db.Product.hasMany(db.ProductImage, { foreignKey: 'product_id', as: 'images', onDelete: 'CASCADE' });
+    db.ProductImage.belongsTo(db.Product, { foreignKey: 'product_id', as: 'product' });
+}
 
-// Product - Color (Many-to-Many through ProductColor)
-db.Product.belongsToMany(db.Color, {
-  through: db.ProductColor,
-  foreignKey: 'product_id',
-  otherKey: 'color_id',
-  as: 'colors' // [cite: 15]
-});
-db.Color.belongsToMany(db.Product, {
-  through: db.ProductColor,
-  foreignKey: 'color_id',
-  otherKey: 'product_id',
-  as: 'products' // [cite: 16]
-});
+if (db.Color && db.ProductImage) {
+    db.Color.hasMany(db.ProductImage, { foreignKey: 'color_id', as: 'productImages', required: false }); // color_id có thể NULL
+    db.ProductImage.belongsTo(db.Color, { foreignKey: 'color_id', as: 'color', onDelete: 'SET NULL' });
+}
 
-// Product - Collection (Many-to-Many through ProductCollection)
-db.Product.belongsToMany(db.Collection, {
-  through: db.ProductCollection,
-  foreignKey: 'product_id',
-  otherKey: 'collection_id',
-  as: 'collections' // [cite: 17]
-});
-db.Collection.belongsToMany(db.Product, {
-  through: db.ProductCollection,
-  foreignKey: 'collection_id',
-  otherKey: 'product_id',
-  as: 'products' // [cite: 18]
-});
+if (db.Product && db.Inventory) {
+    db.Product.hasMany(db.Inventory, { foreignKey: 'product_id', as: 'inventoryItems', onDelete: 'CASCADE' });
+    db.Inventory.belongsTo(db.Product, { foreignKey: 'product_id', as: 'product' });
+}
+
+if (db.Size && db.Inventory) {
+    db.Size.hasMany(db.Inventory, { foreignKey: 'size_id', as: 'inventoryItems', required: false });
+    db.Inventory.belongsTo(db.Size, { foreignKey: 'size_id', as: 'size', onDelete: 'SET NULL' }); // Hoặc CASCADE nếu xóa Size thì xóa Inventory
+}
+
+if (db.Color && db.Inventory) {
+    db.Color.hasMany(db.Inventory, { foreignKey: 'color_id', as: 'inventoryItemsByColor', required: false }); // Đổi alias để tránh trùng với ProductImage
+    db.Inventory.belongsTo(db.Color, { foreignKey: 'color_id', as: 'colorDetail', onDelete: 'SET NULL' }); // Đổi alias
+}
+
+if (db.Product && db.Collection && db.ProductCollection) {
+    db.Product.belongsToMany(db.Collection, {
+      through: db.ProductCollection,
+      foreignKey: 'product_id',
+      otherKey: 'collection_id',
+      as: 'collections'
+    });
+    db.Collection.belongsToMany(db.Product, {
+      through: db.ProductCollection,
+      foreignKey: 'collection_id',
+      otherKey: 'product_id',
+      as: 'products'
+    });
+}
+
+// Associations cho Blog
+if (db.Customer && db.BlogPost) {
+    db.Customer.hasMany(db.BlogPost, { foreignKey: 'user_id', as: 'blogPosts'});
+    db.BlogPost.belongsTo(db.Customer, { foreignKey: 'user_id', as: 'author', onDelete: 'SET NULL'});
+}
+
+if (db.BlogPost && db.BlogComment) {
+    db.BlogPost.hasMany(db.BlogComment, { foreignKey: 'post_id', as: 'comments', onDelete: 'CASCADE'});
+    db.BlogComment.belongsTo(db.BlogPost, { foreignKey: 'post_id', as: 'post'});
+}
+
+if (db.BlogPost && db.BlogTag && db.BlogPostTag) {
+    db.BlogPost.belongsToMany(db.BlogTag, {
+        through: db.BlogPostTag,
+        foreignKey: 'post_id',
+        otherKey: 'tag_id',
+        as: 'tags'
+    });
+    db.BlogTag.belongsToMany(db.BlogPost, {
+        through: db.BlogPostTag,
+        foreignKey: 'tag_id',
+        otherKey: 'post_id',
+        as: 'posts'
+    });
+}
+
+if (db.Customer && db.BlogComment) {
+    db.Customer.hasMany(db.BlogComment, { foreignKey: 'user_id', as: 'blogComments'});
+    db.BlogComment.belongsTo(db.Customer, { foreignKey: 'user_id', as: 'commentAuthor', onDelete: 'SET NULL'}); // Đổi alias 'author' thành 'commentAuthor' để tránh trùng với BlogPost.author
+}
+
+if (db.BlogComment) {
+    // Quan hệ tự tham chiếu cho bình luận trả lời
+    db.BlogComment.hasMany(db.BlogComment, { foreignKey: 'parent_comment_id', as: 'replies', onDelete: 'CASCADE'});
+    db.BlogComment.belongsTo(db.BlogComment, { foreignKey: 'parent_comment_id', as: 'parentComment'});
+}
+
 
 // --- Function to test connection ---
 const connectDB = async () => {
   try {
-    await sequelize.authenticate(); // [cite: 19]
-    console.log(`Database connected successfully to ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME} (using ${sequelize.options.dialect} dialect).`); // [cite: 20]
+    await sequelize.authenticate();
+    logger.info(`Database connected successfully to ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME} (using ${sequelize.options.dialect} dialect).`);
+    // if (process.env.NODE_ENV === 'development') {
+    //   await sequelize.sync({ alter: true }); // Cẩn thận với alter:true ở production
+    //   logger.info('Database synchronized (alter: true).');
+    // }
   } catch (error) {
-    console.error('Unable to connect to the database:', error.message); // [cite: 20]
-    process.exit(1); // Thoát ứng dụng nếu không kết nối được DB
+    logger.error('Unable to connect to the database:', error.message);
+    if (error.original) { logger.error('Original database error:', error.original); }
+    else { logger.error('Full error details:', error); }
+    process.exit(1);
   }
 };
 
 // Export db object (chứa models và sequelize) và hàm connectDB
-module.exports = { db, connectDB, sequelize }; // [cite: 21] Export cả sequelize instance
+module.exports = { db, connectDB, sequelize };

@@ -1,139 +1,192 @@
-// backend/routes/uploadRoutes.js (Phiên bản đề xuất - Tăng cường Logging)
+// routes/uploadRoutes.js
 const express = require('express');
-const multer = require('multer'); // Import multer
-const path = require('path');   // Import path để xử lý đường dẫn file
-const fs = require('fs');       // Import fs để tạo thư mục
-const { protect, isAdmin } = require('../middlewares/authMiddleware'); // Đảm bảo import đúng middleware xác thực và admin
-const logger = require('../utils/logger'); // Sử dụng logger
-const router = express.Router(); //
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { protect, isAdmin } = require('../middlewares/authMiddleware');
+const logger = require('../utils/logger');
+const { db } = require('../config/db'); // Import db để dùng model ProductImage
+const ProductImage = db.ProductImage; // Lấy model ProductImage
 
-// --- Cấu hình Multer ---
+const router = express.Router();
 
-// Cấu hình nơi lưu trữ file và tên file
+// --- Cấu hình Multer (Tương tự như trước) ---
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        // Đường dẫn tới thư mục lưu ảnh sản phẩm
         const uploadPath = path.join(__dirname, '..', 'public', 'uploads', 'products');
         try {
-            // Tạo thư mục nếu chưa tồn tại (recursive: true để tạo cả thư mục cha nếu cần)
             fs.mkdirSync(uploadPath, { recursive: true });
-            cb(null, uploadPath); // Gọi callback với đường dẫn lưu file
+            cb(null, uploadPath);
         } catch (error) {
-            logger.error(`Failed to create upload directory: ${uploadPath}`, error); // Log lỗi
-            cb(error); // Truyền lỗi cho middleware xử lý lỗi của multer/express
+            logger.error(`Failed to create upload directory: ${uploadPath}`, error);
+            cb(error);
         }
     },
     filename: function (req, file, cb) {
-        // Tạo tên file unique để tránh trùng lặp
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        // Tên file = fieldname-timestamp-random + phần mở rộng gốc
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname)); //
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
     }
 });
 
-// Cấu hình bộ lọc file (chỉ chấp nhận file ảnh)
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) { // Kiểm tra mimetype có phải là ảnh không
-        cb(null, true); // Chấp nhận file
+    if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
     } else {
-        // Từ chối file và tạo lỗi rõ ràng hơn
-         cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Chỉ được upload file hình ảnh!'), false); //
-         // Hoặc dùng lỗi tùy chỉnh: cb(new Error('Chỉ được upload file hình ảnh!'), false);
+        cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Chỉ được upload file hình ảnh!'), false);
     }
 };
 
-// Khởi tạo middleware multer với cấu hình storage, fileFilter và giới hạn kích thước
-const upload = multer({ //
+const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
-    limits: { fileSize: 5 * 1024 * 1024 } // Giới hạn 5MB
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
-// ------------------------
-
-// --- Định nghĩa Route Upload ---
-// POST /api/uploads/image
+// --- Route Upload Mới (Xử lý nhiều ảnh) ---
+// POST /api/uploads/product-images
+// Request body có thể chứa:
+// - product_id (ID của sản phẩm đã tồn tại - nếu upload ảnh cho sản phẩm đã có)
+// - color_id (ID của màu - nếu ảnh này cho màu cụ thể, tùy chọn)
+// - display_order_start (Thứ tự bắt đầu cho các ảnh, ví dụ 0, tùy chọn)
+// Field chứa file ảnh sẽ là 'productImages' (mảng)
 router.post(
-    '/image', // Đường dẫn con cho upload ảnh
-    (req, res, next) => { // Middleware kiểm tra nhanh trước khi xác thực
-        logger.info('--- Received POST /api/uploads/image request ---'); //
-        next();
-    },
-    protect,   // Middleware xác thực token: User phải đăng nhập
-    isAdmin,   // Middleware kiểm tra quyền admin: User phải là Admin
-    (req, res, next) => { // Middleware xử lý upload bằng multer
-        logger.info(`User authenticated for upload: ${req.user?.customer_id || 'ID not found'}`); //
-        // Sử dụng upload.single như một middleware.
-        // Tham số 'productImage' là tên của field trong form-data gửi lên từ client.
-        // Hàm callback (err) => {...} sẽ bắt lỗi từ multer (vd: file quá lớn, sai loại file)
-        upload.single('productImage')(req, res, (err) => { //
-            if (err) {
-                logger.error('Error during multer processing:', err); // Log lỗi từ multer
-                // Chuyển lỗi từ multer hoặc fileFilter đến error handler cuối cùng của Express
-                return next(err); //
-            }
-            // Nếu không có lỗi từ multer, kiểm tra xem req.file có tồn tại không
-            // (có thể không tồn tại nếu client không gửi file hoặc fieldname sai)
-             if (!req.file) {
-                logger.warn('Upload Warning: req.file is undefined after multer processing.'); //
-                // Tạo lỗi để error handler cuối cùng xử lý
-                return next(new Error('Không có file ảnh nào được tải lên hoặc file không hợp lệ.')); //
-            }
-             // Nếu mọi thứ ổn, chuyển sang controller chính (middleware tiếp theo)
-             logger.info(`File received: ${req.file.filename}, Size: ${req.file.size}`); //
-             next(); //
-        });
-    },
-    (req, res, next) => { // Controller chính (chạy sau khi multer thành công và req.file tồn tại)
-        try {
-            // Tạo URL tương đối để lưu vào DB hoặc trả về client
-            // Đường dẫn này sẽ được phục vụ bởi middleware static ở app.js
-            const imageUrl = `/uploads/products/${req.file.filename}`; //
-            logger.info(`Generated imageUrl: ${imageUrl}`); //
+    '/product-images',
+    protect, // Yêu cầu đăng nhập
+    isAdmin,  // Yêu cầu quyền Admin
 
-            // Chuẩn bị dữ liệu response thành công
-            const responseData = {
+    // Sử dụng upload.array() để nhận nhiều file
+    // 'productImages' là tên field trong form-data, 10 là số lượng file tối đa
+    upload.array('productImages', 10),
+
+    async (req, res, next) => {
+        try {
+            // req.files là một mảng các đối tượng file đã được upload bởi multer
+            if (!req.files || req.files.length === 0) {
+                logger.warn('Upload Warning: req.files is undefined or empty after multer processing.');
+                return res.status(400).json({ message: 'Không có file ảnh nào được tải lên.' });
+            }
+
+            // Lấy product_id, color_id, display_order_start từ req.body nếu có
+            // Quan trọng: product_id có thể chưa có nếu đây là quá trình tạo sản phẩm mới hoàn toàn.
+            // Trong trường hợp đó, frontend sẽ upload ảnh, nhận lại URLs, rồi gửi URLs này cùng
+            // với các thông tin sản phẩm khác khi tạo sản phẩm.
+            // Hoặc, frontend gửi product_id của sản phẩm ĐÃ TẠO để thêm ảnh.
+            // Cách tiếp cận đơn giản hơn hiện tại là: API này chỉ trả về URLs, việc tạo record ProductImage
+            // sẽ do API createProduct/updateProduct đảm nhiệm sau khi nhận URLs.
+
+            const uploadedImageUrls = req.files.map(file => {
+                const relativePath = `/uploads/products/${file.filename}`;
+                return {
+                    url: relativePath,
+                    originalName: file.originalname,
+                    // Bạn có thể trả về thêm thông tin nếu cần
+                };
+            });
+
+            logger.info(`${uploadedImageUrls.length} product images uploaded successfully.`);
+            res.status(201).json({
                 success: true,
-                message: 'Hình ảnh đã được tải lên thành công',
-                imageUrl: imageUrl // Trả về URL của ảnh
-            }; //
-            logger.info('--- Sending Success JSON Response ---:', responseData); //
-            // *** Đảm bảo gửi JSON hợp lệ ***
-            res.status(201).json(responseData); // Gửi response thành công (201 Created)
+                message: 'Các hình ảnh đã được tải lên thành công.',
+                imageUrls: uploadedImageUrls // Trả về mảng các URL và thông tin ảnh
+            });
 
         } catch (error) {
-            logger.error('Error in main upload controller:', error); //
-            // Chuyển lỗi không mong muốn đến error handler cuối cùng
-            next(error); //
+            logger.error('Error in product images upload handler:', error);
+            next(error); // Chuyển lỗi đến error handler chung
         }
     }
 );
 
-// Middleware xử lý lỗi riêng cho route này (bắt lỗi từ multer hoặc controller ở trên)
-// Middleware này PHẢI có 4 tham số (error, req, res, next) để Express nhận diện là error handler
-router.use('/image', (error, req, res, next) => {
-    logger.error("--- Upload Route Error Handler ---"); //
-    logger.error("Error Object:", error); // Log chi tiết lỗi
 
-    // Mặc định lỗi 500 nếu không xác định được
-    let statusCode = 500; //
+// --- Route Upload Ảnh Đơn (Giữ lại nếu vẫn cần) ---
+// POST /api/uploads/image (Route cũ của bạn)
+// Route này có thể được giữ lại nếu bạn có nhu cầu upload một ảnh đơn cho mục đích khác,
+// hoặc bạn có thể điều chỉnh nó.
+// Hiện tại, tôi sẽ comment lại để tập trung vào upload nhiều ảnh.
+/*
+router.post(
+    '/image',
+    (req, res, next) => {
+        logger.info('--- Received POST /api/uploads/image request ---');
+        next();
+    },
+    protect,
+    isAdmin,
+    (req, res, next) => {
+        logger.info(`User authenticated for upload: ${req.user?.customer_id || 'ID not found'}`);
+        upload.single('productImage')(req, res, (err) => {
+            if (err) {
+                logger.error('Error during multer processing:', err);
+                return next(err);
+            }
+            if (!req.file) {
+                logger.warn('Upload Warning: req.file is undefined after multer processing.');
+                return next(new Error('Không có file ảnh nào được tải lên hoặc file không hợp lệ.'));
+            }
+            logger.info(`File received: ${req.file.filename}, Size: ${req.file.size}`);
+            next();
+        });
+    },
+    (req, res, next) => {
+        try {
+            const imageUrl = `/uploads/products/${req.file.filename}`;
+            logger.info(`Generated imageUrl: ${imageUrl}`);
+            const responseData = {
+                success: true,
+                message: 'Hình ảnh đã được tải lên thành công',
+                imageUrl: imageUrl
+            };
+            logger.info('--- Sending Success JSON Response ---:', responseData);
+            res.status(201).json(responseData);
+        } catch (error) {
+            logger.error('Error in main upload controller:', error);
+            next(error);
+        }
+    }
+);
+
+router.use('/image', (error, req, res, next) => {
+    // ... (error handler cũ của bạn cho /image) ...
+    logger.error("--- Upload Route Error Handler for /image ---");
+    logger.error("Error Object:", error);
+
+    let statusCode = 500;
     let message = 'Internal server error during upload.';
 
-    // Xử lý lỗi cụ thể từ Multer
-    if (error instanceof multer.MulterError) { //
-        statusCode = 400; // Lỗi từ client (vd: file quá lớn - LIMIT_FILE_SIZE, sai field - LIMIT_UNEXPECTED_FILE)
+    if (error instanceof multer.MulterError) {
+        statusCode = 400;
         message = `Upload error: ${error.message}`;
         if (error.code === 'LIMIT_FILE_SIZE') message = 'File ảnh quá lớn (tối đa 5MB).';
-        if (error.code === 'LIMIT_UNEXPECTED_FILE' && error.message.includes('hình ảnh')) message = 'Chỉ được upload file hình ảnh!'; // Dùng message từ fileFilter
-    } else if (error.message.includes('Chỉ được upload file hình ảnh') || error.message.includes('Không có file ảnh nào')) { // Lỗi tùy chỉnh từ middleware trước
-        statusCode = 400; // Lỗi file không hợp lệ
-        message = error.message; //
+        if (error.code === 'LIMIT_UNEXPECTED_FILE' && error.message.includes('hình ảnh')) message = 'Chỉ được upload file hình ảnh!';
+    } else if (error.message.includes('Chỉ được upload file hình ảnh') || error.message.includes('Không có file ảnh nào')) {
+        statusCode = 400;
+        message = error.message;
     }
-    // Có thể thêm các kiểu lỗi khác ở đây
+    logger.error(`Responding with status ${statusCode}: ${message}`);
+    res.status(statusCode).json({ success: false, message: message });
+});
+*/
 
-    logger.error(`Responding with status ${statusCode}: ${message}`); //
-    // *** Đảm bảo gửi JSON hợp lệ ngay cả khi lỗi ***
-    res.status(statusCode).json({ success: false, message: message }); //
+// Error handler chung cho các lỗi khác của /api/uploads (nếu cần)
+// Ví dụ, nếu bạn thêm các route upload khác
+router.use((error, req, res, next) => {
+    logger.error("--- General Upload Routes Error Handler ---");
+    logger.error("Error Object:", error);
+
+    let statusCode = error.status || 500;
+    let message = error.message || 'An unexpected error occurred during the upload process.';
+
+    // Xử lý lỗi cụ thể từ Multer nếu chưa được xử lý bởi handler con
+    if (error instanceof multer.MulterError) {
+        statusCode = 400;
+        message = `Upload error: ${error.message}`;
+        if (error.code === 'LIMIT_FILE_SIZE') message = 'File ảnh quá lớn (tối đa 5MB).';
+        // Thêm các case khác của MulterError nếu cần
+    }
+
+    logger.error(`Responding with status ${statusCode}: ${message}`);
+    res.status(statusCode).json({ success: false, message: message });
 });
 
-module.exports = router; //
+
+module.exports = router;

@@ -36,23 +36,23 @@ router.get('/:id', getProductById); //
 // @route   POST /api/products
 router.post(
     '/',
-    protect,              // 1. Phải đăng nhập
-    isAdmin,              // 2. Phải là Admin
-    productCreateRules ? productCreateRules() : [], // 3. Validate input (cần cập nhật rules)
+    protect,
+    isAdmin,
+    productCreateRules(),   // <<< ÁP DỤNG RULES MỚI
     handleValidationErrors,
-    createProduct         // 4. Controller tạo sản phẩm
-); //
+    createProduct
+);
 
 // @desc    Cập nhật sản phẩm
 // @route   PUT /api/products/:id
 router.put(
     '/:id',
-    protect,              // 1. Phải đăng nhập
-    isAdmin,              // 2. Phải là Admin
-    productUpdateRules ? productUpdateRules() : [], // 3. Validate input (có thể khác create)
+    protect,
+    isAdmin,
+    productUpdateRules(),   // <<< ÁP DỤNG RULES MỚI
     handleValidationErrors,
-    updateProduct         // 4. Controller cập nhật sản phẩm
-); //
+    updateProduct
+);
 
 // @desc    Xóa sản phẩm
 // @route   DELETE /api/products/:id

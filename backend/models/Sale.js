@@ -1,4 +1,4 @@
-// models/Sale.js (Đã thêm Associations)
+// backend/models/Sale.js
 module.exports = (sequelize, DataTypes) => {
     const Sale = sequelize.define('Sale', {
         sale_id: {
@@ -7,59 +7,59 @@ module.exports = (sequelize, DataTypes) => {
             primaryKey: true
         },
         sale_date: {
-            type: DataTypes.DATEONLY, // Chỉ lưu ngày (YYYY-MM-DD), khớp với kiểu DATE trong SQL
+            type: DataTypes.DATE,
             allowNull: false
         },
         sale_status: {
-            type: DataTypes.STRING(50), // Ví dụ: Pending, Processing, Shipped, Delivered, Cancelled
+            type: DataTypes.STRING(50),
             allowNull: false,
-            defaultValue: 'Pending' // Trạng thái mặc định khi mới tạo
+            defaultValue: 'Pending',
+            comment: 'Trạng thái đơn hàng (Pending, Processing, Shipped, Delivered, Cancelled, Failed)'
         },
-        customer_id: { // Khóa ngoại liên kết tới Customers
+        customer_id: {
             type: DataTypes.INTEGER,
-            allowNull: false,
-            references: { // Định nghĩa rõ ràng tham chiếu (tùy chọn nhưng nên có)
-                model: 'Customers', // Tên bảng Customers trong DB
+            allowNull: true, // Cho phép NULL nếu khách vãng lai
+            references: {
+                model: 'Customers',
                 key: 'customer_id'
-            },
-            // onDelete: 'CASCADE', // Hoặc SET NULL, tùy vào logic nghiệp vụ khi xóa Customer
-            // onUpdate: 'CASCADE'
+            }
+        },
+        shipping_name: DataTypes.STRING(100),
+        shipping_phone: DataTypes.STRING(20),
+        shipping_address: DataTypes.STRING(255),
+        shipping_notes: DataTypes.TEXT,
+        payment_method: {
+            type: DataTypes.STRING(50),
+            defaultValue: 'COD'
         }
-        // Thêm display_sale_id nếu bạn lưu mã đơn hàng đặc biệt vào DB
-        // display_sale_id: { type: DataTypes.STRING(100), unique: true, allowNull: true },
     }, {
-        tableName: 'Sales', // Tên bảng trong DB
-        timestamps: false // Không dùng createdAt, updatedAt
-    }); //
+        tableName: 'Sales',
+        timestamps: false, // Theo schema SQL
+        comment: 'Bảng lưu thông tin chính của đơn hàng'
+    });
 
-    // --- Định nghĩa Associations ---
     Sale.associate = (models) => {
-        // Một Sale thuộc về một Customer (Many-to-One)
         Sale.belongsTo(models.Customer, {
-            foreignKey: 'customer_id', // Khóa ngoại trong bảng Sales
-            as: 'customer' // Alias khi include Customer từ Sale
-        }); //
-
-        // Một Sale có nhiều SalesItems (One-to-Many)
-        Sale.hasMany(models.SalesItems, {
-            foreignKey: 'sale_id', // Khóa ngoại trong bảng SalesItems
-            as: 'items',           // Alias khi include SalesItems từ Sale
-            onDelete: 'CASCADE'    // Nếu xóa Sale, xóa luôn các SalesItems liên quan
-        }); //
-
-        // Một Sale có nhiều SalesHistory (One-to-Many)
+            foreignKey: 'customer_id',
+            as: 'customer',
+            onDelete: 'RESTRICT', // Quan trọng: để không xóa customer nếu có sale
+            onUpdate: 'CASCADE'
+        });
         Sale.hasMany(models.SalesHistory, {
-            foreignKey: 'sale_id', // Khóa ngoại trong bảng SalesHistory
-            as: 'history',         // Alias
-            onDelete: 'CASCADE'    // Nếu xóa Sale, xóa luôn lịch sử
-        }); //
-
-        // Một Sale có một SalesTotals (One-to-One)
-        Sale.hasOne(models.SalesTotals, {
-            foreignKey: 'sale_id', // Khóa ngoại trong bảng SalesTotals
-            as: 'totals',          // Alias
-            onDelete: 'CASCADE'    // Nếu xóa Sale, xóa luôn tổng tiền
-        }); //
+            foreignKey: 'sale_id',
+            as: 'history',
+            onDelete: 'CASCADE'
+        });
+        Sale.hasMany(models.SalesItems, {
+            foreignKey: 'sale_id',
+            as: 'items',
+            onDelete: 'CASCADE'
+        });
+        Sale.hasOne(models.SalesTotals, { // Quan hệ 1-1
+            foreignKey: 'sale_id',
+            as: 'totals',
+            onDelete: 'CASCADE'
+        });
     };
 
     return Sale;

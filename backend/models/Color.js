@@ -1,6 +1,7 @@
 // models/Color.js
 module.exports = (sequelize, DataTypes) => {
     const Color = sequelize.define('Color', {
+        // ... các trường của bạn giữ nguyên ...
         color_id: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
@@ -11,24 +12,28 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             unique: true
         },
-        color_hex: { // Mã màu HEX (vd: #FFFFFF)
+        color_hex: {
             type: DataTypes.STRING(7),
-            allowNull: true, // Cho phép null nếu không có mã hex
-            unique: true // Mã hex cũng nên là duy nhất nếu có
+            allowNull: true,
+            unique: true
         }
     }, {
         tableName: 'Colors',
         timestamps: false
-    }); //
+    });
 
     Color.associate = (models) => {
-        // Color thuộc về nhiều Product (Many-to-Many) thông qua ProductColor
-        Color.belongsToMany(models.Product, {
-            through: models.ProductColor, // Tên model bảng trung gian
-            foreignKey: 'color_id',    // Khóa ngoại trong bảng trung gian trỏ về Color
-            otherKey: 'product_id', // Khóa ngoại trong bảng trung gian trỏ về Product
-            as: 'products'           // Bí danh khi include Product từ Color
-        }); //
+        Color.hasMany(models.Inventory, {
+        foreignKey: 'color_id',
+        as: 'inventoryItems' // Hoặc một alias khác bạn muốn
+    });
+
+        // >>> THÊM DÒNG NÀY VÀO Color.associate <<<
+        Color.hasMany(models.ProductImage, {
+            foreignKey: 'color_id',
+            as: 'productImages' // Alias để truy vấn
+        });
+        // >>> KẾT THÚC THÊM DÒNG <<<
     };
 
     return Color;
