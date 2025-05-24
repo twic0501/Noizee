@@ -17,6 +17,7 @@
     "chart.js": "^4.4.9",
     "date-fns": "^4.1.0",
     "graphql": "^16.10.0",
+    "graphql-ws": "^6.0.5",
     "lodash": "^4.17.21",
     "react": "^19.0.0",
     "react-bootstrap": "^2.10.9",
