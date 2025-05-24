@@ -3,9 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Container, Card, Row, Col, Breadcrumb } from 'react-bootstrap';
-import ProductForm from '../../components/products/ProductForm';
+import ProductForm from '../../components/products/ProductForm'; // Đã được cập nhật
 import { CREATE_PRODUCT_MUTATION } from '../../api/mutations/productMutations';
-import { GET_ADMIN_PRODUCTS_QUERY } from '../../api/queries/productQueries';
+import { GET_ADMIN_PRODUCTS_QUERY } from '../../api/queries/productQueries'; // Để refetch list
 import AlertMessage from '../../components/common/AlertMessage';
 import logger from '../../utils/logger';
 import { DEFAULT_PAGE_LIMIT, ADMIN_LANGUAGE_KEY } from '../../utils/constants';
@@ -21,6 +21,7 @@ function ProductCreatePage() {
         if (successFlashMessage) {
             const timer = setTimeout(() => {
                 setSuccessFlashMessage(null);
+                // Xóa state khỏi location để không hiển thị lại khi refresh hoặc quay lại trang
                 navigate(location.pathname, { replace: true, state: {} });
             }, 5000);
             return () => clearTimeout(timer);
@@ -36,13 +37,14 @@ function ProductCreatePage() {
         ],
         onError: (error) => {
             logger.error("Error in createProductMutation (GraphQL):", error);
-            const messages = error.graphQLErrors?.map(e => e.message).join("\n") || error.message || "Tạo sản phẩm thất bại.";
+            const messages = error.graphQLErrors?.map(e => e.message).join("\n") || error.message || "Tạo sản phẩm thất bại. Vui lòng kiểm tra lại thông tin.";
             setSubmitError(messages);
         },
         onCompleted: (data) => {
-            const newProductName = (currentAdminLang === 'en' && data.adminCreateProduct.name_en) // Assuming 'name_en' is available or use 'name(lang:"en")'
-                                 ? data.adminCreateProduct.name_en
-                                 : (data.adminCreateProduct.name_vi || data.adminCreateProduct.name); // Fallback to name_vi or virtual 'name'
+            const newProduct = data?.adminCreateProduct;
+            const newProductName = newProduct
+                ? (currentAdminLang === 'en' && newProduct.name_en ? newProduct.name_en : newProduct.name_vi) || newProduct.name // Sử dụng trường ảo name nếu có
+                : "Sản phẩm mới";
             logger.info('Product created successfully via GraphQL:', data);
             navigate('/products', { state: { successMessage: `Sản phẩm "${newProductName}" đã được tạo thành công!` } });
         }
@@ -53,17 +55,20 @@ function ProductCreatePage() {
         logger.info("ProductCreatePage: Calling createProduct mutation with input:", preparedDataFromForm);
 
         try {
-            // FIXED: Pass lang variable to the mutation
-            await createProductMutation({ 
-                variables: { 
+            // Biến $lang trong CREATE_PRODUCT_MUTATION là để PRODUCT_ADMIN_CORE_FIELDS (trong phần trả về) có thể resolve đúng ngôn ngữ.
+            // Resolver adminCreateProduct ở backend không nhận trực tiếp biến lang.
+            await createProductMutation({
+                variables: {
                     input: preparedDataFromForm,
-                    lang: currentAdminLang // Pass the current language
-                } 
+                    lang: currentAdminLang // Cần thiết cho fragment trả về
+                }
             });
         } catch (gqlError) {
-            if (!submitError && gqlError) {
+            // Lỗi đã được xử lý bởi onError của useMutation
+            // Tuy nhiên, nếu có lỗi trước khi mutation được gọi (ví dụ: lỗi chuẩn bị biến), có thể bắt ở đây
+            if (!submitError && gqlError) { // Chỉ set nếu onError chưa set
                 logger.error("Error caught directly in ProductCreatePage handleSubmit:", gqlError);
-                 const messages = gqlError.graphQLErrors?.map(e => e.message).join("\n") || gqlError.message || "Đã xảy ra lỗi không mong muốn.";
+                 const messages = gqlError.graphQLErrors?.map(e => e.message).join("\n") || gqlError.message || "Đã xảy ra lỗi không mong muốn khi chuẩn bị tạo sản phẩm.";
                 setSubmitError(messages);
             }
         }
@@ -94,7 +99,8 @@ function ProductCreatePage() {
                 <Card.Body className="p-lg-4 p-3">
                     <ProductForm
                         onSubmit={handleFormSubmit}
-                        loading={mutationLoading}
+                        loading={mutationLoading} // Truyền trạng thái loading của mutation
+                        error={submitError ? { message: submitError } : null} // Truyền lỗi nếu có
                         isEditMode={false}
                         onCancel={() => navigate('/products')}
                     />

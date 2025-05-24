@@ -1,56 +1,59 @@
 // src/components/cart/CartSummary.jsx
 import React from 'react';
 import { Card, ListGroup, Button } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom'; // Thêm useParams
 import { useCart } from '../../hooks/useCart';
-import { useAuth } from '../../hooks/useAuth'; // Để lấy virtual_balance
+import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency } from '../../utils/formatters';
+import { useTranslation } from 'react-i18next'; // << IMPORT useTranslation
 
-// Giả sử bạn có file CSS riêng cho CartSummary
 // import './CartSummary.css';
 
 function CartSummary({ showCheckoutButton = true, isCheckoutPage = false }) {
+  const { t, i18n } = useTranslation(); // << SỬ DỤNG HOOK
   const { totalPrice, totalItems } = useCart();
   const { userInfo } = useAuth();
+  const params = useParams(); // Để lấy lang từ URL cho link checkout
+  const currentLang = params.lang || i18n.language || 'vi';
 
-  // --- Logic tính toán chiết khấu ---
-  const shippingFee = 0; // Tạm thời miễn phí vận chuyển
+  const shippingFee = 0;
   let discountAmount = 0;
   let finalPrice = totalPrice + shippingFee;
   let discountNote = null;
 
   if (userInfo?.virtual_balance > 0 && totalPrice > 0 && isCheckoutPage) {
-    // Áp dụng tối đa 10% tổng giá trị đơn hàng hoặc toàn bộ số dư ảo nếu ít hơn
     const tenPercentOfTotal = totalPrice * 0.10;
     discountAmount = Math.min(tenPercentOfTotal, userInfo.virtual_balance);
-    discountAmount = Math.floor(discountAmount / 1000) * 1000; // Làm tròn xuống hàng nghìn
+    discountAmount = Math.floor(discountAmount / 1000) * 1000;
     finalPrice = totalPrice + shippingFee - discountAmount;
-    discountNote = `(Đã áp dụng ${formatCurrency(discountAmount)} từ số dư ${formatCurrency(userInfo.virtual_balance)})`;
+    discountNote = t('cartSummary.discountAppliedNote', {
+        discount: formatCurrency(discountAmount, i18n.language), // Truyền ngôn ngữ
+        balance: formatCurrency(userInfo.virtual_balance, i18n.language) // Truyền ngôn ngữ
+    });
   }
-  // ------------------------------------
 
   return (
-    <Card className="shadow-sm cart-summary-card"> {/* CSS class */}
+    <Card className="shadow-sm cart-summary-card">
       <Card.Body>
-        <Card.Title className="mb-3 cart-summary-title">Tóm tắt đơn hàng</Card.Title> {/* CSS class */}
+        <Card.Title className="mb-3 cart-summary-title">{t('cartSummary.title')}</Card.Title>
         <ListGroup variant="flush" className="cart-summary-list">
           <ListGroup.Item className="d-flex justify-content-between">
-            <span>Tạm tính ({totalItems} sản phẩm)</span>
-            <strong>{formatCurrency(totalPrice)}</strong>
+            <span>{t('cartSummary.subtotalItems', { count: totalItems })}</span>
+            <strong>{formatCurrency(totalPrice, i18n.language)}</strong>
           </ListGroup.Item>
           <ListGroup.Item className="d-flex justify-content-between">
-            <span>Phí vận chuyển</span>
-            <span>{shippingFee > 0 ? formatCurrency(shippingFee) : 'Miễn phí'}</span>
+            <span>{t('cartSummary.shippingFee')}</span>
+            <span>{shippingFee > 0 ? formatCurrency(shippingFee, i18n.language) : t('cartSummary.freeShipping')}</span>
           </ListGroup.Item>
           {isCheckoutPage && discountAmount > 0 && (
             <ListGroup.Item className="d-flex justify-content-between">
-              <span>Giảm giá từ số dư</span>
-              <strong className="text-success">-{formatCurrency(discountAmount)}</strong>
+              <span>{t('cartSummary.discountFromBalance')}</span>
+              <strong className="text-success">-{formatCurrency(discountAmount, i18n.language)}</strong>
             </ListGroup.Item>
           )}
           <ListGroup.Item className="d-flex justify-content-between fw-bold h5 total-price-row">
-            <span>Tổng cộng</span>
-            <span>{formatCurrency(finalPrice)}</span>
+            <span>{t('cartSummary.totalAmount')}</span>
+            <span>{formatCurrency(finalPrice, i18n.language)}</span>
           </ListGroup.Item>
           {isCheckoutPage && discountNote && (
             <ListGroup.Item className="text-muted small pt-1 px-0 border-0">
@@ -63,13 +66,13 @@ function CartSummary({ showCheckoutButton = true, isCheckoutPage = false }) {
           <div className="d-grid mt-3">
             <Button
               as={Link}
-              to="/checkout"
-              variant="dark" // Hoặc màu primary của bạn
+              to={`/${currentLang}/checkout`} // Thêm prefix ngôn ngữ
+              variant="dark"
               size="lg"
-              className="checkout-button" // CSS class
+              className="checkout-button"
               disabled={totalItems === 0}
             >
-              Tiến hành đặt hàng
+              {t('cartSummary.proceedToCheckout')}
             </Button>
           </div>
         )}

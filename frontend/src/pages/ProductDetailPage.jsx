@@ -1,5 +1,5 @@
 // src/pages/ProductDetailPage.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { Container, Row, Col, Image, Button, Badge, Breadcrumb, Form, Alert } from 'react-bootstrap';
@@ -8,45 +8,37 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import AlertMessage from '../components/common/AlertMessage';
 import SizeSelector from '../components/product/SizeSelector';
 import ColorSelector from '../components/product/ColorSelector';
-import ImageCarousel from '../components/product/ImageCarousel'; // Nếu dùng carousel
+import ImageCarousel from '../components/product/ImageCarousel';
 import { useCart } from '../hooks/useCart';
-import { formatCurrency, getFullImageUrl } from '../utils/formatters';
-import { PLACEHOLDER_PRODUCT_IMAGE } from '../utils/constants';
-import './ProductDetailPage.css'; // Tạo file CSS riêng
+import { formatCurrency, getFullImageUrl, formatDate, formatDateTime } from '../utils/formatters'; // Thêm formatDate, formatDateTime
+import { PLACEHOLDER_PRODUCT_IMAGE, DEFAULT_USER_LANGUAGE } from '../utils/constants'; // Thêm DEFAULT_USER_LANGUAGE
+import { useTranslation } from 'react-i18next';
+import './ProductDetailPage.css';
 
 function ProductDetailPage() {
-  const { id: productId } = useParams();
-  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const { id: productIdFromUrl } = useParams(); // id or slug from URL
+  // const navigate = useNavigate(); // Bỏ nếu không dùng trực tiếp
   const { addItem } = useCart();
+  const params = useParams();
+  const currentLang = params.lang || i18n.language || DEFAULT_USER_LANGUAGE;
 
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedColor, setSelectedColor] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [addToCartMessage, setAddToCartMessage] = useState({ type: '', text: '' });
-  const [mainImage, setMainImage] = useState(''); // State cho ảnh chính hiển thị
+  const [mainImage, setMainImage] = useState('');
 
   const { loading, error, data } = useQuery(GET_PRODUCT_DETAILS_QUERY, {
-    variables: { id: productId },
+    variables: { id: productIdFromUrl, lang: currentLang },
     fetchPolicy: 'cache-and-network',
     onCompleted: (queryData) => {
-        if (queryData?.product?.imageUrl) {
-            setMainImage(getFullImageUrl(queryData.product.imageUrl));
-        } else {
-            setMainImage(PLACEHOLDER_PRODUCT_IMAGE);
-        }
-        // Tự động chọn size/color đầu tiên nếu chỉ có 1 lựa chọn và còn hàng
         const productData = queryData?.product;
         if (productData) {
-            if (productData.sizes?.length === 1) {
-                const firstSize = productData.sizes[0];
-                // Kiểm tra tồn kho của size này (có thể cần check với màu mặc định nếu có)
-                 setSelectedSize(firstSize);
-            }
-            if (productData.colors?.length === 1) {
-                const firstColor = productData.colors[0];
-                // Kiểm tra tồn kho của màu này (có thể cần check với size mặc định nếu có)
-                setSelectedColor(firstColor);
-            }
+            const primaryImgData = productData.images?.find(img => img.display_order === 0 && !img.color_id) || productData.images?.[0];
+            setMainImage(getFullImageUrl(primaryImgData?.image_url || PLACEHOLDER_PRODUCT_IMAGE));
+        } else {
+            setMainImage(PLACEHOLDER_PRODUCT_IMAGE);
         }
     },
     onError: (err) => {
@@ -55,13 +47,20 @@ function ProductDetailPage() {
   });
 
   const product = data?.product;
-  const inventoryData = useMemo(() => product?.inventory || [], [product?.inventory]);
-  const availableSizes = useMemo(() => product?.sizes || [], [product?.sizes]);
-  const availableColors = useMemo(() => product?.colors || [], [product?.colors]);
 
-  const getVariantStock = (sizeId, colorId) => {
+  // Sử dụng resolver ảo 'name' và 'description' từ GraphQL nếu có, đã bao gồm logic ngôn ngữ
+  const productName = product?.name || t('productDetailPage.defaultProductName', 'Product Details');
+  const productDescription = product?.description || '';
+  const categoryName = product?.category?.name || '';
+  const categorySlug = product?.category?.slug || product?.category?.category_id;
+
+  const inventoryData = useMemo(() => product?.inventory || [], [product?.inventory]);
+  const availableSizes = useMemo(() => product?.allAvailableSizes || product?.sizes || [], [product?.allAvailableSizes, product?.sizes]); // Ưu tiên allAvailableSizes
+  const availableColors = useMemo(() => product?.allAvailableColors || product?.colors || [], [product?.allAvailableColors, product?.colors]); // Ưu tiên allAvailableColors
+
+
+  const getVariantStock = useCallback((sizeId, colorId) => {
     if (!inventoryData || inventoryData.length === 0) {
-        // Nếu không có variants được định nghĩa trong inventory và sản phẩm có yêu cầu size/color -> hết hàng
         return (availableSizes.length > 0 || availableColors.length > 0) ? 0 : Infinity;
     }
     const variant = inventoryData.find(inv =>
@@ -69,66 +68,74 @@ function ProductDetailPage() {
       inv.color_id === (colorId || null)
     );
     return variant ? variant.quantity : 0;
-  };
+  }, [inventoryData, availableSizes, availableColors]);
 
   const currentVariantStock = useMemo(() => {
     if (!product) return 0;
-    // Nếu sản phẩm không có size và color (simple product)
     if (availableSizes.length === 0 && availableColors.length === 0) {
         const simpleInventory = inventoryData.find(inv => inv.size_id === null && inv.color_id === null);
-        return simpleInventory ? simpleInventory.quantity : (inventoryData.length === 0 ? Infinity : 0); // Coi là còn hàng nếu ko có entry cụ thể
+        return simpleInventory ? simpleInventory.quantity : (inventoryData.length === 0 ? Infinity : 0);
     }
-    // Nếu có size/color nhưng chưa chọn -> chưa xác định được stock
     if ((availableSizes.length > 0 && !selectedSize) || (availableColors.length > 0 && !selectedColor)) {
-        return 0; // Hoặc một giá trị nào đó để biết là chưa chọn đủ
+        return 0;
     }
     return getVariantStock(selectedSize?.size_id, selectedColor?.color_id);
-  }, [product, selectedSize, selectedColor, inventoryData, availableSizes, availableColors]);
-
+  }, [product, selectedSize, selectedColor, inventoryData, availableSizes, availableColors, getVariantStock]);
 
   const isCompletelyOutOfStock = useMemo(() => {
-      if (!inventoryData || !product) return true; // Chưa có data thì coi như hết
-      if (availableSizes.length === 0 && availableColors.length === 0) { // Simple product
-        const simpleInventory = inventoryData.find(inv => inv.size_id === null && inv.color_id === null);
-        return simpleInventory ? simpleInventory.quantity <= 0 : (inventoryData.length > 0 ? true: false); // Hết nếu có entry và <=0, hoặc có entry mà ko khớp. Còn nếu ko có entry nào thì coi là còn.
-      }
-      // Configurable product
-      return inventoryData.length > 0 && inventoryData.every(inv => inv.quantity <= 0);
+      if (!inventoryData || !product) return true;
+      if (inventoryData.length === 0 && (availableSizes.length > 0 || availableColors.length > 0)) return true;
+      if (inventoryData.length === 0 && availableSizes.length === 0 && availableColors.length === 0) return false;
+      return inventoryData.every(inv => inv.quantity <= 0);
   }, [inventoryData, product, availableSizes, availableColors]);
 
-
   useEffect(() => {
-    // Reset message khi thay đổi lựa chọn
     setAddToCartMessage({ type: '', text: '' });
   }, [selectedSize, selectedColor, quantity]);
 
+  const handleSelectColor = useCallback((color) => {
+    const newSelectedColor = color?.color_id === selectedColor?.color_id ? null : color;
+    setSelectedColor(newSelectedColor);
+    setAddToCartMessage({ type: '', text: '' });
+    if (newSelectedColor && product?.images) {
+        const colorSpecificImage = product.images.find(img => img.color_id === newSelectedColor.color_id && img.display_order === 0);
+        if (colorSpecificImage) {
+            setMainImage(getFullImageUrl(colorSpecificImage.image_url));
+        } else {
+            const primaryImgData = product.images?.find(img => img.display_order === 0 && !img.color_id) || product.images?.[0];
+            setMainImage(getFullImageUrl(primaryImgData?.image_url || PLACEHOLDER_PRODUCT_IMAGE));
+        }
+    } else {
+        const primaryImgData = product?.images?.find(img => img.display_order === 0 && !img.color_id) || product?.images?.[0];
+        setMainImage(getFullImageUrl(primaryImgData?.image_url || PLACEHOLDER_PRODUCT_IMAGE));
+    }
+  }, [selectedColor, product?.images, product?.imageUrl]); // Sửa product?.imageUrl thành product?.images
 
   const handleAddToCart = () => {
-    setAddToCartMessage({ type: '', text: '' }); // Clear previous message
+    setAddToCartMessage({ type: '', text: '' });
     if (availableSizes.length > 0 && !selectedSize) {
-      setAddToCartMessage({ type: 'danger', text: "Vui lòng chọn kích thước." });
+      setAddToCartMessage({ type: 'danger', text: t('productDetailPage.validation.selectSize') });
       return;
     }
     if (availableColors.length > 0 && !selectedColor) {
-      setAddToCartMessage({ type: 'danger', text: "Vui lòng chọn màu sắc." });
+      setAddToCartMessage({ type: 'danger', text: t('productDetailPage.validation.selectColor') });
       return;
     }
     if (currentVariantStock < quantity) {
-      setAddToCartMessage({ type: 'danger', text: `Rất tiếc, chỉ còn ${currentVariantStock} sản phẩm cho lựa chọn này.` });
+      setAddToCartMessage({ type: 'danger', text: t('productDetailPage.validation.notEnoughStock', { count: currentVariantStock }) });
       return;
     }
     if (currentVariantStock === 0 && !isCompletelyOutOfStock) {
-        setAddToCartMessage({ type: 'danger', text: "Lựa chọn này hiện đã hết hàng."});
+        setAddToCartMessage({ type: 'danger', text: t('productDetailPage.validation.variantOutOfStock')});
         return;
     }
     if (isCompletelyOutOfStock) {
-        setAddToCartMessage({ type: 'danger', text: "Sản phẩm này đã hết hàng."});
+        setAddToCartMessage({ type: 'danger', text: t('productDetailPage.validation.productOutOfStock')});
         return;
     }
 
     addItem(product, quantity, selectedSize, selectedColor);
-    setAddToCartMessage({ type: 'success', text: `${quantity} x ${product.product_name} đã được thêm vào giỏ!` });
-    // Tự động ẩn thông báo sau vài giây
+    setAddToCartMessage({ type: 'success', text: t('productDetailPage.addedToCartSuccess', { quantity, productName }) });
     setTimeout(() => setAddToCartMessage({ type: '', text: '' }), 4000);
   };
 
@@ -136,10 +143,6 @@ function ProductDetailPage() {
     setQuantity(prev => {
         const newQty = prev + change;
         if (newQty < 1) return 1;
-        // if (newQty > currentVariantStock && currentVariantStock > 0) { // Chỉ check nếu biết stock
-        //     setAddToCartMessage({type: 'warning', text: `Chỉ còn ${currentVariantStock} sản phẩm.`});
-        //     return currentVariantStock;
-        // }
         return newQty;
     });
   };
@@ -150,70 +153,69 @@ function ProductDetailPage() {
     setMainImage(PLACEHOLDER_PRODUCT_IMAGE);
   };
 
-  // Chuẩn bị ảnh cho carousel (nếu dùng)
   const carouselImages = useMemo(() => {
-    if (!product) return [];
-    const images = [];
-    if (product.imageUrl) images.push({ src: product.imageUrl, alt: product.product_name });
-    if (product.secondaryImageUrl) images.push({ src: product.secondaryImageUrl, alt: `${product.product_name} - view 2` });
-    // Thêm các ảnh khác từ một mảng product.galleryImages nếu có
-    return images.length > 0 ? images : [{src: null, alt: product.product_name}]; // Fallback với placeholder nếu không có ảnh nào
-  }, [product]);
+    if (!product?.images || product.images.length === 0) {
+        // Nếu không có mảng images, thử dùng mainImage (đã được set từ product.imageUrl)
+        return [{ src: mainImage || PLACEHOLDER_PRODUCT_IMAGE, alt: productName }];
+    }
+    return product.images.map(img => ({
+        src: img.image_url,
+        // Sử dụng alt_text từ resolver ảo của ProductImage nếu có, hoặc fallback
+        alt: img.alt_text || productName,
+    }));
+  }, [product, productName, mainImage]);
 
+  const langLink = (path) => `/${currentLang}${path}`.replace(/\/+/g, '/');
 
-  if (loading) return <Container className="my-5"><LoadingSpinner message="Đang tải sản phẩm..." /></Container>;
-  if (error) return <Container className="my-5"><AlertMessage variant="danger">Lỗi: Không thể tải thông tin sản phẩm. Vui lòng thử lại sau.</AlertMessage></Container>;
-  if (!product) return <Container className="my-5"><AlertMessage variant="warning">Sản phẩm không tồn tại hoặc đã bị xóa.</AlertMessage></Container>;
+  if (loading) return <Container className="my-5"><LoadingSpinner message={t('loadingSpinner.loading')} /></Container>;
+  if (error) return <Container className="my-5"><AlertMessage variant="danger">{t('productDetailPage.loadError', { message: error.message })}</AlertMessage></Container>;
+  if (!product) return <Container className="my-5"><AlertMessage variant="warning">{t('productDetailPage.notFoundError')}</AlertMessage></Container>;
 
   return (
     <Container className="my-4 my-md-5 product-detail-page">
       <Breadcrumb listProps={{ className: "breadcrumb-style mb-3" }}>
-        <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/" }}>Trang chủ</Breadcrumb.Item>
-        <Breadcrumb.Item linkAs={Link} linkProps={{ to: "/collections" }}>Sản phẩm</Breadcrumb.Item>
-        {product.category && (
+        <Breadcrumb.Item linkAs={Link} linkProps={{ to: langLink("/") }}>{t('breadcrumb.home')}</Breadcrumb.Item>
+        <Breadcrumb.Item linkAs={Link} linkProps={{ to: langLink("/collections") }}>{t('breadcrumb.products')}</Breadcrumb.Item>
+        {product.category && categoryName && (
           <Breadcrumb.Item
             linkAs={Link}
-            linkProps={{ to: `/collections/${product.category.category_name.toLowerCase().replace(/\s+/g, '-')}` }} // Giả lập slug
+            linkProps={{ to: langLink(`/collections/${categorySlug}`) }} // Sử dụng categorySlug
           >
-            {product.category.category_name}
+            {categoryName}
           </Breadcrumb.Item>
         )}
-        <Breadcrumb.Item active>{product.product_name}</Breadcrumb.Item>
+        <Breadcrumb.Item active>{productName}</Breadcrumb.Item>
       </Breadcrumb>
 
       <Row className="g-4 g-lg-5">
         <Col md={6} lg={7} className="product-images-col">
-          {/* Sử dụng ImageCarousel nếu có nhiều ảnh, ngược lại dùng Image thường */}
-          {carouselImages.length > 1 ? (
+          {carouselImages.length > 0 ? (
             <ImageCarousel images={carouselImages} slideHeight="auto" objectFit="contain" className="product-detail-carousel shadow-sm rounded"/>
           ) : (
-            <Image
+            <Image // Fallback nếu carouselImages rỗng (ít khi xảy ra)
               src={mainImage}
-              alt={product.product_name}
+              alt={productName}
               fluid
               className="product-main-image shadow-sm rounded"
               onError={handleImageError}
             />
           )}
-          {/* TODO: Thumbnails nếu có nhiều ảnh và không dùng carousel */}
         </Col>
 
         <Col md={6} lg={5} className="product-info-col">
-          {product.isNewArrival && !isCompletelyOutOfStock && <Badge bg="danger" className="mb-2 product-badge">NEW</Badge>}
-          {isCompletelyOutOfStock && <Badge bg="dark" className="mb-2 product-badge">SOLD OUT</Badge>}
+          {product.is_new_arrival && !isCompletelyOutOfStock && <Badge bg="danger" className="mb-2 product-badge">{t('productCard.new')}</Badge>}
+          {isCompletelyOutOfStock && <Badge bg="dark" className="mb-2 product-badge">{t('productCard.outOfStock')}</Badge>}
 
-          <h1 className="product-title mb-2">{product.product_name}</h1>
-          <p className="product-price h3 mb-3">{formatCurrency(product.product_price)}</p>
+          <h1 className="product-title mb-2">{productName}</h1>
+          <p className="product-price h3 mb-3">{formatCurrency(product.product_price, i18n.language)}</p>
 
-          {/* Hiển thị category */}
-          {product.category && (
+          {product.category && categoryName && (
             <p className="text-muted small product-category-info">
-                Danh mục: <Link to={`/collections/${product.category.category_name.toLowerCase().replace(/\s+/g, '-')}`} className="text-decoration-none">{product.category.category_name}</Link>
+                {t('productDetailPage.categoryLabel')}: <Link to={langLink(`/collections/${categorySlug}`)} className="text-decoration-none">{categoryName}</Link>
             </p>
           )}
           <hr className="my-3" />
 
-          {/* Lựa chọn Size */}
           {availableSizes.length > 0 && (
             <div className="mb-3">
               <SizeSelector
@@ -227,13 +229,12 @@ function ProductDetailPage() {
             </div>
           )}
 
-          {/* Lựa chọn Màu */}
           {availableColors.length > 0 && (
             <div className="mb-3">
               <ColorSelector
                 colors={availableColors}
                 selectedColor={selectedColor}
-                onSelectColor={setSelectedColor}
+                onSelectColor={handleSelectColor}
                 inventory={inventoryData}
                 selectedSize={selectedSize}
                 disabled={isCompletelyOutOfStock}
@@ -241,43 +242,39 @@ function ProductDetailPage() {
             </div>
           )}
 
-          {/* Lựa chọn Số Lượng */}
           {!isCompletelyOutOfStock && (
             <div className="mb-3 d-flex align-items-center quantity-selector">
-              <span className="me-3 qty-label">Số lượng:</span>
-              <Button variant="outline-secondary" size="sm" onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1} aria-label="Decrease quantity">-</Button>
+              <span className="me-3 qty-label">{t('productDetailPage.quantityLabel')}:</span>
+              <Button variant="outline-secondary" size="sm" onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1} aria-label={t('productDetailPage.decreaseQuantityAriaLabel')}>-</Button>
               <Form.Control
-                type="text" // Dùng text để cho phép nhập, nhưng sẽ validate
+                type="text"
                 value={quantity}
                 onChange={(e) => {
                     const val = parseInt(e.target.value, 10);
                     if (!isNaN(val) && val >= 1) setQuantity(val);
-                    else if (e.target.value === "") setQuantity(""); // Cho phép xóa để nhập số mới
+                    else if (e.target.value === "") setQuantity("");
                 }}
                 onBlur={(e) => {
                     if (e.target.value === "" || parseInt(e.target.value, 10) < 1) setQuantity(1);
                 }}
                 className="mx-2 text-center quantity-input"
                 style={{ width: '50px' }}
-                aria-label="Product quantity"
+                aria-label={t('productDetailPage.quantityInputAriaLabel')}
               />
-              <Button variant="outline-secondary" size="sm" onClick={() => handleQuantityChange(1)} disabled={quantity >= currentVariantStock && currentVariantStock > 0} aria-label="Increase quantity">+</Button>
+              <Button variant="outline-secondary" size="sm" onClick={() => handleQuantityChange(1)} disabled={quantity >= currentVariantStock && currentVariantStock > 0} aria-label={t('productDetailPage.increaseQuantityAriaLabel')}>+</Button>
               {currentVariantStock > 0 && currentVariantStock <= 5 && !isCompletelyOutOfStock && ((availableSizes.length > 0 && selectedSize) || availableSizes.length === 0) && ((availableColors.length > 0 && selectedColor) || availableColors.length === 0) && (
-                <small className="text-danger ms-2">(Chỉ còn {currentVariantStock} sản phẩm)</small>
+                <small className="text-danger ms-2">{t('productDetailPage.lowStockWarning', { count: currentVariantStock })}</small>
               )}
             </div>
           )}
 
-          {/* Thông báo */}
           {addToCartMessage.text && (
-            <Alert variant={addToCartMessage.type} className="mt-3 py-2 small text-start">
+            <Alert variant={addToCartMessage.type} className="mt-3 py-2 small text-start" dismissible onClose={() => setAddToCartMessage({type: '', text: ''})}>
               {addToCartMessage.text}
-              {addToCartMessage.type === 'success' && <Link to="/cart" className="ms-2 fw-bold">Xem giỏ hàng</Link>}
+              {addToCartMessage.type === 'success' && <Link to={langLink("/cart")} className="ms-2 fw-bold">{t('productDetailPage.viewCartLink')}</Link>}
             </Alert>
           )}
 
-
-          {/* Nút Add to Cart / Sold Out */}
           <div className="d-grid gap-2 mt-3">
             <Button
               variant="dark"
@@ -287,41 +284,31 @@ function ProductDetailPage() {
               className="add-to-cart-main-btn"
             >
               <i className="bi bi-cart-plus-fill me-2"></i>
-              {isCompletelyOutOfStock ? "Hết hàng" : (currentVariantStock === 0 && ((availableSizes.length > 0 && selectedSize) || availableSizes.length === 0) && ((availableColors.length > 0 && selectedColor) || availableColors.length === 0) ? "Lựa chọn này đã hết" : "Thêm vào giỏ")}
+              {isCompletelyOutOfStock ? t('productCard.outOfStock') : (currentVariantStock === 0 && ((availableSizes.length > 0 && selectedSize) || availableSizes.length === 0) && ((availableColors.length > 0 && selectedColor) || availableColors.length === 0) ? t('productDetailPage.variantSoldOut') : t('productCard.addToCart'))}
             </Button>
           </div>
 
-          {/* Mô tả Sản Phẩm */}
-          {product.product_description && (
+          {productDescription && (
             <div className="mt-4 product-description">
-              <h5 className="section-sub-title">Mô tả sản phẩm</h5>
-              {/* Dùng dangerouslySetInnerHTML nếu mô tả là HTML, nhưng CẨN THẬN XSS */}
-              {/* Hoặc dùng một thư viện để parse và sanitize HTML (ví dụ: DOMPurify) */}
-              <p className="text-secondary lh-lg">{product.product_description.split('\n').map((line, i) => <span key={i}>{line}<br/></span>)}</p>
+              <h5 className="section-sub-title">{t('productDetailPage.descriptionTitle')}</h5>
+              <div className="text-secondary lh-lg" dangerouslySetInnerHTML={{ __html: productDescription.replace(/\n/g, '<br />') }} />
             </div>
           )}
 
-          {/* Thông tin thêm: SKU, Collections */}
             <div className="mt-3 product-meta small text-muted">
                 {product.inventory?.find(inv => inv.size_id === (selectedSize?.size_id || null) && inv.color_id === (selectedColor?.color_id || null))?.sku && (
-                     <p className="mb-1">SKU: {product.inventory.find(inv => inv.size_id === (selectedSize?.size_id || null) && inv.color_id === (selectedColor?.color_id || null)).sku}</p>
+                     <p className="mb-1">{t('productDetailPage.skuLabel')}: {product.inventory.find(inv => inv.size_id === (selectedSize?.size_id || null) && inv.color_id === (selectedColor?.color_id || null)).sku}</p>
                 )}
                 {product.collections && product.collections.length > 0 && (
-                    <p className="mb-0">Bộ sưu tập: {product.collections.map(col => <Link key={col.collection_id} to={`/collections/${col.slug || col.collection_id}`} className="text-muted me-1">{col.collection_name}</Link>)}</p>
+                    <p className="mb-0">{t('productDetailPage.collectionsLabel')}: {product.collections.map(col => {
+                        // Giả sử col.name đã được dịch từ resolver
+                        return <Link key={col.collection_id} to={langLink(`/collections/${col.slug || col.collection_id}`)} className="text-muted me-1">{col.name}</Link>
+                    })}</p>
                 )}
             </div>
-
-
         </Col>
       </Row>
-
-      {/* TODO: Phần Related Products/You Might Also Like */}
-      {/* <Row className="mt-5 related-products-section">
-        <Col>
-          <h3 className="text-center section-title mb-4">You Might Also Like</h3>
-          <ProductGrid products={relatedProducts_placeholder} itemsPerRow={{xs:1, sm:2, md:4, lg:4}} />
-        </Col>
-      </Row> */}
+      {/* Related Products Section (TODO) */}
     </Container>
   );
 }

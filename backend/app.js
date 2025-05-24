@@ -12,56 +12,48 @@ const resolvers = require('./graphql/resolvers');
 const logger = require('./utils/logger');
 const { errorHandler, notFoundHandler } = require('./middlewares/errorMiddleware');
 const { db, sequelize } = require('./config/db');
+const { createLoaders } = require('./graphql/dataloaders');
+const { redisClient } = require('./config/redisClient');
 
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const saleRoutes = require('./routes/saleRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 
-const verifyToken = (tokenToVerify) => {
+const TEMP_JWT_SECRET_FOR_APP_JS = process.env.JWT_SECRET || 'your_super_secret_jwt_key_that_is_at_least_32_characters_long';
+
+const verifyTokenForContext = (tokenToVerify) => {
     if (!tokenToVerify) {
         return null;
     }
-    if (!process.env.JWT_SECRET) {
-        logger.error("[verifyToken] FATAL ERROR: JWT_SECRET is not defined in .env file!");
+    if (!TEMP_JWT_SECRET_FOR_APP_JS || TEMP_JWT_SECRET_FOR_APP_JS.length < 32) {
+        logger.error("[verifyTokenForContext] FATAL ERROR: JWT_SECRET is not defined or is too short in app.js!");
         return null;
     }
     try {
-        const decoded = jwt.verify(tokenToVerify, process.env.JWT_SECRET);
-        return decoded.user || null;
+        const decoded = jwt.verify(tokenToVerify, TEMP_JWT_SECRET_FOR_APP_JS);
+        return decoded.user || null; // Expects { id, username, isAdmin }
     } catch (err) {
-        console.error("!!! DEBUG: Token Verification Error Details !!!");
-        console.error("Error Name:", err.name);
-        console.error("Error Message:", err.message);
-        console.error("Token (first 20 chars):", tokenToVerify.substring(0, 20) + '...');
-        logger.warn('[verifyToken] Token verification failed:', {
-            errorName: err.name,
-            errorMessage: err.message,
-            tokenAttempted: tokenToVerify.substring(0, 20) + '...'
-        });
+        // logger.warn('[verifyTokenForContext] Token verification failed:', { errorName: err.name, errorMessage: err.message });
         return null;
     }
 };
 
 async function createApp() {
     const app = express();
-    app.use(cors());
+    app.use(cors({
+        origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+        credentials: true
+    }));
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
-    app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+    app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
-    app.use((req, res, next) => {
-        if (req.body?.operationName !== 'IntrospectionQuery' && req.url !== '/favicon.ico') {
-            // logger.info(`[HTTP Request] ${req.method} ${req.originalUrl || req.path} - IP: ${req.ip}`);
-        }
-        next();
-    });
-
+    // REST API Routes
     app.use('/api/auth', authRoutes);
     app.use('/api/products', productRoutes);
     app.use('/api/uploads', uploadRoutes);
     app.use('/api/sales', saleRoutes);
-    console.log("!!! DEBUG: JWT_SECRET from process.env in app.js:", process.env.JWT_SECRET);
 
     const server = new ApolloServer({
         typeDefs,
@@ -72,17 +64,22 @@ async function createApp() {
                 message: formattedError.message,
                 locations: formattedError.locations,
                 path: formattedError.path,
-                extensions: formattedError.extensions,
-                originalErrorName: error?.originalError?.name,
-                originalErrorMessage: error?.originalError?.message,
+                extensions_code: formattedError.extensions?.code,
+                originalError_name: error?.originalError?.name,
+                originalError_message: error?.originalError?.message,
             });
-            return formattedError;
+            return {
+                message: formattedError.message,
+                locations: formattedError.locations,
+                path: formattedError.path,
+                extensions: formattedError.extensions,
+            };
         }
     });
 
     await server.start();
     logger.info('Apollo Server for backend has started.');
-    
+
     const graphqlPath = process.env.GRAPHQL_PATH || '/graphql';
     app.use(
         graphqlPath,
@@ -92,65 +89,85 @@ async function createApp() {
             context: async ({ req }) => {
                 let userForContext = null;
                 const authHeader = req.headers.authorization || '';
-                
-                // Khởi tạo token, giá trị sẽ được gán nếu header hợp lệ
-                let token = null; 
+                let token = null;
 
                 if (authHeader.startsWith('Bearer ')) {
-                    token = authHeader.substring(7); // Lấy token
-                    // logger.debug('[Apollo Context] Token extracted from Authorization header:', token.substring(0, 20) + '...');
-                } else if (authHeader) { // Nếu có authHeader nhưng không phải Bearer
-                    logger.warn('[Apollo Context] Authorization header found, but not a Bearer token.');
+                    token = authHeader.substring(7);
                 }
 
-                // Chỉ gọi verifyToken một lần
-                const decodedUserFromToken = verifyToken(token);
-                // logger.debug('[Apollo Context] Decoded user payload from verifyToken:', decodedUserFromToken);
+                const decodedUserFromToken = verifyTokenForContext(token);
+                // logger.debug('[Apollo Context] Decoded user from token:', decodedUserFromToken);
 
-                if (decodedUserFromToken && decodedUserFromToken.id) {
-                    // logger.debug(`[Apollo Context] Valid user payload from token. User ID: ${decodedUserFromToken.id}, isAdmin from token: ${decodedUserFromToken.isAdmin}`);
-                    if (db && db.Customer) { // Kiểm tra db.Customer trước khi sử dụng
+
+                if (decodedUserFromToken && decodedUserFromToken.id !== undefined) {
+                    const userIdFromToken = parseInt(decodedUserFromToken.id, 10); // Ensure it's an integer
+                    // logger.debug(`[Apollo Context] Attempting to find user in DB with ID: ${userIdFromToken} (Type: ${typeof userIdFromToken})`);
+
+                    if (isNaN(userIdFromToken)) {
+                        logger.warn(`[Apollo Context] Invalid user ID from token after parsing: ${decodedUserFromToken.id}`);
+                    } else {
                         try {
-                            const dbUser = await db.Customer.findByPk(decodedUserFromToken.id, {
+                            const dbUser = await db.Customer.findByPk(userIdFromToken, {
                                 attributes: ['customer_id', 'username', 'isAdmin', 'customer_name', 'customer_email', 'virtual_balance']
                             });
 
                             if (dbUser) {
-                                // logger.debug(`[Apollo Context] User found in DB. DB isAdmin: ${dbUser.isAdmin}, DB User data:`, dbUser.toJSON());
-                                userForContext = {
-                                    id: dbUser.customer_id,
-                                    username: dbUser.username,
-                                    isAdmin: dbUser.isAdmin, // Đảm bảo đây là boolean từ DB
-                                    name: dbUser.customer_name,
-                                    email: dbUser.customer_email,
-                                    virtual_balance: dbUser.virtual_balance
-                                };
-                                // logger.debug('[Apollo Context] User object constructed for context:', userForContext);
+                                // logger.debug(`[Apollo Context] User FOUND in DB: ID ${dbUser.customer_id}, isAdmin (raw from DB via getter): ${dbUser.isAdmin}`);
+                                // The getter in Customer.js model ensures dbUser.isAdmin is boolean
+                                if (dbUser.isAdmin === true) {
+                                    userForContext = {
+                                        id: dbUser.customer_id,
+                                        username: dbUser.username,
+                                        isAdmin: true, // Explicitly true
+                                        name: dbUser.customer_name,
+                                        email: dbUser.customer_email,
+                                        virtual_balance: dbUser.virtual_balance
+                                    };
+                                    // logger.debug('[Apollo Context] Admin user context SET:', userForContext);
+                                } else {
+                                    // logger.warn(`[Apollo Context] User ID ${userIdFromToken} found in DB but is NOT an admin. isAdmin value: ${dbUser.isAdmin}`);
+                                     userForContext = { // Still set basic user info if not admin, but isAdmin will be false
+                                        id: dbUser.customer_id,
+                                        username: dbUser.username,
+                                        isAdmin: false,
+                                         name: dbUser.customer_name,
+                                        email: dbUser.customer_email,
+                                    };
+                                }
                             } else {
-                                logger.warn(`[Apollo Context] User ID ${decodedUserFromToken.id} from token NOT FOUND in DB.`);
+                                // This is the log you are seeing:
+                                logger.warn(`[Apollo Context] User ID ${userIdFromToken} from token NOT FOUND in DB.`);
+                                // userForContext remains null
                             }
                         } catch (dbError) {
-                            logger.error(`[Apollo Context] DB Error fetching user by ID ${decodedUserFromToken.id}:`, dbError);
+                            logger.error(`[Apollo Context] DB Error fetching user by ID ${userIdFromToken}:`, dbError);
+                            // userForContext remains null
                         }
-                    } else {
-                        logger.error("[Apollo Context] db.Customer model is not available. Check model loading in models/index.js.");
                     }
-                } else if (token) { // Nếu có token nhưng verify không thành công hoặc payload không hợp lệ
-                    logger.warn('[Backend Apollo Context] Token provided but payload was invalid or missing expected fields (like id). Decoded from token attempt:', decodedUserFromToken);
+                } else if (token) {
+                    // logger.warn('[Apollo Context] Token provided but payload was invalid or user ID missing.');
                 }
 
-                let lang = 'vi'; // Ngôn ngữ mặc định
-                // Ưu tiên lấy lang từ query param nếu có và hợp lệ
-                if (req.query.lang && ['vi', 'en'].includes(req.query.lang)) {
+                let lang = 'vi';
+                const clientLangHeader = req.headers['x-client-lang'];
+                const acceptLangHeader = req.headers['accept-language'];
+                if (clientLangHeader && ['vi', 'en'].includes(clientLangHeader)) {
+                    lang = clientLangHeader;
+                } else if (req.query.lang && ['vi', 'en'].includes(req.query.lang)) {
                     lang = req.query.lang;
-                } else if (req.headers['accept-language']) { // Sau đó thử lấy từ header
-                    const acceptedLangs = req.headers['accept-language'].split(',');
-                    if (acceptedLangs[0].startsWith('en')) lang = 'en';
-                    // Bạn có thể thêm logic phức tạp hơn để xử lý accept-language nếu cần
+                } else if (acceptLangHeader) {
+                    const firstPreferredLang = acceptLangHeader.split(',')[0].toLowerCase();
+                    if (firstPreferredLang.startsWith('en')) lang = 'en';
                 }
-                // logger.debug(`[Apollo Context] Language set to: ${lang}`);
-                
-                return { user: userForContext, db, sequelize, lang };
+
+                return {
+                    user: userForContext, // This will be null if user not found or not admin, or will have isAdmin: true/false
+                    db,
+                    sequelize,
+                    lang,
+                    loaders: createLoaders(db),
+                    redis: redisClient
+                };
             },
         })
     );
@@ -158,6 +175,7 @@ async function createApp() {
     app.get('/', (req, res) => res.send(`API Server is running. GraphQL available at ${graphqlPath}`));
     app.use(notFoundHandler);
     app.use(errorHandler);
+
     return app;
 }
 

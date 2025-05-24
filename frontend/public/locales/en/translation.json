@@ -1,0 +1,149 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "noProducts": "No products found matching your selection.",
+    "pageNotFound": "Page Not Found",
+    "goHome": "Go to Homepage"
+  },
+  "header": {
+        "newArrivals": "Hàng Mới Về",
+        "collections": "Bộ Sưu Tập",
+        "accessories": "Phụ Kiện",
+        "theNoizee": "The Noizee",
+        "search": "Tìm kiếm",
+        "account": "Tài khoản",
+        "loginRegister": "Đăng nhập / Đăng ký",
+        "cart": "Giỏ hàng"
+  },
+  "footer": {
+    "brandDescription": "Streetwear for the unapologetically loud. Express your inner noise.",
+    "shop": "Shop",
+    "allCollections": "All Collections",
+    "newArrivalsLink": "New Arrivals",
+    "accessoriesLink": "Accessories",
+    "saleLink": "Sale",
+    "support": "Support",
+    "contactUs": "Contact Us",
+    "shippingReturns": "Shipping & Returns",
+    "faq": "FAQ",
+    "sizeGuide": "Size Guide",
+    "company": "Company",
+    "ourStory": "Our Story",
+    "careers": "Careers",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "joinTheNoise": "Join The Noise",
+    "newsletterPrompt": "Get early access to new drops, exclusive deals, and more.",
+    "newsletterPlaceholder": "Enter your email",
+    "subscribe": "Subscribe",
+    "copyright": "© {{year}} NOIZEE. All Rights Reserved. Crafted with noise."
+  },
+  "productCard": {
+    "outOfStock": "Out of Stock",
+    "new": "New",
+    "addToCart": "Add to Cart",
+    "selectVariant": "Select size/color",
+    "addedToCart": "{{productName}} has been added to cart!"
+  },
+  "authForm": {
+    "nameLabel": "Full Name",
+    "emailLabel": "Email",
+    "usernameLabel": "Username",
+    "usernamePlaceholder": "Username (optional)",
+    "phoneLabel": "Phone Number",
+    "addressLabel": "Address",
+    "addressPlaceholder": "Shipping address (optional)",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Password",
+    "confirmPasswordLabel": "Confirm Password",
+    "confirmPasswordPlaceholder": "Re-enter password",
+    "loginIdentifierLabel": "Email or Username",
+    "loginIdentifierPlaceholder": "Enter email or username",
+    "loginButton": "Login",
+    "registerButton": "Register",
+    "processing": "Processing...",
+    "requiredFields": "Please fill in all required fields (*).",
+    "passwordMismatch": "Passwords do not match.",
+    "passwordMinLength": "Password must be at least 6 characters.",
+    "invalidEmail": "Invalid email format.",
+    "invalidPhone": "Invalid phone number format (e.g., 0912345678).",
+    "invalidUsername": "Username (if provided) must be at least 3 characters and contain no spaces."
+  },
+  "forgotPasswordForm": {
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "Enter your registered email",
+    "instructions": "We will send password reset instructions to this email if it's registered.",
+    "submitButton": "Send Instructions",
+    "sending": "Sending...",
+    "emailRequired": "Please enter your email address.",
+    "invalidEmail": "Invalid email format."
+  },
+  "resetPasswordForm": {
+    "newPasswordLabel": "New Password",
+    "newPasswordPlaceholder": "Enter new password",
+    "confirmPasswordLabel": "Confirm New Password",
+    "confirmPasswordPlaceholder": "Re-enter new password",
+    "submitButton": "Reset Password",
+    "saving": "Saving...",
+    "passwordRequired": "Please enter and confirm your new password.",
+    "passwordMismatch": "Passwords do not match.",
+    "passwordMinLength": "New password must be at least 6 characters."
+  },
+  "pagination": {
+    "previousPage": "Previous Page",
+    "nextPage": "Next Page",
+    "goToPage": "Go to page {{pageNumber}}"
+  },
+  "loadingSpinner": {
+    "loading": "Loading...",
+    "contentLoading": "Content is loading"
+  },
+  "cartItem": {
+    "priceLabel": "Price:",
+    "quantityLabel": "Qty:",
+    "totalLabel": "Total:",
+    "removeTitle": "Remove Item",
+    "sizeLabel": "Size:",
+    "colorLabel": "Color:"
+  },
+  "colorSelector": {
+    "label": "Color:",
+    "outOfStockTitle": "{{colorName}} (Out of stock{{sizeInfo}})",
+    "outOfStockWithSize": " with size {{sizeName}}",
+    "selectLabel": "Select color {{colorName}}"
+  },
+  "sizeSelector": {
+    "label": "Size:",
+    "outOfStockTitle": "{{sizeName}} (Out of stock{{colorInfo}})",
+    "outOfStockWithColor": " with color {{colorName}}"
+  },
+  "productFilter": {
+    "filterTitle": "Filter Products",
+    "resetAll": "Reset All",
+    "categoryLabel": "Category",
+    "allCategories": "All Categories",
+    "sizeLabel": "Size",
+    "colorLabel": "Color",
+    "priceRangeLabel": "Price Range",
+    "minPricePlaceholder": "Min (USD)",
+    "maxPricePlaceholder": "Max (USD)",
+    "loadingFilters": "Loading filters...",
+    "errorLoadingFilters": "Error loading filters."
+  },
+  "orderStatus": {
+    "Pending": "Pending",
+    "Processing": "Processing",
+    "Shipped": "Shipped",
+    "Delivered": "Delivered",
+    "Completed": "Completed",
+    "Cancelled": "Cancelled",
+    "Refunded": "Refunded",
+    "Unknown": "Unknown"
+  },
+  "floatingChat": {
+    "openOptions": "Open chat options",
+    "messenger": "Messenger",
+    "instagram": "Instagram"
+  }
+}

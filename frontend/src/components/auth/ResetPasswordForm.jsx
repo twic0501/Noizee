@@ -2,8 +2,10 @@
 import React, { useState } from 'react';
 import { Form, Button, Spinner } from 'react-bootstrap';
 import AlertMessage from '../common/AlertMessage';
+import { useTranslation } from 'react-i18next'; // << IMPORT useTranslation
 
 function ResetPasswordForm({ onSubmit, loading = false, error = null, successMessage = null }) {
+  const { t } = useTranslation(); // << SỬ DỤNG HOOK
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [formError, setFormError] = useState('');
@@ -12,15 +14,15 @@ function ResetPasswordForm({ onSubmit, loading = false, error = null, successMes
     e.preventDefault();
     setFormError('');
     if (!newPassword || !confirmPassword) {
-        setFormError("Vui lòng nhập đầy đủ mật khẩu mới và xác nhận.");
+        setFormError(t('resetPasswordForm.passwordRequired'));
         return;
     }
     if (newPassword !== confirmPassword) {
-      setFormError("Mật khẩu nhập lại không khớp.");
+      setFormError(t('resetPasswordForm.passwordMismatch'));
       return;
     }
     if (newPassword.length < 6) {
-      setFormError("Mật khẩu mới phải có ít nhất 6 ký tự.");
+      setFormError(t('resetPasswordForm.passwordMinLength'));
       return;
     }
     if (onSubmit) {
@@ -35,10 +37,10 @@ function ResetPasswordForm({ onSubmit, loading = false, error = null, successMes
       {successMessage && <AlertMessage variant="success" className="mb-3 text-start">{successMessage}</AlertMessage>}
 
       <Form.Group className="mb-3" controlId="resetNewPassword">
-        <Form.Label>Mật khẩu mới <span className="text-danger">*</span></Form.Label>
+        <Form.Label>{t('resetPasswordForm.newPasswordLabel')} <span className="text-danger">*</span></Form.Label>
         <Form.Control
           type="password"
-          placeholder="Nhập mật khẩu mới"
+          placeholder={t('resetPasswordForm.newPasswordPlaceholder')}
           value={newPassword}
           onChange={(e) => {
               setNewPassword(e.target.value);
@@ -51,10 +53,10 @@ function ResetPasswordForm({ onSubmit, loading = false, error = null, successMes
       </Form.Group>
 
       <Form.Group className="mb-3" controlId="resetConfirmPassword">
-        <Form.Label>Xác nhận mật khẩu mới <span className="text-danger">*</span></Form.Label>
+        <Form.Label>{t('resetPasswordForm.confirmPasswordLabel')} <span className="text-danger">*</span></Form.Label>
         <Form.Control
           type="password"
-          placeholder="Nhập lại mật khẩu mới"
+          placeholder={t('resetPasswordForm.confirmPasswordPlaceholder')}
           value={confirmPassword}
           onChange={(e) => {
               setConfirmPassword(e.target.value);
@@ -68,8 +70,8 @@ function ResetPasswordForm({ onSubmit, loading = false, error = null, successMes
       <div className="d-grid">
         <Button variant="dark" type="submit" disabled={loading || !newPassword || !confirmPassword || !!successMessage} className="auth-submit-btn">
           {loading ? (
-            <><Spinner as="span" animation="border" size="sm" className="me-1" /> Đang lưu...</>
-          ) : 'Đặt lại mật khẩu'}
+            <><Spinner as="span" animation="border" size="sm" className="me-1" /> {t('resetPasswordForm.saving')}</>
+          ) : t('resetPasswordForm.submitButton')}
         </Button>
       </div>
     </Form>

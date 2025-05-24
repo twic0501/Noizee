@@ -1,25 +1,29 @@
 // src/components/cart/CartItem.jsx
 import React from 'react';
 import { Row, Col, Image, Button, Form } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom'; // Thêm useParams
 import { formatCurrency, getFullImageUrl } from '../../utils/formatters';
 import { useCart } from '../../hooks/useCart';
-import { PLACEHOLDER_PRODUCT_IMAGE } from '../../utils/constants'; // Import placeholder
+import { PLACEHOLDER_PRODUCT_IMAGE } from '../../utils/constants';
+import { useTranslation } from 'react-i18next'; // << IMPORT useTranslation
+
+// import './CartItem.css'; // Đã có trong file user upload
 
 function CartItem({ item }) {
+  const { t, i18n } = useTranslation(); // << SỬ DỤNG HOOK
   const { updateQuantity, removeItem } = useCart();
+  const params = useParams(); // Để lấy lang từ URL cho link sản phẩm
+  const currentLang = params.lang || i18n.language || 'vi';
 
-  if (!item || !item.cartItemId) return null; // Guard clause
+  if (!item || !item.cartItemId) return null;
 
   const handleQuantityChange = (e) => {
     const newQuantity = parseInt(e.target.value, 10);
     if (!isNaN(newQuantity) && newQuantity >= 1) {
-      // TODO: Check against available stock for this specific variant if possible
       updateQuantity(item.cartItemId, newQuantity);
     } else if (e.target.value === '') {
-      // Allow temporary empty input, will be validated onBlur
+      // Allow temporary empty input
     } else {
-      // Revert to 1 if input is invalid but not empty
       updateQuantity(item.cartItemId, 1);
     }
   };
@@ -27,9 +31,8 @@ function CartItem({ item }) {
   const handleQuantityBlur = (e) => {
     const currentQuantity = parseInt(e.target.value, 10);
     if (isNaN(currentQuantity) || currentQuantity < 1) {
-      updateQuantity(item.cartItemId, 1); // Set to 1 if left empty or invalid
+      updateQuantity(item.cartItemId, 1);
     }
-    // Additional stock check can be done here if needed
   };
 
   const handleRemove = () => {
@@ -37,66 +40,69 @@ function CartItem({ item }) {
   };
 
   const handleImageError = (e) => {
-    e.target.onerror = null; // prevent infinite loop if placeholder also fails
+    e.target.onerror = null;
     e.target.src = PLACEHOLDER_PRODUCT_IMAGE;
   };
 
   const itemSubtotal = item.price * item.quantity;
-  const imageUrl = getFullImageUrl(item.imageUrl); // Use helper
+  // Sử dụng tên sản phẩm đã được dịch (giả sử item.name đã là tên theo ngôn ngữ hiện tại từ CartContext)
+  // Nếu CartContext lưu trữ name_vi, name_en thì cần logic chọn ở đây tương tự ProductCard
+  const productName = item.name; // Giả định item.name đã được xử lý ngôn ngữ
+  const imageUrl = getFullImageUrl(item.imageUrl);
+
+  // Lấy tên size và color đã được dịch nếu chúng là object chứa các trường ngôn ngữ
+  // Hoặc nếu chúng chỉ là string thì hiển thị trực tiếp
+  const sizeName = item.size?.size_name; // Giả sử size_name không cần dịch thêm ở đây
+  const colorName = item.color?.color_name; // Giả sử color_name không cần dịch thêm ở đây
 
   return (
     <Row className="cart-item align-items-center py-3 border-bottom mx-0">
-      {/* Product Image and Name/Variant */}
       <Col xs={12} md={5} lg={6} className="d-flex align-items-center mb-2 mb-md-0 ps-md-0">
         <Image
           src={imageUrl}
-          alt={item.name}
-          className="cart-item-image me-3" // CSS for fixed size
+          alt={productName}
+          className="cart-item-image me-3"
           onError={handleImageError}
         />
         <div>
-          <Link to={`/products/${item.productId}`} className="fw-bold text-dark text-decoration-none cart-item-name">
-            {item.name}
+          <Link to={`/${currentLang}/products/${item.productId}`} className="fw-bold text-dark text-decoration-none cart-item-name">
+            {productName}
           </Link>
           <div className="text-muted small mt-1 cart-item-variants">
-            {item.size && <span>Size: {item.size.size_name}</span>}
-            {item.size && item.color && <span className="mx-1">|</span>}
-            {item.color && <span>Color: {item.color.color_name}</span>}
-            {(!item.size && !item.color) && <span>&nbsp;</span>} {/* Keep layout consistent */}
+            {sizeName && <span>{t('cartItem.sizeLabel')} {sizeName}</span>}
+            {sizeName && colorName && <span className="mx-1">|</span>}
+            {colorName && <span>{t('cartItem.colorLabel')} {colorName}</span>}
+            {(!sizeName && !colorName) && <span>&nbsp;</span>}
           </div>
         </div>
       </Col>
 
-      {/* Price */}
       <Col xs={4} sm={3} md={2} className="text-md-center cart-item-details">
-        <span className="d-md-none small text-muted me-1">Giá:</span>
-        {formatCurrency(item.price)}
+        <span className="d-md-none small text-muted me-1">{t('cartItem.priceLabel')}</span>
+        {formatCurrency(item.price, i18n.language)}
       </Col>
 
-      {/* Quantity */}
       <Col xs={4} sm={3} md={2} className="text-md-center cart-item-details">
-        <span className="d-md-none small text-muted me-1">SL:</span>
+        <span className="d-md-none small text-muted me-1">{t('cartItem.quantityLabel')}</span>
         <Form.Control
           type="number"
           min="1"
           value={item.quantity}
           onChange={handleQuantityChange}
           onBlur={handleQuantityBlur}
-          className="cart-item-qty-input" // CSS for small width
+          className="cart-item-qty-input"
           size="sm"
-          aria-label={`Quantity for ${item.name}`}
+          aria-label={t('cartItem.quantityAriaLabel', { productName: productName })}
         />
       </Col>
 
-      {/* Subtotal */}
       <Col xs={3} sm={4} md={1} className="text-end fw-bold cart-item-details">
-        <span className="d-md-none small text-muted me-1">Tổng:</span>
-        {formatCurrency(itemSubtotal)}
+        <span className="d-md-none small text-muted me-1">{t('cartItem.totalLabel')}</span>
+        {formatCurrency(itemSubtotal, i18n.language)}
       </Col>
 
-      {/* Remove Button */}
       <Col xs={1} md={1} className="text-end pe-md-0 cart-item-details">
-        <Button variant="link" className="text-danger p-0 cart-item-remove-btn" onClick={handleRemove} title="Remove Item">
+        <Button variant="link" className="text-danger p-0 cart-item-remove-btn" onClick={handleRemove} title={t('cartItem.removeTitle')}>
           <i className="bi bi-trash-fill"></i>
         </Button>
       </Col>

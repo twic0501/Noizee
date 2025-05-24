@@ -1,91 +1,136 @@
 // src/pages/HomePage.jsx
 import React from 'react';
-import { Container, Row, Col, Button } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Container, Button } from 'react-bootstrap'; // Row, Col không dùng trực tiếp ở đây nữa
+import { Link, useParams } from 'react-router-dom'; // Thêm useParams
 import { useQuery } from '@apollo/client';
-import { GET_PRODUCTS_QUERY } from '../api/graphql/queries/productQueries'; // Query lấy SP
+import { GET_PRODUCTS_QUERY } from '../api/graphql/queries/productQueries';
 import ProductGrid from '../components/product/ProductGrid';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import AlertMessage from '../components/common/AlertMessage';
-import ImageCarousel from '../components/product/ImageCarousel'; // Import carousel
-import './HomePage.css'; // Tạo file CSS riêng cho HomePage
+import ImageCarousel from '../components/product/ImageCarousel';
+import { useTranslation } from 'react-i18next'; // << IMPORT useTranslation
+import './HomePage.css';
 
-// Hero Section (Có thể tách ra component riêng: src/components/home/HeroSection.jsx)
-const HeroSection = () => (
-  <div className="hero-section text-center"> {/* CSS */}
-    <Container>
-      <h1 className="hero-title">MAKE SOME NOIZE</h1> {/* CSS: Font Archivo Black */}
-      <p className="hero-subtitle lead"> {/* CSS: Font Cormorant Garamond */}
-        Unleash your unique style. Collections that resonate with the bold and the restless.
-      </p>
-      <Button as={Link} to="/collections" variant="outline-light" size="lg" className="hero-cta-button mt-3">
-        Explore Collections
-      </Button>
-    </Container>
-  </div>
-);
+// Hero Section
+const HeroSection = () => {
+  const { t, i18n } = useTranslation();
+  const params = useParams();
+  const currentLang = params.lang || i18n.language || 'vi';
+  const langLink = (path) => `/${currentLang}${path}`.replace(/\/+/g, '/');
 
-// New Products Section (Có thể tách ra component riêng: src/components/home/NewProductSection.jsx)
+  return (
+    <div className="hero-section text-center">
+      <Container>
+        <h1 className="hero-title">{t('homePage.hero.title')}</h1>
+        <p className="hero-subtitle lead">
+          {t('homePage.hero.subtitle')}
+        </p>
+        <Button as={Link} to={langLink("/collections")} variant="outline-light" size="lg" className="hero-cta-button mt-3">
+          {t('homePage.hero.ctaButton')}
+        </Button>
+      </Container>
+    </div>
+  );
+};
+
+// New Products Section
 const NewProductSection = () => {
+  const { t, i18n } = useTranslation();
+  const params = useParams();
+  const currentLang = params.lang || i18n.language || 'vi';
+  const langLink = (path) => `/${currentLang}${path}`.replace(/\/+/g, '/');
+
   const { loading, error, data } = useQuery(GET_PRODUCTS_QUERY, {
-    variables: { filter: { isNewArrival: true }, limit: 4, offset: 0 }, // Lấy 4 SP mới nhất
+    variables: {
+      filter: { is_new_arrival: true }, // Sửa isNewArrival thành is_new_arrival nếu schema backend là vậy
+      limit: 4,
+      offset: 0,
+      // lang: i18n.language // Truyền ngôn ngữ nếu query của bạn hỗ trợ
+    },
     fetchPolicy: 'cache-and-network',
   });
 
+  // ProductCard sẽ tự xử lý việc hiển thị tên sản phẩm theo ngôn ngữ
   const newProducts = data?.products?.products || [];
 
   return (
-    <Container className="text-center my-5 py-4 new-arrivals-section"> {/* CSS */}
-      <h2 className="section-title mb-3">FRESH DROPS</h2> {/* CSS */}
+    <Container className="text-center my-5 py-4 new-arrivals-section">
+      <h2 className="section-title mb-3">{t('homePage.newArrivals.title')}</h2>
       <p className="section-subtitle lead text-muted mx-auto mb-5">
-        Check out the latest additions. Styles that speak louder than words.
+        {t('homePage.newArrivals.subtitle')}
       </p>
-      {loading && <LoadingSpinner message="Loading new arrivals..." />}
-      {error && <AlertMessage variant="warning">Could not load new products.</AlertMessage>}
+      {loading && <LoadingSpinner message={t('loadingSpinner.loading')} />}
+      {error && <AlertMessage variant="warning">{t('homePage.newArrivals.loadError')}</AlertMessage>}
       {!loading && !error && newProducts.length > 0 && (
         <ProductGrid products={newProducts} itemsPerRow={{ xs: 1, sm: 2, md: 4, lg: 4 }} />
       )}
       {!loading && !error && newProducts.length === 0 && (
-        <p className="text-muted">No new arrivals at the moment. Check back soon!</p>
+        <p className="text-muted">{t('homePage.newArrivals.noProducts')}</p>
       )}
-      <Button as={Link} to="/collections?filter=new" variant="dark" size="lg" className="mt-5 view-all-btn"> {/* CSS */}
-        View All New Arrivals
+      <Button as={Link} to={langLink("/collections?filter=new")} variant="dark" size="lg" className="mt-5 view-all-btn">
+        {t('homePage.newArrivals.viewAllButton')}
       </Button>
     </Container>
   );
 };
 
-// Featured Carousel Section (Có thể tách ra component riêng: src/components/home/FeaturedCarouselSection.jsx)
+// Featured Carousel Section
 const FeaturedCarouselSection = () => {
-    // Dữ liệu này nên được quản lý từ CMS hoặc backend
-    const featuredSlides = [
+  const { t, i18n } = useTranslation();
+  const params = useParams();
+  const currentLang = params.lang || i18n.language || 'vi';
+  const langLink = (path) => `/${currentLang}${path}`.replace(/\/+/g, '/');
+
+    // Dữ liệu slide này nên được quản lý từ CMS hoặc backend và có cấu trúc đa ngôn ngữ
+    // Ví dụ:
+    // {
+    //   id: 'slide1',
+    //   src: '/images/featured/look1.jpg',
+    //   altKey: 'homePage.carousel.slide1.alt', // Key cho alt text
+    //   captionTitleKey: 'homePage.carousel.slide1.title',
+    //   captionTextKey: 'homePage.carousel.slide1.text',
+    //   linkTo: '/collections/summer-noize-25',
+    //   buttonTextKey: 'homePage.carousel.slide1.button'
+    // }
+    const featuredSlidesData = [
         {
-            src: '/images/featured/look1.jpg', // Thay bằng URL ảnh thật (trong public/images hoặc từ CDN)
-            alt: 'Featured Collection Summer 2025',
-            captionTitle: 'Summer Noize \'25',
-            captionText: 'Light fabrics, bold statements. Discover the new wave.',
-            linkTo: '/collections/summer-noize-25', // Slug của collection
-            buttonText: 'Discover Summer \'25'
+            id: 'summer25',
+            src: '/images/featured/look1.jpg',
+            altKey: 'homePage.carousel.summer25.alt',
+            captionTitleKey: 'homePage.carousel.summer25.title',
+            captionTextKey: 'homePage.carousel.summer25.text',
+            linkTo: '/collections/summer-noize-25', // Cần đảm bảo slug này tồn tại hoặc được xử lý đúng
+            buttonTextKey: 'homePage.carousel.summer25.button'
         },
         {
+            id: 'essentials',
             src: '/images/featured/look2.jpg',
-            alt: 'Noizee Essentials',
-            captionTitle: 'Essentials Redefined',
-            captionText: 'Core pieces for your everyday rebellion.',
+            altKey: 'homePage.carousel.essentials.alt',
+            captionTitleKey: 'homePage.carousel.essentials.title',
+            captionTextKey: 'homePage.carousel.essentials.text',
             linkTo: '/collections/essentials',
-            buttonText: 'Shop Essentials'
+            buttonTextKey: 'homePage.carousel.essentials.button'
         },
-        // Thêm các slide khác nếu cần
     ];
+
+    const translatedSlides = featuredSlidesData.map(slide => ({
+        ...slide,
+        alt: t(slide.altKey),
+        captionTitle: t(slide.captionTitleKey),
+        captionText: t(slide.captionTextKey),
+        buttonText: t(slide.buttonTextKey),
+        // linkTo đã được xử lý trong ImageCarousel component để có prefix ngôn ngữ
+    }));
+
     return (
-        <Container fluid className="p-0 my-5 featured-carousel-section"> {/* CSS */}
+        <Container fluid className="p-0 my-5 featured-carousel-section">
              <ImageCarousel
-                images={featuredSlides}
-                slideHeight="80vh" // Ví dụ chiều cao
+                images={translatedSlides} // Truyền slide đã dịch
+                slideHeight="80vh"
                 objectFit="cover"
                 showIndicators={true}
                 showControls={true}
-                interval={6000} // Thời gian chuyển slide
+                interval={6000}
             />
         </Container>
     );
@@ -96,11 +141,9 @@ function HomePage() {
   return (
     <>
       <HeroSection />
-      {/* Thanh tách section, có thể là một component riêng hoặc style trực tiếp */}
-      <div className="separator-bar bg-dark"></div>
+      <div className="separator-bar bg-dark"></div> {/* Thanh này có thể không cần dịch */}
       <NewProductSection />
       <FeaturedCarouselSection />
-      {/* Thêm các sections khác nếu cần (ví dụ: Blog posts, Testimonials, Instagram feed) */}
     </>
   );
 }

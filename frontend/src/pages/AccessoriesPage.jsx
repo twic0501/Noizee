@@ -1,27 +1,28 @@
 // src/pages/AccessoriesPage.jsx
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import LoadingSpinner from '../components/common/LoadingSpinner'; // LoadingSpinner đã được dịch
 
-// Component này sẽ chỉ làm nhiệm vụ điều hướng đến CollectionsPage với filter phù hợp
 function AccessoriesPage() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const params = useParams();
+  // Lấy ngôn ngữ hiện tại từ URL (nếu có) hoặc từ i18next, fallback về 'vi'
+  const currentLang = params.lang || i18n.language || 'vi';
 
   useEffect(() => {
-    // Thay 'accessories_category_id' bằng ID thực tế của category "Phụ kiện"
-    // Hoặc nếu bạn dùng slug: '/collections/accessories-slug'
-    const accessoriesCategoryId = 'ID_CUA_CATEGORY_PHU_KIEN'; // Ví dụ ID là 3
+    // Sử dụng key dịch cho slug nếu bạn muốn slug thay đổi theo ngôn ngữ.
+    // Hoặc một slug cố định nếu "accessories" là chung cho mọi ngôn ngữ và CollectionsPage xử lý việc tìm categoryId.
+    const accessoriesTargetSlug = t('routes.accessoriesSlug', { defaultValue: 'accessories' });
 
-    // Điều hướng đến CollectionsPage với query parameter cho category
-    // Hoặc bạn có thể dùng navigate('/collections/accessories-slug') nếu route của bạn hỗ trợ slug
-    navigate(`/collections?categoryId=${accessoriesCategoryId}`, { replace: true });
-  }, [navigate]);
+    // Điều hướng đến trang collections với slug (hoặc categoryId nếu bạn dùng cách đó)
+    // Đảm bảo CollectionsPage có thể xử lý slug này để filter đúng category "Phụ kiện"
+    navigate(`/${currentLang}/collections/${accessoriesTargetSlug}`, { replace: true });
+  }, [navigate, currentLang, t]);
 
-  // Component này sẽ không render gì cả vì nó chỉ điều hướng
-  // Hoặc bạn có thể hiển thị một LoadingSpinner ngắn hạn
-  return null;
-  // Hoặc:
-  // import LoadingSpinner from '../components/common/LoadingSpinner';
-  // return <LoadingSpinner message="Đang chuyển đến trang Phụ kiện..." />;
+  // Hiển thị thông báo loading trong khi điều hướng
+  return <LoadingSpinner message={t('accessoriesPage.redirectingMessage')} />;
 }
 
 export default AccessoriesPage;

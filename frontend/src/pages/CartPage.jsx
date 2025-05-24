@@ -1,45 +1,49 @@
 // src/pages/CartPage.jsx
 import React from 'react';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom'; // Thêm useParams
 import { useCart } from '../hooks/useCart';
-import CartItem from '../components/cart/CartItem';
-import CartSummary from '../components/cart/CartSummary';
+import CartItem from '../components/cart/CartItem'; // Đã dịch
+import CartSummary from '../components/cart/CartSummary'; // Đã dịch
 import AlertMessage from '../components/common/AlertMessage';
-import './CartPage.css'; // Tạo file CSS riêng
+import { useTranslation } from 'react-i18next'; // << IMPORT useTranslation
+import './CartPage.css';
 
 function CartPage() {
-  const { cartItems, clearCart, totalItems } = useCart(); // Lấy thêm totalItems
+  const { t, i18n } = useTranslation(); // << SỬ DỤNG HOOK
+  const { cartItems, clearCart, totalItems } = useCart();
+  const params = useParams();
+  const currentLang = params.lang || i18n.language || 'vi';
+
+  const langLink = (path) => `/${currentLang}${path}`.replace(/\/+/g, '/');
 
   return (
     <Container className="my-4 my-md-5 cart-page">
       <div className="text-center mb-4">
-        <h1 className="page-main-title">Giỏ hàng của bạn</h1> {/* CSS */}
-        {totalItems > 0 && <p className="text-muted">Bạn đang có {totalItems} sản phẩm trong giỏ hàng.</p>}
+        <h1 className="page-main-title">{t('cartPage.title')}</h1>
+        {totalItems > 0 && <p className="text-muted">{t('cartPage.itemsCount', { count: totalItems })}</p>}
       </div>
 
       {cartItems.length === 0 ? (
-        <div className="text-center empty-cart-message"> {/* CSS */}
-          <i className="bi bi-cart-x-fill empty-cart-icon"></i> {/* CSS */}
-          <p className="lead mt-3">Giỏ hàng của bạn hiện đang trống.</p>
-          <Button as={Link} to="/collections" variant="dark" size="lg" className="mt-3 start-shopping-btn"> {/* CSS */}
-            <i className="bi bi-arrow-left me-2"></i> Tiếp tục mua sắm
+        <div className="text-center empty-cart-message">
+          <i className="bi bi-cart-x-fill empty-cart-icon"></i>
+          <p className="lead mt-3">{t('cartPage.emptyMessage')}</p>
+          <Button as={Link} to={langLink("/collections")} variant="dark" size="lg" className="mt-3 start-shopping-btn">
+            <i className="bi bi-arrow-left me-2"></i> {t('cartPage.continueShoppingButton')}
           </Button>
         </div>
       ) : (
-        <Row className="g-4"> {/* Thêm g-4 để có khoảng cách */}
-          {/* Cột danh sách item */}
+        <Row className="g-4">
           <Col lg={8} className="mb-4 mb-lg-0">
-            <Card className="shadow-sm cart-items-card"> {/* CSS */}
+            <Card className="shadow-sm cart-items-card">
               <Card.Header className="d-flex justify-content-between align-items-center cart-items-header">
-                <h5 className="mb-0">Sản phẩm trong giỏ ({totalItems})</h5>
+                <h5 className="mb-0">{t('cartPage.cartItemsHeader', { count: totalItems })}</h5>
                 <Button variant="outline-danger" size="sm" onClick={clearCart} className="clear-cart-btn" disabled={cartItems.length === 0}>
-                  <i className="bi bi-trash3 me-1"></i> Xóa tất cả
+                  <i className="bi bi-trash3 me-1"></i> {t('cartPage.clearAllButton')}
                 </Button>
               </Card.Header>
               <Card.Body className="p-0">
-                {/* Nên có một div bọc các CartItem để có thể scroll nếu quá nhiều */}
-                <div className="cart-items-list"> {/* CSS: max-height, overflow-y: auto */}
+                <div className="cart-items-list">
                     {cartItems.map(item => (
                         <CartItem key={item.cartItemId} item={item} />
                     ))}
@@ -48,13 +52,12 @@ function CartPage() {
             </Card>
           </Col>
 
-          {/* Cột tóm tắt đơn hàng */}
           <Col lg={4}>
-            <div className="cart-summary-sticky"> {/* CSS: position sticky */}
-                <CartSummary showCheckoutButton={true} />
+            <div className="cart-summary-sticky">
+                <CartSummary showCheckoutButton={true} /> {/* CartSummary đã được dịch */}
                 <div className="text-center mt-3 continue-shopping-link-bottom">
-                    <Link to="/collections" className="text-muted text-decoration-none">
-                        <i className="bi bi-arrow-left me-1"></i> Hoặc tiếp tục lựa chọn sản phẩm
+                    <Link to={langLink("/collections")} className="text-muted text-decoration-none">
+                        <i className="bi bi-arrow-left me-1"></i> {t('cartPage.orContinueShoppingLink')}
                     </Link>
                 </div>
             </div>

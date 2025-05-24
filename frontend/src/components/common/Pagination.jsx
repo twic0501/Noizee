@@ -1,6 +1,7 @@
 // src/components/common/Pagination.jsx
 import React from 'react';
 import { Pagination as BootstrapPagination } from 'react-bootstrap';
+import { useTranslation } from 'react-i18next'; // << IMPORT
 
 const DOTS = '...';
 
@@ -9,7 +10,9 @@ const range = (start, end) => {
   return Array.from({ length }, (_, idx) => idx + start);
 };
 
-function Pagination({ currentPage, totalPages, onPageChange, siblingCount = 1, alwaysShowFirstAndLast = true }) {
+function Pagination({ currentPage, totalPages, onPageChange, siblingCount = 1 }) {
+  const { t } = useTranslation(); // << SỬ DỤNG HOOK
+
   if (totalPages <= 1) {
     return null;
   }
@@ -21,13 +24,8 @@ function Pagination({ currentPage, totalPages, onPageChange, siblingCount = 1, a
   };
 
   const paginationRange = () => {
-    const totalPageNumbers = siblingCount + 5; // siblingCount on each side + firstPage + lastPage + currentPage + 2*DOTS
+    const totalPageNumbers = siblingCount + 5; 
 
-    /*
-      Case 1:
-      If the number of pages is less than the page numbers we want to show in our
-      paginationComponent, we return the range [1..totalPages]
-    */
     if (totalPages <= totalPageNumbers) {
       return range(1, totalPages);
     }
@@ -35,11 +33,6 @@ function Pagination({ currentPage, totalPages, onPageChange, siblingCount = 1, a
     const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
     const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages);
 
-    /*
-      We do not want to show dots if there is only one position left
-      after/before the left/right page count as that would lead to a change if our component
-      economize on space by removing them.
-    */
     const shouldShowLeftDots = leftSiblingIndex > 2;
     const shouldShowRightDots = rightSiblingIndex < totalPages - 2;
 
@@ -62,19 +55,18 @@ function Pagination({ currentPage, totalPages, onPageChange, siblingCount = 1, a
       let middleRange = range(leftSiblingIndex, rightSiblingIndex);
       return [firstPageIndex, DOTS, ...middleRange, DOTS, lastPageIndex];
     }
-    // Default case, should not happen with logic above but as a fallback:
     return range(1, totalPages);
   };
 
   const pageNumbers = paginationRange();
 
   return (
-    <div className="d-flex justify-content-center mt-4 pagination-container"> {/* CSS */}
+    <div className="d-flex justify-content-center mt-4 pagination-container">
       <BootstrapPagination>
         <BootstrapPagination.Prev
           onClick={() => handlePageClick(currentPage - 1)}
           disabled={currentPage === 1}
-          aria-label="Previous Page"
+          aria-label={t('pagination.previousPage')} // Dịch aria-label
         />
         {pageNumbers.map((pageNumber, index) => {
           if (pageNumber === DOTS) {
@@ -85,7 +77,7 @@ function Pagination({ currentPage, totalPages, onPageChange, siblingCount = 1, a
               key={pageNumber}
               active={pageNumber === currentPage}
               onClick={() => handlePageClick(pageNumber)}
-              aria-label={`Go to page ${pageNumber}`}
+              aria-label={t('pagination.goToPage', { pageNumber: pageNumber })} // Dịch aria-label
               aria-current={pageNumber === currentPage ? "page" : undefined}
             >
               {pageNumber}
@@ -95,15 +87,10 @@ function Pagination({ currentPage, totalPages, onPageChange, siblingCount = 1, a
         <BootstrapPagination.Next
           onClick={() => handlePageClick(currentPage + 1)}
           disabled={currentPage === totalPages}
-          aria-label="Next Page"
+          aria-label={t('pagination.nextPage')} // Dịch aria-label
         />
       </BootstrapPagination>
     </div>
   );
 }
-// Thêm CSS nếu cần cho .pagination-container
-// ví dụ:
-// .pagination-container .page-link { color: var(--color-dark); }
-// .pagination-container .page-item.active .page-link { background-color: var(--color-dark); border-color: var(--color-dark); }
-// .pagination-container .page-link:hover { color: var(--color-primary); }
 export default Pagination;

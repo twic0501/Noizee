@@ -22,7 +22,8 @@ export const ORDER_STATUS = {
     CANCELLED: 'Cancelled',
     REFUNDED: 'Refunded',
 };
-
+export const USER_LANGUAGE_KEY = 'user_preferred_lang';
+export const DEFAULT_USER_LANGUAGE = 'vi';
 // Collection Slugs (Nếu bạn dùng slug cố định để điều hướng hoặc fetch)
 // export const COLLECTION_SLUGS = {
 //   NEW_ARRIVALS: 'new-arrivals',

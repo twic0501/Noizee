@@ -1,86 +1,76 @@
 // src/utils/formatters.js
 import { format, parseISO, isValid } from 'date-fns';
-import { vi } from 'date-fns/locale'; // Tiếng Việt
+// Import các locale bạn cần
+import { enUS as dateLocaleEn, vi as dateLocaleVi } from 'date-fns/locale';
+import { DEFAULT_USER_LANGUAGE } from './constants'; // Import ngôn ngữ mặc định
 
-// Định dạng tiền tệ Việt Nam
-export const formatCurrency = (amount, fallback = 'N/A') => {
+// Map mã ngôn ngữ với locale object của date-fns
+const dateFnsLocales = {
+  en: dateLocaleEn,
+  vi: dateLocaleVi,
+};
+
+export const formatCurrency = (amount, lang = DEFAULT_USER_LANGUAGE, fallback = 'N/A') => {
   const number = Number(amount);
   if (isNaN(number) || amount === null || amount === undefined) {
     return fallback;
   }
+  // Xác định mã tiền tệ và locale string dựa trên ngôn ngữ
+  const currencyCode = lang === 'en' ? 'USD' : 'VND';
+  const localeString = lang === 'en' ? 'en-US' : 'vi-VN';
   try {
-    return number.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' });
+    return number.toLocaleString(localeString, { style: 'currency', currency: currencyCode });
   } catch (e) {
     console.error("Currency formatting error:", e);
-    return `${amount} VND`; // Fallback đơn giản nếu có lỗi
+    return `${amount} ${currencyCode}`; // Fallback đơn giản
   }
 };
 
 // Helper kiểm tra và parse ngày giờ một cách an toàn hơn
 const parseDateTimeSafe = (dateTimeInput) => {
   if (!dateTimeInput) return null;
-
-  // Nếu đã là đối tượng Date và hợp lệ
   if (dateTimeInput instanceof Date && isValid(dateTimeInput)) {
     return dateTimeInput;
   }
-
-  // Nếu là số (timestamp)
   if (typeof dateTimeInput === 'number') {
     const dateFromTimestamp = new Date(dateTimeInput);
     return isValid(dateFromTimestamp) ? dateFromTimestamp : null;
   }
-
-  // Nếu là chuỗi
   if (typeof dateTimeInput === 'string') {
-    // Thử parseISO trực tiếp, date-fns khá linh hoạt
     let date = parseISO(dateTimeInput);
     if (isValid(date)) return date;
-
-    // Nếu chuỗi không có thông tin múi giờ và có dạng YYYY-MM-DDTHH:MM:SS,
-    // parseISO có thể hiểu là local time. Để đảm bảo coi là UTC nếu không rõ,
-    // bạn có thể thêm 'Z' (nhưng cần cẩn thận vì điều này thay đổi ý nghĩa của thời gian).
-    // Đối với ngày tháng từ database, thường đã là UTC hoặc có offset.
-    // Ví dụ đơn giản: nếu không có 'Z' và 'T', có thể là ngày thuần túy.
+    // Fallback cho trường hợp ngày không có T và Z
     if (!dateTimeInput.includes('T') && !dateTimeInput.includes('Z') && dateTimeInput.length === 10) {
-         // Dạng YYYY-MM-DD
-        date = parseISO(dateTimeInput + 'T00:00:00Z'); // Coi là đầu ngày UTC
+        date = parseISO(dateTimeInput + 'T00:00:00Z');
          if (isValid(date)) return date;
     }
-    // Các trường hợp parse phức tạp hơn có thể cần thư viện moment.js hoặc xử lý kỹ hơn
-    // console.warn(`Could not reliably parse date string: ${dateTimeInput}`);
     return null;
   }
   return null;
 };
 
-// Định dạng ngày (ví dụ: 29/04/2025)
-export const formatDate = (dateInput, fallback = 'N/A') => {
+export const formatDate = (dateInput, lang = DEFAULT_USER_LANGUAGE, fallback = 'N/A') => {
   const date = parseDateTimeSafe(dateInput);
   if (!date) return fallback;
   try {
-    // 'P' là định dạng ngày ngắn gọn theo locale (ví dụ: dd/MM/yyyy cho vi)
-    return format(date, 'P', { locale: vi });
+    return format(date, 'P', { locale: dateFnsLocales[lang] || dateFnsLocales[DEFAULT_USER_LANGUAGE] });
   } catch (error) {
     console.error("Error formatting date:", dateInput, error);
     return fallback;
   }
 };
 
-// Định dạng ngày giờ đầy đủ (ví dụ: 29/04/2025, 14:51:09)
-export const formatDateTime = (dateTimeInput, fallback = 'N/A') => {
+export const formatDateTime = (dateTimeInput, lang = DEFAULT_USER_LANGUAGE, fallback = 'N/A') => {
   const date = parseDateTimeSafe(dateTimeInput);
   if (!date) return fallback;
   try {
-    // 'Pp' là định dạng ngày + giờ ngắn gọn theo locale
-    return format(date, 'Pp', { locale: vi });
+    return format(date, 'Pp', { locale: dateFnsLocales[lang] || dateFnsLocales[DEFAULT_USER_LANGUAGE] });
   } catch (error) {
     console.error("Error formatting datetime:", dateTimeInput, error);
     return fallback;
   }
 };
 
-// Rút gọn chuỗi và thêm dấu "..."
 export const truncateString = (str, num = 50) => {
   if (!str) return '';
   if (str.length <= num) {
@@ -89,32 +79,24 @@ export const truncateString = (str, num = 50) => {
   return str.slice(0, num) + '...';
 };
 
-// Lấy URL đầy đủ của ảnh, có fallback về placeholder
 export const getFullImageUrl = (imgPath) => {
  const backendUrl = import.meta.env.VITE_BACKEND_BASE_URL || 'http://localhost:5000';
- const defaultPlaceholder = '/images/placeholder.png'; // Đảm bảo file này tồn tại trong public/images của frontend
+ const defaultPlaceholder = '/images/placeholder.png';
 
  if (!imgPath || typeof imgPath !== 'string' || imgPath.trim() === '') {
-    // console.log("getFullImageUrl: imgPath is empty or invalid, returning placeholder."); // DEBUG
-return defaultPlaceholder;
+    return defaultPlaceholder;
  }
-
-if (imgPath.startsWith('http://') || imgPath.startsWith('https://') || imgPath.startsWith('data:image')) {
-    // console.log("getFullImageUrl: imgPath is already a full URL:", imgPath); // DEBUG
- return imgPath;
+ if (imgPath.startsWith('http://') || imgPath.startsWith('https://') || imgPath.startsWith('data:image')) {
+    return imgPath;
  }
-
-if (imgPath.startsWith('/')) {
-const formattedBaseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
-    const finalUrl = `${formattedBaseUrl}${imgPath}`; // <<<< SỬA LẠI ĐÚNG CÚ PHÁP TEMPLATE LITERAL
-    // console.log(`getFullImageUrl: Constructed URL: ${finalUrl} (from base: ${formattedBaseUrl} and path: ${imgPath})`); // DEBUG
-return finalUrl;
-}
-console.warn(`getFullImageUrl: Unknown or relative image path format for "${imgPath}", returning placeholder. Ensure path starts with '/' if it's from backend root.`);
-return defaultPlaceholder;
+ if (imgPath.startsWith('/')) {
+    const formattedBaseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
+    return `${formattedBaseUrl}${imgPath}`;
+ }
+ console.warn(`getFullImageUrl: Unknown or relative image path format for "${imgPath}", returning placeholder.`);
+ return defaultPlaceholder;
 };
 
-// Viết hoa chữ cái đầu tiên của mỗi từ trong chuỗi
 export const capitalizeWords = (str) => {
     if (!str || typeof str !== 'string') return '';
     return str.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
