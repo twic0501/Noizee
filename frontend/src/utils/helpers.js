@@ -24,9 +24,3 @@ export const scrollToTop = () => {
     behavior: 'smooth', // Cuộn mượt
   });
 };
-
-// Thêm các hàm helper khác nếu cần
-// Ví dụ:
-// - getErrorMessages(graphQLError): Trích xuất thông báo lỗi từ object lỗi GraphQL.
-// - isUserAdmin(userInfo): Kiểm tra quyền admin từ object userInfo.
-// - validateEmail(email): Kiểm tra định dạng email.

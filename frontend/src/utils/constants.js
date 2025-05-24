@@ -31,6 +31,3 @@ export const DEFAULT_USER_LANGUAGE = 'vi';
 //   THE_NOIZEE: 'the-noizee',
 //   // Thêm các slug khác nếu có
 // };
-
-// Có thể thêm các hằng số khác nếu cần thiết
-// Ví dụ: Regex patterns, API error codes mapping to messages, etc.

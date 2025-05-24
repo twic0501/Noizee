@@ -41,7 +41,7 @@ export const CartProvider = ({ children }) => {
     // Đảm bảo sizeId và colorId là null nếu không được chọn (cho sản phẩm không có biến thể)
     const sizeId = selectedSize ? selectedSize.size_id : null;
     const colorId = selectedColor ? selectedColor.color_id : null;
-    const cartItemId = `<span class="math-inline">\{product\.product\_id\}\-</span>{sizeId || 'no-size'}-${colorId || 'no-color'}`;
+    const cartItemId = `${product.product_id}-${sizeId || 'no-size'}-${colorId || 'no-color'}`;
 
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.cartItemId === cartItemId);

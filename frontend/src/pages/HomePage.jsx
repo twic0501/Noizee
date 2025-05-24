@@ -95,7 +95,7 @@ const FeaturedCarouselSection = () => {
     const featuredSlidesData = [
         {
             id: 'summer25',
-            src: '/images/featured/look1.jpg',
+            src: '',
             altKey: 'homePage.carousel.summer25.alt',
             captionTitleKey: 'homePage.carousel.summer25.title',
             captionTextKey: 'homePage.carousel.summer25.text',
@@ -104,7 +104,7 @@ const FeaturedCarouselSection = () => {
         },
         {
             id: 'essentials',
-            src: '/images/featured/look2.jpg',
+            src: '',
             altKey: 'homePage.carousel.essentials.alt',
             captionTitleKey: 'homePage.carousel.essentials.title',
             captionTextKey: 'homePage.carousel.essentials.text',

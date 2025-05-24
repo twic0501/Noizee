@@ -1,0 +1,44 @@
+/* src/pages/Auth/AuthPages.css */
+.auth-page-container {
+    min-height: calc(100vh - var(--header-height, 70px)); /* Chiều cao trừ đi header */
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    background-color: var(--color-background-alt); /* Nền xám nhạt */
+}
+
+.auth-card {
+    border: none; /* Bỏ border card mặc định */
+    border-radius: 0.5rem; /* Bo góc mềm mại hơn */
+}
+
+.auth-logo-link {
+    text-decoration: none;
+}
+.auth-brand-title {
+    font-family: var(--font-family-heading-main); /* Archivo Black */
+    font-size: 2.5rem;
+    color: var(--color-dark) !important;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+}
+
+.auth-page-title {
+    font-family: var(--font-family-heading-sub); /* Oswald */
+    font-size: 1.3rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.text-muted-auth {
+    color: var(--color-text-muted) !important;
+    font-family: var(--font-family-monospace);
+}
+.text-muted-auth:hover {
+    color: var(--color-primary) !important;
+}
+
+.auth-links small {
+    font-size: 0.85rem;
+}

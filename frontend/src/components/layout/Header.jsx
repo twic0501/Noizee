@@ -1,3 +1,5 @@
+
+// src/components/layout/Header.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useLocation, useParams } from 'react-router-dom'; // Thêm useParams
 import { Navbar, Nav, Container, Badge, Offcanvas } from 'react-bootstrap';

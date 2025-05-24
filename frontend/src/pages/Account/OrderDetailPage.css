@@ -1,0 +1,69 @@
+/* src/pages/Account/OrderDetailPage.css */
+.order-detail-card .order-detail-header {
+    background-color: var(--color-light-alt, #f8f9fa);
+    border-bottom: 1px solid var(--color-border);
+}
+.order-detail-card .order-detail-header h5 {
+    font-family: var(--font-family-heading-sub);
+}
+
+.order-detail-card .section-title {
+    font-family: var(--font-family-heading-sub);
+    font-weight: 500;
+    font-size: 1rem;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px dashed var(--color-border-light, #e0e0e0);
+}
+
+.order-detail-card .info-list .list-group-item {
+    border: none;
+    font-size: 0.9rem;
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+}
+.order-detail-card .info-list .list-group-item strong {
+    color: var(--color-text-base);
+}
+
+.order-items-table {
+    font-size: 0.9rem;
+}
+.order-items-table thead.table-light-custom th {
+    font-family: var(--font-family-heading-sub);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background-color: var(--color-light-alt, #f8f9fa);
+    border-bottom: 2px solid var(--color-border-dark);
+    color: var(--color-text-muted);
+}
+.order-item-image {
+  width: 60px;
+  height: auto; /* Giữ tỷ lệ */
+  max-height: 75px;
+  object-fit: cover;
+  border-radius: 0.2rem;
+  border: 1px solid var(--color-border-light, #eee);
+}
+.order-item-name {
+  font-size: 0.9rem;
+}
+.order-item-variant {
+  font-size: 0.8rem;
+}
+
+.order-totals-summary-footer .list-group-item {
+    font-size: 0.9rem;
+}
+
+.order-history-list .history-item {
+    border-bottom: 1px dashed var(--color-border-light, #e9ecef);
+}
+.order-history-list .history-item:last-child {
+    border-bottom: none;
+}
+.order-history-list .history-notes {
+    max-width: 80%; /* Giới hạn độ rộng của notes */
+}

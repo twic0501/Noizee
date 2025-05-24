@@ -1,97 +1,103 @@
-// src/routes/AppRoutesUser.jsx (User Frontend)
 import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, useParams, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import ProtectedRoute from './ProtectedRoute'; // Import ProtectedRoute
 
-// Giả sử bạn có các component layout và page sau (cần tạo nếu chưa có)
-// import UserLayout from '../components/layout/UserLayout'; 
-// import HomePage from '../pages/user/HomePage';
-// import ProductListPageUser from '../pages/user/ProductListPageUser';
-// import ProductDetailPageUser from '../pages/user/ProductDetailPageUser';
-// import UserNotFoundPage from '../pages/user/UserNotFoundPage';
+// Layouts
+const MainLayout = lazy(() => import('../components/layout/MainLayout'));
+const AccountLayout = lazy(() => import('../pages/Account/AccountLayout'));
 
-// --- Ví dụ Lazy Loading ---
-const UserLayout = lazy(() => import('../components/layout/UserLayout'));
-const HomePage = lazy(() => import('../pages/user/HomePage'));
-const ProductListPageUser = lazy(() => import('../pages/user/ProductListPageUser'));
-const ProductDetailPageUser = lazy(() => import('../pages/user/ProductDetailPageUser'));
-const UserNotFoundPage = lazy(() => import('../pages/user/UserNotFoundPage'));
-// --- Kết thúc ví dụ Lazy Loading ---
+// Common Pages
+const HomePage = lazy(() => import('../pages/HomePage'));
+const CollectionsPage = lazy(() => import('../pages/CollectionsPage'));
+const ProductDetailPage = lazy(() => import('../pages/ProductDetailPage'));
+const CartPage = lazy(() => import('../pages/CartPage'));
+const NotFoundPage = lazy(() => import('../pages/NotFoundPage')); // Chung cho tất cả lỗi không tìm thấy
 
-const LoadingFallbackUser = () => (
-  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-    {/* Bạn có thể dùng LoadingSpinner component nếu đã có */}
-    Đang tải trang... 
+// Specific Collection/Category Pages (có thể dùng lại CollectionsPage với filter)
+const AccessoriesPage = lazy(() => import('../pages/AccessoriesPage'));
+const TheNoizeePage = lazy(() => import('../pages/TheNoizeePage'));
+
+// Auth Pages
+const LoginPage = lazy(() => import('../pages/Auth/LoginPage'));
+const RegisterPage = lazy(() => import('../pages/Auth/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('../pages/Auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('../pages/Auth/ResetPasswordPage'));
+
+// Protected Pages
+const CheckoutPage = lazy(() => import('../pages/CheckoutPage'));
+const ProfilePage = lazy(() => import('../pages/Account/ProfilePage'));
+const OrderHistoryPage = lazy(() => import('../pages/Account/OrderHistoryPage'));
+const OrderDetailPage = lazy(() => import('../pages/Account/OrderDetailPage'));
+
+
+// Fallback component khi chờ tải trang
+const LoadingFallback = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: 'var(--color-background)' }}>
+    <p style={{ fontFamily: 'var(--font-family-heading-sub)', color: 'var(--color-text-base)' }}>Loading...</p>
   </div>
 );
 
 // Component trung gian để xử lý và áp dụng ngôn ngữ từ URL
 const LanguageAwareLayout = ({ children }) => {
-  const { lang } = useParams(); // Lấy 'vi' hoặc 'en' từ URL
+  const { lang } = useParams();
   const { i18n } = useTranslation();
   const location = useLocation();
 
   useEffect(() => {
-    // Nếu ngôn ngữ trong URL khác với ngôn ngữ hiện tại của i18next
-    // và ngôn ngữ đó được hỗ trợ, thì thay đổi ngôn ngữ của i18next.
     if (lang && i18n.language !== lang && i18n.options.supportedLngs.includes(lang)) {
       i18n.changeLanguage(lang);
-      // LanguageDetector (nếu cấu hình caches: ['localStorage']) sẽ tự động cập nhật localStorage.
-      // Hoặc bạn có thể tự cập nhật: localStorage.setItem('user_preferred_lang', lang);
     }
   }, [lang, i18n]);
 
-  // Nếu tham số :lang trong URL không hợp lệ (không nằm trong supportedLngs)
-  // Chuyển hướng người dùng về URL đúng với ngôn ngữ hiện tại của i18n (hoặc fallback)
-  // và giữ nguyên phần còn lại của path.
   if (lang && !i18n.options.supportedLngs.includes(lang)) {
-    // Xóa tiền tố ngôn ngữ không hợp lệ khỏi pathname
     const basePath = location.pathname.startsWith(`/${lang}`) 
-                   ? location.pathname.substring(lang.length + 1) // +1 để bỏ dấu /
+                   ? location.pathname.substring(lang.length + 1)
                    : location.pathname;
     return <Navigate to={`/${i18n.language}${basePath}${location.search}${location.hash}`} replace />;
   }
-
-  // Children ở đây thường là <UserLayout /> hoặc trực tiếp <Outlet /> nếu UserLayout xử lý :lang
   return children; 
 };
 
 function AppRoutesUser() {
   const { i18n } = useTranslation();
-  // Lấy ngôn ngữ mặc định/ưu tiên từ i18next (đã được LanguageDetector xử lý)
   const detectedOrDefaultLang = i18n.language || 'vi'; 
 
   return (
-    <Suspense fallback={<LoadingFallbackUser />}>
+    <Suspense fallback={<LoadingFallback />}>
       <Routes>
-        {/* Route bao bọc tất cả các trang có tiền tố ngôn ngữ */}
-        <Route path="/:lang" element={<LanguageAwareLayout><UserLayout /></LanguageAwareLayout>}>
-          {/* UserLayout sẽ chứa <Outlet /> để render các trang con */}
-          <Route index element={<HomePage />} /> {/* Trang chủ: /vi hoặc /en */}
-          <Route path="products" element={<ProductListPageUser />} /> {/* /vi/products hoặc /en/products */}
-          <Route path="products/:slug" element={<ProductDetailPageUser />} /> {/* :slug là slug sản phẩm */}
-          
-          {/* Thêm các routes khác cho User Frontend ở đây */}
-          {/* Ví dụ:
-          <Route path="collections" element={<CollectionListPageUser />} />
-          <Route path="collections/:slug" element={<CollectionDetailPageUser />} />
-          <Route path="blog" element={<BlogListPageUser />} />
-          <Route path="blog/:slug" element={<BlogDetailPageUser />} />
+        {/* Auth Routes (không dùng MainLayout nhưng vẫn cần LanguageAwareLayout để đọc :lang) */}
+        <Route path="/:lang/login" element={<LanguageAwareLayout><LoginPage /></LanguageAwareLayout>} />
+        <Route path="/:lang/register" element={<LanguageAwareLayout><RegisterPage /></LanguageAwareLayout>} />
+        <Route path="/:lang/forgot-password" element={<LanguageAwareLayout><ForgotPasswordPage /></LanguageAwareLayout>} />
+        <Route path="/:lang/reset-password" element={<LanguageAwareLayout><ResetPasswordPage /></LanguageAwareLayout>} />
+
+        {/* Routes chính sử dụng MainLayout và có tiền tố ngôn ngữ */}
+        <Route path="/:lang" element={<LanguageAwareLayout><MainLayout />
+        </LanguageAwareLayout>}>
+          <Route index element={<HomePage />} />
+          <Route path="collections" element={<CollectionsPage />} />
+          <Route path="collections/:categorySlug" element={<CollectionsPage />} />
+          <Route path="products/:id" element={<ProductDetailPage />} />
+          <Route path="accessories" element={<AccessoriesPage />} />
+          <Route path="the-noizee" element={<TheNoizeePage />} />
           <Route path="cart" element={<CartPage />} />
-          <Route path="checkout" element={<CheckoutPage />} />
-          <Route path="contact" element={<ContactPage />} />
-          <Route path="my-account" element={<MyAccountPage />} /> 
-          */}
           
-          <Route path="404" element={<UserNotFoundPage />} /> {/* Trang 404 cụ thể cho user */}
-          <Route path="*" element={<Navigate to="404" replace />} /> {/* Bất kỳ path nào không khớp trong /:lang sẽ về 404 của lang đó */}
+          {/* Routes cần đăng nhập */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="checkout" element={<CheckoutPage />} />
+            <Route path="account" element={<AccountLayout />}>
+              <Route index element={<ProfilePage />} />
+              <Route path="orders" element={<OrderHistoryPage />} />
+              <Route path="orders/:orderId" element={<OrderDetailPage />} />
+            </Route>
+          </Route>
+          
+          <Route path="404" element={<NotFoundPage />} />
+          <Route path="*" element={<Navigate to="404" replace />} />
         </Route>
 
-        {/* Chuyển hướng từ root (/) sang URL có tiền tố ngôn ngữ mặc định/đã phát hiện */}
         <Route path="/" element={<Navigate to={`/${detectedOrDefaultLang}`} replace />} />
-        
-        {/* Route 404 chung nếu truy cập path không có tiền tố ngôn ngữ và không phải là root */}
-        {/* Có thể dẫn về trang 404 của ngôn ngữ mặc định hoặc một trang 404 chung không layout */}
         <Route path="*" element={<Navigate to={`/${detectedOrDefaultLang}/404`} replace />} /> 
       </Routes>
     </Suspense>

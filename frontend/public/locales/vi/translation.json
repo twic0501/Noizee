@@ -1,421 +1,454 @@
-    {
-      "common": {
-        "loading": "Đang tải...",
-        "goHome": "Về trang chủ",
-        "error": "Đã xảy ra lỗi",
-        "noProducts": "Không tìm thấy sản phẩm nào phù hợp.",
-        "pageNotFound": "Trang không tồn tại"
-        
-      },
-      "header": {
-        "newArrivals": "Hàng Mới Về",
-        "collections": "Bộ Sưu Tập",
-        "accessories": "Phụ Kiện",
-        "theNoizee": "The Noizee",
-        "search": "Tìm kiếm",
-        "account": "Tài khoản",
-        "loginRegister": "Đăng nhập / Đăng ký",
-        "cart": "Giỏ hàng"
-        
-      },
-      "footer": {
-        
-        "brandDescription": "Streetwear cho những người không ngần ngại thể hiện. Khẳng định tiếng nói bên trong bạn.",
-        "shop": "Cửa hàng",
-        "allCollections": "Tất cả Bộ sưu tập",
-        "newArrivalsLink": "Hàng Mới Về",
-        "accessoriesLink": "Phụ Kiện",
-        "saleLink": "Giảm Giá",
-        "support": "Hỗ trợ",
-        "contactUs": "Liên Hệ",
-        "shippingReturns": "Vận Chuyển & Đổi Trả",
-        "faq": "FAQ",
-        "sizeGuide": "Hướng Dẫn Size",
-        "company": "Công ty",
-        "ourStory": "Câu Chuyện Của Chúng Tôi",
-        "careers": "Tuyển Dụng",
-        "terms": "Điều Khoản",
-        "privacy": "Chính Sách Bảo Mật",
-        "joinTheNoise": "Tham Gia Cộng Đồng",
-        "newsletterPrompt": "Nhận thông tin sớm nhất về sản phẩm mới, ưu đãi độc quyền, và hơn thế nữa.",
-        "newsletterPlaceholder": "Nhập email của bạn",
-        "subscribe": "Đăng ký",
-        "copyright": "© {{year}} NOIZEE. Đã đăng ký bản quyền. Sáng tạo với tiếng nói riêng."
-      },
-      "homePage": {
-        "hero": {
-          "title": "MAKE SOME NOIZE",
-          "subtitle": "Giải phóng phong cách độc đáo của bạn. Những bộ sưu tập cộng hưởng với sự táo bạo và không ngừng nghỉ.",
-          "ctaButton": "Khám Phá Bộ Sưu Tập"
-        },
-        "newArrivals": {
-          "title": "HÀNG MỚI VỀ",
-          "subtitle": "Khám phá những sản phẩm mới nhất. Phong cách nói lên tất cả.",
-          "loadError": "Không thể tải sản phẩm mới.",
-          "noProducts": "Hiện chưa có sản phẩm mới. Hãy quay lại sau!",
-          "viewAllButton": "Xem Tất Cả Hàng Mới"
-        },
-        "carousel": {
-          "summer25": {
-            "alt": "Bộ sưu tập nổi bật Hè 2025",
-            "title": "Summer Noize '25",
-            "text": "Chất liệu nhẹ nhàng, tuyên ngôn mạnh mẽ. Khám phá làn sóng mới.",
-            "button": "Khám Phá Hè '25"
-          },
-          "essentials": {
-            "alt": "Noizee Essentials",
-            "title": "Essentials Định Nghĩa Lại",
-            "text": "Những item cốt lõi cho sự nổi loạn hàng ngày của bạn.",
-            "button": "Mua Essentials"
-          },
-          "defaultButtonText": "Khám Phá Ngay",
-          "defaultSlideAlt": "Slide {{index}}"
-        }
-      },
-      "notFoundPage": {
-        "oops": "Ối!",
-        "pageNotFoundTitle": "Trang không tồn tại.",
-        "message": "Trang bạn đang tìm kiếm không tồn tại hoặc có thể đã được di chuyển.",
-        "goHomeButton": "Về trang chủ",
-        "imageAlt": "Hình ảnh lỗi 404"
-      },
-      "productCard": {
-        
-        "defaultProductName": "Sản phẩm",
-        "outOfStock": "Hết hàng",
-        "new": "Mới",
-        "addToCart": "Thêm vào giỏ",
-        "selectVariant": "Chọn size/màu",
-        "addedToCart": "{{productName}} đã được thêm vào giỏ!",
+{
+  "header": {
+    "newArrivals": "Hàng Mới",
+    "collections": "Bộ Sưu Tập",
+    "accessories": "Phụ Kiện",
+    "theNoizee": "The Noizee",
+    "search": "Tìm kiếm",
+    "account": "Tài khoản",
+    "loginRegister": "Đăng nhập / Đăng ký",
+    "cart": "Giỏ hàng"
+  },
+  "footer": {
+    "brandDescription": "Mang đến phong cách đường phố độc đáo và táo bạo. Khám phá chất riêng của bạn cùng NOIZEE.",
+    "shop": "Cửa hàng",
+    "allCollections": "Tất cả BST",
+    "newArrivalsLink": "Hàng Mới Về",
+    "accessoriesLink": "Phụ Kiện",
+    "saleLink": "Giảm Giá",
+    "support": "Hỗ Trợ",
+    "contactUs": "Liên Hệ",
+    "shippingReturns": "Giao Hàng & Đổi Trả",
+    "faq": "Câu Hỏi Thường Gặp",
+    "sizeGuide": "Hướng Dẫn Size",
+    "company": "Về NOIZEE",
+    "ourStory": "Câu Chuyện",
+    "careers": "Tuyển Dụng",
+    "terms": "Điều Khoản",
+    "privacy": "Bảo Mật",
+    "joinTheNoise": "Tham Gia Cùng \"Noise\"",
+    "newsletterPrompt": "Nhận thông tin cập nhật mới nhất và các ưu đãi đặc biệt.",
+    "newsletterPlaceholder": "Địa chỉ email của bạn",
+    "subscribe": "Đăng Ký",
+    "newsletterSubmitAlert": "Cảm ơn bạn đã đăng ký!",
+    "copyright": "© {{year}} NOIZEE. Đã đăng ký bản quyền."
+  },
+  "authForm": {
+    "nameLabel": "Họ và Tên",
+    "emailLabel": "Email",
+    "usernameLabel": "Tên người dùng (Tùy chọn)",
+    "usernamePlaceholder": "Ít nhất 3 ký tự, không dấu cách",
+    "phoneLabel": "Số điện thoại",
+    "addressLabel": "Địa chỉ (Tùy chọn)",
+    "addressPlaceholder": "Ví dụ: 123 Đường ABC, Quận 1, TP. HCM",
+    "passwordLabel": "Mật khẩu",
+    "passwordPlaceholder": "Ít nhất 6 ký tự",
+    "confirmPasswordLabel": "Xác nhận Mật khẩu",
+    "confirmPasswordPlaceholder": "Nhập lại mật khẩu",
+    "loginIdentifierLabel": "Email hoặc Tên người dùng",
+    "loginIdentifierPlaceholder": "Nhập email hoặc tên người dùng",
+    "processing": "Đang xử lý...",
+    "registerButton": "Đăng Ký",
+    "loginButton": "Đăng Nhập",
+    "requiredFieldsError": "Vui lòng điền đầy đủ các trường bắt buộc (*).",
+    "passwordMismatchError": "Mật khẩu xác nhận không khớp.",
+    "passwordMinLengthError": "Mật khẩu phải có ít nhất 6 ký tự.",
+    "invalidEmailError": "Địa chỉ email không hợp lệ.",
+    "invalidPhoneError": "Số điện thoại không hợp lệ (0xxxxxxxxx).",
+    "invalidUsernameError": "Tên người dùng phải có ít nhất 3 ký tự và không chứa dấu cách.",
+    "loginFieldsRequiredError": "Vui lòng nhập Email/Tên người dùng và Mật khẩu."
+  },
+  "forgotPasswordForm": {
+    "emailLabel": "Địa chỉ Email",
+    "emailPlaceholder": "Nhập email đã đăng ký",
+    "instructions": "Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu đến email của bạn.",
+    "submitButton": "Gửi Yêu Cầu",
+    "sending": "Đang gửi...",
+    "emailRequired": "Vui lòng nhập địa chỉ email.",
+    "invalidEmail": "Địa chỉ email không hợp lệ."
+  },
+  "resetPasswordForm": {
+    "newPasswordLabel": "Mật khẩu mới",
+    "newPasswordPlaceholder": "Nhập mật khẩu mới (ít nhất 6 ký tự)",
+    "confirmPasswordLabel": "Xác nhận mật khẩu mới",
+    "confirmPasswordPlaceholder": "Nhập lại mật khẩu mới",
+    "submitButton": "Đặt Lại Mật Khẩu",
+    "saving": "Đang lưu...",
+    "passwordRequired": "Vui lòng nhập mật khẩu mới và xác nhận.",
+    "passwordMismatch": "Mật khẩu xác nhận không khớp.",
+    "passwordMinLength": "Mật khẩu mới phải có ít nhất 6 ký tự."
+  },
+  "loginPage": {
+    "title": "Đăng Nhập Tài Khoản",
+    "forgotPasswordLink": "Quên mật khẩu?",
+    "registerLink": "Chưa có tài khoản? Đăng ký ngay"
+  },
+  "registerPage": {
+    "title": "Tạo Tài Khoản Mới",
+    "loginLink": "Đã có tài khoản? Đăng nhập"
+  },
+  "forgotPasswordPage": {
+    "title": "Quên Mật Khẩu",
+    "instructions": "Nhập địa chỉ email liên kết với tài khoản của bạn. Chúng tôi sẽ gửi một liên kết để bạn đặt lại mật khẩu.",
+    "backToLoginLink": "Quay lại Đăng nhập",
+    "successMessageDefault": "Nếu email của bạn có trong hệ thống, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.",
+    "errorMessageDefault": "Yêu cầu đặt lại mật khẩu thất bại. Vui lòng thử lại."
+  },
+  "resetPasswordPage": {
+    "title": "Đặt Lại Mật Khẩu",
+    "backToLoginLink": "Quay lại Đăng nhập",
+    "successMessageDefault": "Mật khẩu của bạn đã được đặt lại thành công!",
+    "errorMessageDefault": "Đặt lại mật khẩu thất bại. Liên kết có thể đã hết hạn hoặc không hợp lệ.",
+    "invalidTokenError": "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.",
+    "cannotSubmitInvalidTokenError": "Không thể gửi yêu cầu. Liên kết không hợp lệ."
+  },
+  "productCard": {
+    "defaultProductName": "Sản phẩm",
+    "new": "Mới",
+    "outOfStock": "Hết hàng",
+    "addToCart": "Thêm vào giỏ",
+    "selectVariant": "Chọn loại",
+    "addedToCart": "{{productName}} đã được thêm vào giỏ!",
+    "pleaseSelectSize": "Vui lòng chọn kích thước.",
+    "pleaseSelectColor": "Vui lòng chọn màu sắc.",
+    "pleaseSelectAllAttributes": "Vui lòng chọn đầy đủ thuộc tính.",
+    "variantOutOfStock": "Lựa chọn này đã hết hàng.",
+    "variantOutOfStockDetailed": {
+      "sizeWithColor": "Size {{sizeName}} màu {{colorName}} đã hết hàng.",
+      "colorWithSize": "Màu {{colorName}} size {{sizeName}} đã hết hàng."
+    }
+  },
+  "productGrid": {
+    "errorLoading": "Không thể tải sản phẩm. Vui lòng thử lại sau.",
+    "noProductsFound": "Không tìm thấy sản phẩm nào."
+  },
+  "loadingSpinner": {
+    "loading": "Đang tải...",
+    "contentLoading": "Nội dung đang tải"
+  },
+  "pagination": {
+    "previousPage": "Trang trước",
+    "nextPage": "Trang sau",
+    "goToPage": "Đến trang {{pageNumber}}"
+  },
+  "common": {
+    "error": "Đã xảy ra lỗi. Vui lòng thử lại.",
+    "notProvided": "Chưa cung cấp",
+    "productUnavailable": "Sản phẩm không còn tồn tại"
+  },
+  "sizeSelector": {
+    "label": "Kích thước:",
+    "outOfStockWithColor": "Size {{sizeName}} màu {{colorName}} đã hết hàng.",
+    "outOfStockSimple": "Size {{sizeName}} đã hết hàng.",
+    "selectTitle": "Chọn size {{sizeName}}",
+    "selectAriaLabel": "Chọn kích thước {{sizeName}}"
+  },
+  "colorSelector": {
+    "label": "Màu sắc:",
+    "outOfStockWithSize": "Màu {{colorName}} size {{sizeName}} đã hết hàng.",
+    "outOfStockSimple": "Màu {{colorName}} đã hết hàng.",
+    "selectTitle": "Chọn màu {{colorName}}",
+    "selectAriaLabel": "Chọn màu {{colorName}}"
+  },
+  "productDetailPage": {
+    "defaultProductName": "Chi tiết Sản phẩm",
+    "categoryLabel": "Danh mục",
+    "quantityLabel": "Số lượng",
+    "decreaseQuantityAriaLabel": "Giảm số lượng",
+    "increaseQuantityAriaLabel": "Tăng số lượng",
+    "quantityInputAriaLabel": "Nhập số lượng",
+    "lowStockWarning": "Chỉ còn {{count}} sản phẩm!",
+    "addedToCartSuccess": "{{quantity}} x {{productName}} đã được thêm vào giỏ hàng!",
+    "viewCartLink": "Xem giỏ hàng",
+    "variantSoldOut": "Lựa chọn này đã hết hàng",
+    "descriptionTitle": "Mô tả sản phẩm",
+    "skuLabel": "SKU",
+    "collectionsLabel": "Bộ sưu tập",
+    "loadError": "Lỗi tải chi tiết sản phẩm: {{message}}",
+    "notFoundError": "Không tìm thấy sản phẩm bạn yêu cầu.",
+    "validation": {
+        "selectSize": "Vui lòng chọn kích thước.",
+        "selectColor": "Vui lòng chọn màu sắc.",
+        "notEnoughStock": "Không đủ hàng tồn kho. Chỉ còn {{count}} sản phẩm.",
         "variantOutOfStock": "Lựa chọn này hiện đã hết hàng.",
-        "variantOutOfStockDetailed": {
-            "sizeWithColor": "Size {{sizeName}} hết hàng với màu {{colorName}}.",
-            "colorWithSize": "Màu {{colorName}} hết hàng với size {{sizeName}}."
-        },
-        "pleaseSelectSize": "Vui lòng chọn size.",
-        "pleaseSelectColor": "Vui lòng chọn màu sắc.",
-        "pleaseSelectAllAttributes": "Vui lòng chọn đầy đủ thuộc tính sản phẩm."
-      },
-      "loadingSpinner": {
-        
-        "loading": "Đang tải...",
-        "contentLoading": "Nội dung đang tải"
-      },
-      "authForm": {
-        
-        "nameLabel": "Họ và tên",
-        "emailLabel": "Email",
-        "usernameLabel": "Username",
-        "usernamePlaceholder": "Tên đăng nhập (tùy chọn)",
+        "productOutOfStock": "Sản phẩm này đã hết hàng."
+    }
+  },
+  "breadcrumb": {
+    "home": "Trang chủ",
+    "products": "Sản phẩm",
+    "collections": "Bộ sưu tập",
+    "cart": "Giỏ hàng",
+    "checkout": "Thanh toán",
+    "account": "Tài khoản",
+    "orderHistory": "Lịch sử đơn hàng",
+    "profile": "Thông tin cá nhân"
+  },
+  "cartPage": {
+    "title": "Giỏ hàng của bạn",
+    "itemsCount": "{{count}} sản phẩm trong giỏ",
+    "emptyMessage": "Giỏ hàng của bạn đang trống.",
+    "continueShoppingButton": "Tiếp tục mua sắm",
+    "cartItemsHeader": "Sản phẩm trong giỏ ({{count}})",
+    "clearAllButton": "Xóa tất cả",
+    "orContinueShoppingLink": "Hoặc tiếp tục mua sắm"
+  },
+  "cartItem": {
+    "sizeLabel": "Size:",
+    "colorLabel": "Màu:",
+    "priceLabel": "Giá:",
+    "quantityLabel": "SL:",
+    "totalLabel": "Tổng:",
+    "removeTitle": "Xóa sản phẩm",
+    "quantityAriaLabel": "Số lượng cho {{productName}}"
+  },
+  "cartSummary": {
+    "title": "Tóm tắt đơn hàng",
+    "subtotalItems_one": "{{count}} sản phẩm",
+    "subtotalItems_other": "{{count}} sản phẩm",
+    "shippingFee": "Phí vận chuyển",
+    "freeShipping": "Miễn phí",
+    "discountFromBalance": "Giảm từ số dư",
+    "totalAmount": "Tổng cộng",
+    "proceedToCheckout": "Tiến hành Thanh toán",
+    "discountAppliedNote": "Đã áp dụng {{discount}} từ số dư (Còn lại: {{balance}})."
+  },
+  "checkoutPage": {
+    "title": "Thanh Toán Đơn Hàng",
+    "shippingInfo": {
+        "title": "Thông tin giao hàng",
+        "nameLabel": "Họ và Tên",
         "phoneLabel": "Số điện thoại",
-        "addressLabel": "Địa chỉ",
-        "addressPlaceholder": "Địa chỉ nhận hàng (tùy chọn)",
-        "passwordLabel": "Mật khẩu",
-        "passwordPlaceholder": "Mật khẩu",
-        "confirmPasswordLabel": "Xác nhận mật khẩu",
-        "confirmPasswordPlaceholder": "Nhập lại mật khẩu",
-        "loginIdentifierLabel": "Email hoặc Username",
-        "loginIdentifierPlaceholder": "Nhập email hoặc username",
-        "loginButton": "Đăng nhập",
-        "registerButton": "Đăng ký",
-        "processing": "Đang xử lý...",
-        "requiredFieldsError": "Vui lòng điền đầy đủ các trường có dấu (*).",
-        "passwordMismatchError": "Mật khẩu nhập lại không khớp.",
-        "passwordMinLengthError": "Mật khẩu phải có ít nhất 6 ký tự.",
-        "invalidEmailError": "Định dạng email không hợp lệ.",
-        "invalidPhoneError": "Định dạng số điện thoại không hợp lệ (VD: 0912345678).",
-        "invalidUsernameError": "Username (nếu có) phải ít nhất 3 ký tự và không chứa khoảng trắng.",
-        "loginFieldsRequiredError": "Vui lòng nhập Email/Username và Mật khẩu."
-      },
-      "forgotPasswordForm": {
-        "emailLabel": "Địa chỉ Email",
-        "emailPlaceholder": "Nhập email đã đăng ký",
-        "instructions": "Chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu đến email này nếu nó đã được đăng ký.",
-        "submitButton": "Gửi hướng dẫn",
-        "sending": "Đang gửi...",
-        "emailRequired": "Vui lòng nhập địa chỉ email của bạn.",
-        "invalidEmail": "Định dạng email không hợp lệ."
-      },
-      "resetPasswordForm": {
-       
-        "newPasswordLabel": "Mật khẩu mới",
-        "newPasswordPlaceholder": "Nhập mật khẩu mới",
-        "confirmPasswordLabel": "Xác nhận mật khẩu mới",
-        "confirmPasswordPlaceholder": "Nhập lại mật khẩu mới",
-        "submitButton": "Đặt lại mật khẩu",
-        "saving": "Đang lưu...",
-        "passwordRequired": "Vui lòng nhập đầy đủ mật khẩu mới và xác nhận.",
-        "passwordMismatch": "Mật khẩu nhập lại không khớp.",
-        "passwordMinLength": "Mật khẩu mới phải có ít nhất 6 ký tự."
-      },
-      "pagination": {
-       
-        "previousPage": "Trang trước",
-        "nextPage": "Trang sau",
-        "goToPage": "Đến trang {{pageNumber}}"
-      },
-      "cartItem": {
-       
-        "priceLabel": "Giá:",
-        "quantityLabel": "SL:",
-        "totalLabel": "Tổng:",
-        "removeTitle": "Xóa sản phẩm",
-        "sizeLabel": "Size:",
-        "colorLabel": "Màu:",
-        "quantityAriaLabel": "Số lượng cho {{productName}}",
-        "quantityShortLabel": "SL"
-      },
-      "cartSummary": {
-     
-        "title": "Tóm tắt đơn hàng",
-        "subtotalItems_one": "Tạm tính ({{count}} sản phẩm)",
-        "subtotalItems_other": "Tạm tính ({{count}} sản phẩm)",
+        "emailLabel": "Email (Tùy chọn)",
+        "emailPlaceholder": "Để nhận thông tin đơn hàng",
+        "addressLabel": "Địa chỉ nhận hàng",
+        "addressPlaceholder": "Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố",
+        "notesLabel": "Ghi chú đơn hàng (Tùy chọn)",
+        "notesPlaceholder": "Ví dụ: Giao hàng giờ hành chính..."
+    },
+    "paymentMethod": {
+        "title": "Phương thức thanh toán",
+        "codLabel": "Thanh toán khi nhận hàng (COD)",
+        "codDescription": "Trả tiền mặt trực tiếp cho nhân viên giao hàng."
+    },
+    "orderSummary": {
+        "title": "Tóm tắt đơn hàng ({{count}} sản phẩm)",
+        "subtotal": "Tổng tiền hàng",
+        "balanceDiscount": "Giảm từ số dư ảo",
         "shippingFee": "Phí vận chuyển",
-        "freeShipping": "Miễn phí",
-        "discountFromBalance": "Giảm giá từ số dư",
-        "totalAmount": "Tổng cộng",
-        "proceedToCheckout": "Tiến hành đặt hàng",
-        "discountAppliedNote": "(Đã áp dụng {{discount}} từ số dư {{balance}})"
+        "totalAmount": "Tổng thanh toán",
+        "remainingBalance": "Số dư ảo còn lại: {{balance}}"
+    },
+    "processingButton": "Đang xử lý...",
+    "placeOrderButton": "Hoàn tất Đặt hàng",
+    "loginToContinue": "Vui lòng <a href='{{loginLink}}' class='fw-bold text-primary'>đăng nhập</a> để tiếp tục.",
+    "emptyCartMessage": "Giỏ hàng của bạn đang trống.",
+    "selectProductsLink": "Chọn sản phẩm.",
+    "orderSuccess": {
+        "title": "Đặt hàng Thành công!",
+        "mainMessage": "Cảm ơn bạn! Đơn hàng #{{orderId}} đã được đặt thành công.",
+        "thankYou": "Chúng tôi sẽ sớm liên hệ để xác nhận đơn hàng của bạn.",
+        "viewOrderButton": "Xem Chi tiết Đơn hàng",
+        "continueShoppingButton": "Tiếp tục Mua sắm"
+    },
+    "orderError": {
+        "default": "Đã xảy ra lỗi khi đặt hàng. Vui lòng thử lại."
+    },
+    "validation": {
+        "requiredFields": "Vui lòng điền đầy đủ thông tin giao hàng bắt buộc (*).",
+        "invalidPhone": "Số điện thoại không hợp lệ. Vui lòng kiểm tra lại.",
+        "invalidEmail": "Địa chỉ email không hợp lệ.",
+        "emptyCart": "Giỏ hàng của bạn đang trống. Không thể đặt hàng.",
+        "loginRequired": "Bạn cần đăng nhập để hoàn tất thanh toán."
+    }
+  },
+  "accountLayout": {
+    "greeting": "Xin chào, {{name}}!",
+    "defaultUser": "Khách",
+    "profileLink": "Thông tin Tài khoản",
+    "orderHistoryLink": "Lịch sử Mua hàng",
+    "addressesLink": "Sổ Địa chỉ",
+    "changePasswordLink": "Đổi Mật khẩu",
+    "logoutButton": "Đăng xuất"
+  },
+  "profilePage": {
+    "title": "Thông Tin Cá Nhân",
+    "editButton": "Chỉnh sửa",
+    "cancelButton": "Hủy",
+    "saveButton": "Lưu Thay Đổi",
+    "savingButton": "Đang lưu...",
+    "virtualBalanceLabel": "Số dư ảo của bạn",
+    "nameLabel": "Họ và Tên",
+    "usernameLabel": "Tên người dùng",
+    "usernamePlaceholder": "Tên hiển thị (tùy chọn)",
+    "emailLabel": "Địa chỉ Email",
+    "emailCannotChange": "Địa chỉ email không thể thay đổi.",
+    "phoneLabel": "Số điện thoại",
+    "addressLabel": "Địa chỉ",
+    "addressPlaceholder": "Nhập địa chỉ của bạn",
+    "updateSuccess": "Thông tin cá nhân đã được cập nhật thành công!",
+    "updateErrorDefault": "Cập nhật thông tin thất bại. Vui lòng thử lại.",
+    "loadError": "Lỗi tải thông tin cá nhân: {{message}}",
+    "noDataError": "Không thể tải thông tin cá nhân.",
+     "validation": {
+        "namePhoneRequired": "Họ tên và số điện thoại là bắt buộc.",
+        "invalidPhone": "Số điện thoại không hợp lệ.",
+        "invalidUsername": "Tên người dùng phải có ít nhất 3 ký tự và không chứa dấu cách."
+    }
+  },
+  "orderHistoryPage": {
+    "title": "Lịch sử Đơn hàng",
+    "noOrders": "Bạn chưa có đơn hàng nào.",
+    "startShoppingLink": "Bắt đầu mua sắm ngay!",
+    "orderIdHeader": "Mã ĐH",
+    "dateHeader": "Ngày Đặt",
+    "statusHeader": "Trạng thái",
+    "totalAmountHeader": "Tổng tiền",
+    "actionsHeader": "Thao tác",
+    "viewDetailButtonTitle": "Xem chi tiết đơn hàng",
+    "viewButton": "Xem",
+    "paginationInfo": "Hiển thị {{count}} trên tổng {{total}} đơn hàng.",
+    "loadError": "Không thể tải lịch sử đơn hàng."
+  },
+  "orderDetailPage": {
+    "title": "Chi tiết Đơn hàng #{{orderId}}",
+    "loadingMessage": "Đang tải chi tiết đơn hàng...",
+    "loadError": "Không thể tải chi tiết đơn hàng.",
+    "notFoundError": "Không tìm thấy đơn hàng này hoặc bạn không có quyền xem.",
+    "backToHistoryButton": "Quay lại Lịch sử",
+    "backButton": "Quay lại",
+    "orderInfoSectionTitle": "Thông tin Đơn hàng",
+    "orderIdLabel": "Mã đơn hàng:",
+    "dateLabel": "Ngày đặt:",
+    "statusLabel": "Trạng thái:",
+    "paymentMethodLabel": "Phương thức TT:",
+    "totalAmountLabel": "Tổng thanh toán:",
+    "shippingInfoSectionTitle": "Thông tin Giao hàng",
+    "recipientNameLabel": "Người nhận:",
+    "phoneLabel": "Điện thoại:",
+    "addressLabel": "Địa chỉ:",
+    "notesLabel": "Ghi chú:",
+    "itemsSectionTitle": "Các sản phẩm trong Đơn hàng",
+    "productHeader": "Sản phẩm",
+    "quantityHeader": "Số lượng",
+    "unitPriceHeader": "Đơn giá",
+    "discountHeader": "Giảm giá",
+    "subtotalHeader": "Thành tiền",
+    "skuLabel": "SKU:",
+    "summarySubtotal": "Tổng tiền hàng:",
+    "summaryDiscount": "Giảm giá:",
+    "summaryShipping": "Phí vận chuyển:",
+    "summaryTotal": "Tổng cộng:",
+    "historySectionTitle": "Lịch sử Trạng thái",
+    "notesPrefix": "Ghi chú:"
+  },
+  "imageCarousel": {
+    "noImages": "Không có ảnh để hiển thị",
+    "defaultButtonText": "Xem Ngay",
+    "defaultSlideAlt": "Ảnh {{index}}"
+  },
+  "homePage": {
+    "hero": {
+      "title": "Phong Cách Tối Giản. Chất Riêng Đậm Đà.",
+      "subtitle": "Khám phá những thiết kế độc quyền, nơi sự tối giản gặp gỡ cá tính mạnh mẽ. Mỗi sản phẩm là một tuyên ngôn.",
+      "ctaButton": "Mua Ngay"
+    },
+    "newArrivals": {
+      "title": "Hàng Mới Về",
+      "subtitle": "Những thiết kế mới nhất, dẫn đầu xu hướng. Đừng bỏ lỡ!",
+      "loadError": "Không thể tải sản phẩm mới. Vui lòng thử lại.",
+      "noProducts": "Chưa có sản phẩm mới nào.",
+      "viewAllButton": "Xem Tất Cả Hàng Mới"
+    },
+    "carousel": {
+      "summer25": {
+        "alt": "Bộ sưu tập Hè 2025",
+        "title": "Summer Noize '25",
+        "text": "Cảm nhận làn gió mùa hè với những thiết kế thoáng mát và đầy năng lượng.",
+        "button": "Khám Phá BST"
       },
-       "colorSelector": {
-        "label": "Màu:",
-        "outOfStockWithSize": "Màu {{colorName}} (Hết hàng với size {{sizeName}})",
-        "outOfStockSimple": "Màu {{colorName}} (Hết hàng)",
-        "selectTitle": "Chọn màu {{colorName}}",
-        "selectAriaLabel": "Chọn màu {{colorName}}"
-      },
-      "sizeSelector": {
-        "label": "Size:",
-        "outOfStockWithColor": "Size {{sizeName}} (Hết hàng với màu {{colorName}})",
-        "outOfStockSimple": "Size {{sizeName}} (Hết hàng)",
-        "selectTitle": "Chọn size {{sizeName}}",
-        "selectAriaLabel": "Chọn size {{sizeName}}"
-      },
-      "productFilter": {
-        "title": "Lọc sản phẩm",
-        "resetAll": "Xóa tất cả",
-        "categoryLabel": "Danh mục",
-        "allCategories": "Tất cả danh mục",
-        "categoryAriaLabel": "Bộ lọc danh mục",
-        "sizeLabel": "Kích thước",
-        "selectSizeTitle": "Chọn size {{sizeName}}",
-        "colorLabel": "Màu sắc",
-        "selectColorTitle": "Chọn màu {{colorName}}",
-        "selectColorAriaLabel": "Lọc theo màu {{colorName}}",
-        "priceRangeLabel": "Khoảng giá",
-        "minPriceLabel": "Giá thấp nhất",
-        "minPricePlaceholder": "Từ (VNĐ)",
-        "minPriceAriaLabel": "Giá thấp nhất",
-        "maxPriceLabel": "Giá cao nhất",
-        "maxPricePlaceholder": "Đến (VNĐ)",
-        "maxPriceAriaLabel": "Giá cao nhất",
-        "loadingFilters": "Đang tải bộ lọc...",
-        "errorLoadingFilters": "Lỗi tải bộ lọc."
-      },
-      "orderStatus": {
-        "Pending": "Chờ xử lý",
-        "Processing": "Đang xử lý",
-        "Shipped": "Đã giao hàng",
-        "Delivered": "Hoàn thành",
-        "Completed": "Hoàn thành",
-        "Cancelled": "Đã hủy",
-        "Refunded": "Đã hoàn tiền",
-        "Unknown": "Không xác định"
-      },
-      "floatingChat": {
-        "openOptions": "Mở tùy chọn chat",
-        "closeOptions": "Đóng tùy chọn chat",
-        "messengerTitle": "Chat qua Messenger",
-        "messenger": "Messenger",
-        "instagramTitle": "Chat qua Instagram",
-        "instagram": "Instagram"
-      },
-      "productGrid": {
-          "errorLoading": "Không thể hiển thị sản phẩm lúc này.",
-          "noProductsFound": "Không tìm thấy sản phẩm nào phù hợp với lựa chọn của bạn."
-      },
-      "imageCarousel": {
-          "noImages": "Không có hình ảnh để hiển thị",
-          "defaultButtonText": "Khám phá ngay",
-          "defaultSlideAlt": "Trình chiếu {{index}}"
-      },
-      "accountLayout": {
-        "greeting": "Xin chào, {{name}}!",
-        "defaultUser": "Bạn",
-        "profileLink": "Thông tin tài khoản",
-        "orderHistoryLink": "Lịch sử đơn hàng",
-        "addressesLink": "Địa chỉ của tôi",
-        "changePasswordLink": "Đổi mật khẩu",
-        "logoutButton": "Đăng xuất"
-      },
-      "profilePage": {
-        "title": "Thông tin tài khoản",
-        "editButton": "Chỉnh sửa",
-        "cancelButton": "Hủy",
-        "updateSuccess": "Thông tin cá nhân đã được cập nhật!",
-        "updateErrorDefault": "Lỗi cập nhật thông tin.",
-        "loadError": "Lỗi tải thông tin: {{message}}",
-        "noDataError": "Không thể tải dữ liệu tài khoản.",
-        "virtualBalanceLabel": "Số dư ảo của bạn",
-        "nameLabel": "Họ và tên",
-        "usernameLabel": "Username",
-        "usernamePlaceholder": "Tên hiển thị (tùy chọn)",
-        "emailLabel": "Địa chỉ Email",
-        "emailCannotChange": "Email không thể thay đổi.",
-        "phoneLabel": "Số điện thoại",
-        "addressLabel": "Địa chỉ",
-        "addressPlaceholder": "Địa chỉ nhận hàng (tùy chọn)",
-        "savingButton": "Đang lưu...",
-        "saveButton": "Lưu thay đổi",
-        "cancelEditButton": "Hủy bỏ",
-        "validation": {
-          "namePhoneRequired": "Họ tên và số điện thoại không được để trống.",
-          "invalidPhone": "Định dạng số điện thoại không hợp lệ (VD: 0912345678).",
-          "invalidUsername": "Username (nếu có) phải ít nhất 3 ký tự và không chứa khoảng trắng."
-        },
-        "updateError": "Lỗi cập nhật: {{message}}"
-      },
-      "orderHistoryPage": {
-        "title": "Lịch sử đơn hàng",
-        "loadError": "Không thể tải lịch sử đơn hàng. Vui lòng thử lại sau.",
-        "noOrders": "Bạn chưa có đơn hàng nào.",
-        "startShoppingLink": "Bắt đầu mua sắm ngay!",
-        "orderIdHeader": "Mã ĐH",
-        "dateHeader": "Ngày đặt",
-        "statusHeader": "Trạng thái",
-        "totalAmountHeader": "Tổng tiền",
-        "actionsHeader": "Hành động",
-        "viewDetailButtonTitle": "Xem chi tiết",
-        "viewButton": "Xem",
-        "paginationInfo": "Hiển thị {{count}} trên tổng số {{total}} đơn hàng."
-      },
-      "orderDetailPage": {
-        "loadingMessage": "Đang tải chi tiết đơn hàng...",
-        "loadError": "Lỗi tải chi tiết đơn hàng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.",
-        "notFoundError": "Không tìm thấy đơn hàng hoặc bạn không có quyền xem đơn hàng này.",
-        "backToHistoryButton": "Quay lại Lịch sử đơn hàng",
-        "title": "Chi tiết đơn hàng #{{orderId}}",
-        "backButton": "Quay lại",
-        "orderInfoSectionTitle": "Thông tin đơn hàng",
-        "orderIdLabel": "Mã đơn hàng:",
-        "dateLabel": "Ngày đặt:",
-        "statusLabel": "Trạng thái:",
-        "paymentMethodLabel": "Phương thức TT:",
-        "totalAmountLabel": "Tổng tiền:",
-        "shippingInfoSectionTitle": "Thông tin giao hàng",
-        "recipientNameLabel": "Người nhận:",
-        "phoneLabel": "Điện thoại:",
-        "addressLabel": "Địa chỉ:",
-        "notesLabel": "Ghi chú:",
-        "itemsSectionTitle": "Các sản phẩm trong đơn",
-        "productHeader": "Sản phẩm",
-        "quantityHeader": "Số lượng",
-        "unitPriceHeader": "Đơn giá",
-        "discountHeader": "Giảm giá",
-        "subtotalHeader": "Thành tiền",
-        "skuLabel": "SKU:",
-        "summarySubtotal": "Tạm tính:",
-        "summaryDiscount": "Tổng giảm giá:",
-        "summaryShipping": "Phí vận chuyển:",
-        "summaryTotal": "Thành tiền:",
-        "historySectionTitle": "Lịch sử đơn hàng",
-        "notesPrefix": "Ghi chú:"
-      },
-      "breadcrumb": {
-        "home": "Trang chủ",
-        "products": "Sản phẩm"
-      },
-      "productDetailPage": {
-          "defaultProductName": "Chi tiết sản phẩm",
-          "loadError": "Lỗi: Không thể tải thông tin sản phẩm. {{message}}",
-          "notFoundError": "Sản phẩm không tồn tại hoặc đã bị xóa.",
-          "categoryLabel": "Danh mục",
-          "quantityLabel": "Số lượng",
-          "decreaseQuantityAriaLabel": "Giảm số lượng",
-          "increaseQuantityAriaLabel": "Tăng số lượng",
-          "quantityInputAriaLabel": "Số lượng sản phẩm",
-          "lowStockWarning": "(Chỉ còn {{count}} sản phẩm)",
-          "validation": {
-              "selectSize": "Vui lòng chọn kích thước.",
-              "selectColor": "Vui lòng chọn màu sắc.",
-              "notEnoughStock": "Rất tiếc, chỉ còn {{count}} sản phẩm cho lựa chọn này.",
-              "variantOutOfStock": "Lựa chọn này hiện đã hết hàng.",
-              "productOutOfStock": "Sản phẩm này đã hết hàng."
-          },
-          "addedToCartSuccess": "{{quantity}} x {{productName}} đã được thêm vào giỏ!",
-          "viewCartLink": "Xem giỏ hàng",
-          "variantSoldOut": "Lựa chọn này đã hết",
-          "descriptionTitle": "Mô tả sản phẩm",
-          "skuLabel": "SKU",
-          "collectionsLabel": "Bộ sưu tập"
-      },
-      "collectionsPage": {
-        "defaultTitle": "Tất cả sản phẩm",
-        "collectionTitle": "Bộ sưu tập: {{name}}",
-        "newArrivalsTitle": "Hàng Mới Về",
-        "searchResultsTitle": "Kết quả tìm kiếm cho: \"{{term}}\"",
-        "productsCount_one": "{{count}} sản phẩm",
-        "productsCount_other": "{{count}} sản phẩm",
-        "findingProducts": "Đang tìm sản phẩm...",
-        "productsLoadError": "Lỗi tải sản phẩm: {{message}}"
-      },
-      "accessoriesPage": {
-        "redirectingMessage": "Đang chuyển đến trang Phụ kiện..."
-      },
-      "routes": { 
-        "accessoriesSlug": "phu-kien", 
-        "theNoizeeSlug": "the-noizee" 
-      },
-      "theNoizeePage": {
-        "hero": {
-          "title": "THE NOIZEE",
-          "subtitle": "Nơi nghệ thuật gặp gỡ cá tính. Khám phá phiên bản giới hạn và những hợp tác độc đáo định hình tiếng nói.",
-          "ctaButton": "Mua Bộ Sưu Tập"
-        },
-        "story": {
-          "title": "TUYÊN NGÔN CỦA CHÚNG TÔI",
-          "imageUrl": "/images/the-noizee-story-vi.jpg",
-          "imageAlt": "Câu chuyện The Noizee",
-          "paragraph1": "Noizee không chỉ là một thương hiệu; đó là một tuyên ngôn. Chúng tôi tin vào sức mạnh của sự tự thể hiện, lòng can đảm để khác biệt, và nghệ thuật của sự phá cách. Mỗi tác phẩm được tạo ra không chỉ để mặc, mà còn để bắt đầu một cuộc trò chuyện, một phần bản sắc của bạn được lan tỏa ra thế giới.",
-          "paragraph2": "Lấy cảm hứng từ năng lượng mạnh mẽ của đường phố, những sân khấu ngầm, và tinh thần không khoan nhượng của những người dám khác biệt. Đây không chỉ là thời trang. Đây là The Noizee."
-        },
-        "featuredPieces": {
-          "title": "Tác Phẩm Nổi Bật",
-          "loadError": "Không thể tải các tác phẩm nổi bật.",
-          "viewCollectionButton": "Khám Phá Toàn Bộ Sưu Tập"
-        },
-        "behindTheScenes": {
-          "title": "HẬU TRƯỜNG TIẾNG NÓI",
-          "description": "Nhìn vào quá trình sáng tạo, nguồn cảm hứng, và những nghệ sĩ làm nên Noizee. Lookbook của chúng tôi kể một câu chuyện vượt ra ngoài chất liệu vải.",
-          "viewLookbookButton": "Xem Lookbook",
-          "imageUrl": "/images/lookbook-teaser-vi.jpg",
-          "imageAlt": "Teaser Lookbook The Noizee"
-        }
-      },
-       "loginPage": {
-        "title": "Đăng nhập",
-        "forgotPasswordLink": "Quên mật khẩu?",
-        "registerLink": "Chưa có tài khoản? Đăng ký"
-      },
-      "registerPage": {
-        "title": "Tạo tài khoản",
-        "loginLink": "Đã có tài khoản? Đăng nhập"
-      },
-      "forgotPasswordPage": {
-        "title": "Quên mật khẩu",
-        "instructions": "Nhập địa chỉ email bạn đã dùng để đăng ký. Chúng tôi sẽ gửi cho bạn một liên kết để đặt lại mật khẩu.",
-        "successMessageDefault": "Hướng dẫn đặt lại mật khẩu đã được gửi đến email của bạn (nếu email tồn tại trong hệ thống).",
-        "errorMessageDefault": "Không thể gửi yêu cầu. Vui lòng thử lại.",
-        "backToLoginLink": "Quay lại Đăng nhập"
-      },
-      "resetPasswordPage": {
-        "title": "Đặt lại mật khẩu",
-        "successMessageDefault": "Mật khẩu của bạn đã được đặt lại thành công!",
-        "errorMessageDefault": "Không thể đặt lại mật khẩu. Liên kết có thể không hợp lệ hoặc đã hết hạn.",
-        "invalidTokenError": "Token đặt lại mật khẩu không hợp lệ hoặc bị thiếu.",
-        "cannotSubmitInvalidTokenError": "Không thể thực hiện. Token không hợp lệ.",
-        "invalidOrExpiredLinkError": "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu một liên kết mới.",
-        "backToLoginLink": "Quay lại Đăng nhập"
+      "essentials": {
+        "alt": "Các sản phẩm thiết yếu",
+        "title": "Noizee Essentials",
+        "text": "Những item không thể thiếu cho tủ đồ của bạn, kết hợp hoàn hảo mỗi ngày.",
+        "button": "Xem Essentials"
       }
     }
-    
+  },
+  "collectionsPage": {
+    "defaultTitle": "Tất Cả Sản Phẩm",
+    "productsCount": "{{count}} sản phẩm",
+    "findingProducts": "Đang tìm sản phẩm...",
+    "collectionTitle": "Bộ sưu tập: {{name}}",
+    "searchResultsTitle": "Kết quả tìm kiếm cho: \"{{term}}\"",
+    "newArrivalsTitle": "Hàng Mới Về",
+    "productsLoadError": "Lỗi tải sản phẩm: {{message}}"
+  },
+  "productFilter": {
+    "title": "Bộ lọc",
+    "resetAll": "Xóa tất cả",
+    "categoryLabel": "Danh mục",
+    "categoryAriaLabel": "Chọn danh mục",
+    "allCategories": "Tất cả danh mục",
+    "sizeLabel": "Kích thước",
+    "selectSizeTitle": "Chọn size {{sizeName}}",
+    "colorLabel": "Màu sắc",
+    "selectColorTitle": "Chọn màu {{colorName}}",
+    "selectColorAriaLabel": "Chọn màu {{colorName}}",
+    "priceRangeLabel": "Khoảng giá",
+    "minPriceLabel": "Giá tối thiểu",
+    "minPricePlaceholder": "Từ",
+    "minPriceAriaLabel": "Giá tối thiểu",
+    "maxPriceLabel": "Giá tối đa",
+    "maxPricePlaceholder": "Đến",
+    "maxPriceAriaLabel": "Giá tối đa",
+    "loadingFilters": "Đang tải bộ lọc...",
+    "errorLoadingFilters": "Lỗi tải bộ lọc."
+  },
+  "accessoriesPage": {
+    "redirectingMessage": "Đang chuyển hướng đến trang phụ kiện..."
+  },
+  "routes": {
+    "accessoriesSlug": "phu-kien",
+    "theNoizeeSlug": "the-noizee"
+  },
+  "theNoizeePage": {
+    "hero": {
+        "title": "Chất NOIZEE",
+        "subtitle": "Định hình phong cách của bạn với những thiết kế độc bản, táo bạo và không giới hạn."
+    },
+    "story": {
+        "title": "Câu Chuyện NOIZEE",
+        "imageUrl": "/images/story/noizee-concept.jpg",
+        "imageAlt": "Concept và nguồn cảm hứng của NOIZEE",
+        "paragraph1": "NOIZEE không chỉ là thời trang, đó là một tuyên ngôn. Chúng tôi tin rằng mỗi cá nhân đều có một 'tiếng nói' riêng, một 'sự ồn ào' độc đáo cần được thể hiện. Các thiết kế của NOIZEE được tạo ra để khơi dậy sự tự tin, phá vỡ những giới hạn và tôn vinh cá tính.",
+        "paragraph2": "Từ những đường cắt may táo bạo đến chất liệu được lựa chọn kỹ lưỡng, mỗi sản phẩm đều mang trong mình tinh thần tự do, phóng khoáng và không ngừng đổi mới. Hãy cùng NOIZEE tạo nên những 'tiếng ồn' đầy phong cách của riêng bạn."
+    },
+    "featuredPieces": {
+        "title": "Những Thiết Kế Nổi Bật",
+        "loadError": "Không thể tải các sản phẩm nổi bật.",
+        "viewCollectionButton": "Xem Toàn Bộ BST The Noizee"
+    },
+    "behindTheScenes": {
+        "title": "Hậu Trường Sáng Tạo",
+        "description": "Khám phá quy trình thiết kế và những câu chuyện đằng sau mỗi bộ sưu tập của NOIZEE. Nơi ý tưởng trở thành hiện thực.",
+        "imageUrl": "/images/story/noizee-bts.jpg",
+        "imageAlt": "Hậu trường một buổi chụp ảnh lookbook của NOIZEE",
+        "viewLookbookButton": "Xem Lookbook"
+    }
+  },
+  "floatingChat": {
+    "messengerTitle": "Chat với chúng tôi qua Messenger",
+    "messenger": "Messenger",
+    "instagramTitle": "Nhắn tin qua Instagram",
+    "instagram": "Instagram",
+    "openOptions": "Mở tùy chọn chat",
+    "closeOptions": "Đóng tùy chọn chat"
+  },
+  "notFoundPage": {
+    "oops": "Ối!",
+    "pageNotFoundTitle": "Không Tìm Thấy Trang",
+    "message": "Trang bạn đang tìm kiếm không tồn tại hoặc đã bị di chuyển.",
+    "goHomeButton": "Về Trang Chủ"
+  }
+}

@@ -1,23 +1,16 @@
 {
-  "common": {
-    "loading": "Loading...",
-    "error": "An error occurred",
-    "noProducts": "No products found matching your selection.",
-    "pageNotFound": "Page Not Found",
-    "goHome": "Go to Homepage"
-  },
   "header": {
-        "newArrivals": "Hàng Mới Về",
-        "collections": "Bộ Sưu Tập",
-        "accessories": "Phụ Kiện",
-        "theNoizee": "The Noizee",
-        "search": "Tìm kiếm",
-        "account": "Tài khoản",
-        "loginRegister": "Đăng nhập / Đăng ký",
-        "cart": "Giỏ hàng"
+    "newArrivals": "New Arrivals",
+    "collections": "Collections",
+    "accessories": "Accessories",
+    "theNoizee": "The Noizee",
+    "search": "Search",
+    "account": "Account",
+    "loginRegister": "Login / Register",
+    "cart": "Cart"
   },
   "footer": {
-    "brandDescription": "Streetwear for the unapologetically loud. Express your inner noise.",
+    "brandDescription": "Bringing unique and bold street style. Discover your signature with NOIZEE.",
     "shop": "Shop",
     "allCollections": "All Collections",
     "newArrivalsLink": "New Arrivals",
@@ -28,60 +21,55 @@
     "shippingReturns": "Shipping & Returns",
     "faq": "FAQ",
     "sizeGuide": "Size Guide",
-    "company": "Company",
+    "company": "About NOIZEE",
     "ourStory": "Our Story",
     "careers": "Careers",
-    "terms": "Terms",
-    "privacy": "Privacy",
-    "joinTheNoise": "Join The Noise",
-    "newsletterPrompt": "Get early access to new drops, exclusive deals, and more.",
-    "newsletterPlaceholder": "Enter your email",
+    "terms": "Terms & Conditions",
+    "privacy": "Privacy Policy",
+    "joinTheNoise": "Join The \"Noise\"",
+    "newsletterPrompt": "Get the latest updates and special offers.",
+    "newsletterPlaceholder": "Your email address",
     "subscribe": "Subscribe",
-    "copyright": "© {{year}} NOIZEE. All Rights Reserved. Crafted with noise."
-  },
-  "productCard": {
-    "outOfStock": "Out of Stock",
-    "new": "New",
-    "addToCart": "Add to Cart",
-    "selectVariant": "Select size/color",
-    "addedToCart": "{{productName}} has been added to cart!"
+    "newsletterSubmitAlert": "Thank you for subscribing!",
+    "copyright": "© {{year}} NOIZEE. All rights reserved."
   },
   "authForm": {
     "nameLabel": "Full Name",
-    "emailLabel": "Email",
-    "usernameLabel": "Username",
-    "usernamePlaceholder": "Username (optional)",
+    "emailLabel": "Email Address",
+    "usernameLabel": "Username (Optional)",
+    "usernamePlaceholder": "Min. 3 characters, no spaces",
     "phoneLabel": "Phone Number",
-    "addressLabel": "Address",
-    "addressPlaceholder": "Shipping address (optional)",
+    "addressLabel": "Address (Optional)",
+    "addressPlaceholder": "E.g., 123 ABC Street, District 1, HCMC",
     "passwordLabel": "Password",
-    "passwordPlaceholder": "Password",
+    "passwordPlaceholder": "Min. 6 characters",
     "confirmPasswordLabel": "Confirm Password",
-    "confirmPasswordPlaceholder": "Re-enter password",
+    "confirmPasswordPlaceholder": "Re-enter your password",
     "loginIdentifierLabel": "Email or Username",
-    "loginIdentifierPlaceholder": "Enter email or username",
-    "loginButton": "Login",
-    "registerButton": "Register",
+    "loginIdentifierPlaceholder": "Enter your email or username",
     "processing": "Processing...",
-    "requiredFields": "Please fill in all required fields (*).",
-    "passwordMismatch": "Passwords do not match.",
-    "passwordMinLength": "Password must be at least 6 characters.",
-    "invalidEmail": "Invalid email format.",
-    "invalidPhone": "Invalid phone number format (e.g., 0912345678).",
-    "invalidUsername": "Username (if provided) must be at least 3 characters and contain no spaces."
+    "registerButton": "Register",
+    "loginButton": "Login",
+    "requiredFieldsError": "Please fill in all required fields (*).",
+    "passwordMismatchError": "Passwords do not match.",
+    "passwordMinLengthError": "Password must be at least 6 characters long.",
+    "invalidEmailError": "Invalid email address.",
+    "invalidPhoneError": "Invalid phone number (0xxxxxxxxx).",
+    "invalidUsernameError": "Username must be at least 3 characters long and contain no spaces.",
+    "loginFieldsRequiredError": "Please enter Email/Username and Password."
   },
   "forgotPasswordForm": {
     "emailLabel": "Email Address",
     "emailPlaceholder": "Enter your registered email",
-    "instructions": "We will send password reset instructions to this email if it's registered.",
-    "submitButton": "Send Instructions",
+    "instructions": "We'll send password reset instructions to your email.",
+    "submitButton": "Send Request",
     "sending": "Sending...",
     "emailRequired": "Please enter your email address.",
-    "invalidEmail": "Invalid email format."
+    "invalidEmail": "Invalid email address."
   },
   "resetPasswordForm": {
     "newPasswordLabel": "New Password",
-    "newPasswordPlaceholder": "Enter new password",
+    "newPasswordPlaceholder": "Enter new password (min. 6 characters)",
     "confirmPasswordLabel": "Confirm New Password",
     "confirmPasswordPlaceholder": "Re-enter new password",
     "submitButton": "Reset Password",
@@ -90,60 +78,381 @@
     "passwordMismatch": "Passwords do not match.",
     "passwordMinLength": "New password must be at least 6 characters."
   },
-  "pagination": {
-    "previousPage": "Previous Page",
-    "nextPage": "Next Page",
-    "goToPage": "Go to page {{pageNumber}}"
+  "loginPage": {
+    "title": "Account Login",
+    "forgotPasswordLink": "Forgot password?",
+    "registerLink": "No account? Register now"
+  },
+  "registerPage": {
+    "title": "Create New Account",
+    "loginLink": "Already have an account? Login"
+  },
+  "forgotPasswordPage": {
+    "title": "Forgot Password",
+    "instructions": "Enter the email address associated with your account. We will send you a link to reset your password.",
+    "backToLoginLink": "Back to Login",
+    "successMessageDefault": "If your email is in our system, you will receive password reset instructions.",
+    "errorMessageDefault": "Failed to request password reset. Please try again."
+  },
+  "resetPasswordPage": {
+    "title": "Reset Password",
+    "backToLoginLink": "Back to Login",
+    "successMessageDefault": "Your password has been reset successfully!",
+    "errorMessageDefault": "Failed to reset password. The link may be invalid or expired.",
+    "invalidTokenError": "The password reset link is invalid or has expired.",
+    "cannotSubmitInvalidTokenError": "Cannot submit request. Invalid link."
+  },
+  "productCard": {
+    "defaultProductName": "Product",
+    "new": "New",
+    "outOfStock": "Sold Out",
+    "addToCart": "Add to Cart",
+    "selectVariant": "Select Variant",
+    "addedToCart": "{{productName}} added to cart!",
+    "pleaseSelectSize": "Please select a size.",
+    "pleaseSelectColor": "Please select a color.",
+    "pleaseSelectAllAttributes": "Please select all attributes.",
+    "variantOutOfStock": "This selection is out of stock.",
+    "variantOutOfStockDetailed": {
+      "sizeWithColor": "Size {{sizeName}} in color {{colorName}} is out of stock.",
+      "colorWithSize": "Color {{colorName}} in size {{sizeName}} is out of stock."
+    }
+  },
+  "productGrid": {
+    "errorLoading": "Could not load products. Please try again later.",
+    "noProductsFound": "No products found."
   },
   "loadingSpinner": {
     "loading": "Loading...",
     "contentLoading": "Content is loading"
   },
-  "cartItem": {
-    "priceLabel": "Price:",
-    "quantityLabel": "Qty:",
-    "totalLabel": "Total:",
-    "removeTitle": "Remove Item",
-    "sizeLabel": "Size:",
-    "colorLabel": "Color:"
+  "pagination": {
+    "previousPage": "Previous",
+    "nextPage": "Next",
+    "goToPage": "Go to page {{pageNumber}}"
   },
-  "colorSelector": {
-    "label": "Color:",
-    "outOfStockTitle": "{{colorName}} (Out of stock{{sizeInfo}})",
-    "outOfStockWithSize": " with size {{sizeName}}",
-    "selectLabel": "Select color {{colorName}}"
+  "common": {
+    "error": "An error occurred. Please try again.",
+    "notProvided": "Not provided",
+    "productUnavailable": "Product no longer available"
   },
   "sizeSelector": {
     "label": "Size:",
-    "outOfStockTitle": "{{sizeName}} (Out of stock{{colorInfo}})",
-    "outOfStockWithColor": " with color {{colorName}}"
+    "outOfStockWithColor": "Size {{sizeName}} in color {{colorName}} is out of stock.",
+    "outOfStockSimple": "Size {{sizeName}} is out of stock.",
+    "selectTitle": "Select size {{sizeName}}",
+    "selectAriaLabel": "Select size {{sizeName}}"
+  },
+  "colorSelector": {
+    "label": "Color:",
+    "outOfStockWithSize": "Color {{colorName}} for size {{sizeName}} is out of stock.",
+    "outOfStockSimple": "Color {{colorName}} is out of stock.",
+    "selectTitle": "Select color {{colorName}}",
+    "selectAriaLabel": "Select color {{colorName}}"
+  },
+  "productDetailPage": {
+    "defaultProductName": "Product Details",
+    "categoryLabel": "Category",
+    "quantityLabel": "Quantity",
+    "decreaseQuantityAriaLabel": "Decrease quantity",
+    "increaseQuantityAriaLabel": "Increase quantity",
+    "quantityInputAriaLabel": "Enter quantity",
+    "lowStockWarning": "Only {{count}} left in stock!",
+    "addedToCartSuccess": "{{quantity}} x {{productName}} added to cart!",
+    "viewCartLink": "View Cart",
+    "variantSoldOut": "This variant is sold out",
+    "descriptionTitle": "Product Description",
+    "skuLabel": "SKU",
+    "collectionsLabel": "Collections",
+    "loadError": "Error loading product details: {{message}}",
+    "notFoundError": "The product you requested was not found.",
+    "validation": {
+        "selectSize": "Please select a size.",
+        "selectColor": "Please select a color.",
+        "notEnoughStock": "Not enough stock. Only {{count}} items available.",
+        "variantOutOfStock": "This variant is currently out of stock.",
+        "productOutOfStock": "This product is out of stock."
+    }
+  },
+  "breadcrumb": {
+    "home": "Home",
+    "products": "Products",
+    "collections": "Collections",
+    "cart": "Cart",
+    "checkout": "Checkout",
+    "account": "Account",
+    "orderHistory": "Order History",
+    "profile": "Profile"
+  },
+  "cartPage": {
+    "title": "Your Shopping Cart",
+    "itemsCount_one": "{{count}} item in your cart",
+    "itemsCount_other": "{{count}} items in your cart",
+    "emptyMessage": "Your cart is currently empty.",
+    "continueShoppingButton": "Continue Shopping",
+    "cartItemsHeader_one": "Cart Item ({{count}})",
+    "cartItemsHeader_other": "Cart Items ({{count}})",
+    "clearAllButton": "Clear All",
+    "orContinueShoppingLink": "Or continue shopping"
+  },
+  "cartItem": {
+    "sizeLabel": "Size:",
+    "colorLabel": "Color:",
+    "priceLabel": "Price:",
+    "quantityLabel": "Qty:",
+    "totalLabel": "Total:",
+    "removeTitle": "Remove item",
+    "quantityAriaLabel": "Quantity for {{productName}}"
+  },
+  "cartSummary": {
+    "title": "Order Summary",
+    "subtotalItems_one": "{{count}} item",
+    "subtotalItems_other": "{{count}} items",
+    "shippingFee": "Shipping Fee",
+    "freeShipping": "Free",
+    "discountFromBalance": "Discount from Balance",
+    "totalAmount": "Total Amount",
+    "proceedToCheckout": "Proceed to Checkout",
+    "discountAppliedNote": "Applied {{discount}} from balance (Remaining: {{balance}})."
+  },
+  "checkoutPage": {
+    "title": "Order Checkout",
+    "shippingInfo": {
+        "title": "Shipping Information",
+        "nameLabel": "Full Name",
+        "phoneLabel": "Phone Number",
+        "emailLabel": "Email (Optional)",
+        "emailPlaceholder": "For order updates",
+        "addressLabel": "Shipping Address",
+        "addressPlaceholder": "Street, Ward/Commune, District, City/Province",
+        "notesLabel": "Order Notes (Optional)",
+        "notesPlaceholder": "E.g., Deliver during office hours..."
+    },
+    "paymentMethod": {
+        "title": "Payment Method",
+        "codLabel": "Cash on Delivery (COD)",
+        "codDescription": "Pay cash directly to the delivery personnel."
+    },
+    "orderSummary": {
+        "title_one": "Order Summary ({{count}} item)",
+        "title_other": "Order Summary ({{count}} items)",
+        "subtotal": "Subtotal",
+        "balanceDiscount": "Virtual Balance Discount",
+        "shippingFee": "Shipping Fee",
+        "totalAmount": "Total Payable",
+        "remainingBalance": "Remaining virtual balance: {{balance}}"
+    },
+    "processingButton": "Processing...",
+    "placeOrderButton": "Place Order",
+    "loginToContinue": "Please <a href='{{loginLink}}' class='fw-bold text-primary'>login</a> to continue.",
+    "emptyCartMessage": "Your cart is empty.",
+    "selectProductsLink": "Select some products.",
+    "orderSuccess": {
+        "title": "Order Placed Successfully!",
+        "mainMessage": "Thank you! Your order #{{orderId}} has been placed successfully.",
+        "thankYou": "We will contact you shortly to confirm your order.",
+        "viewOrderButton": "View Order Details",
+        "continueShoppingButton": "Continue Shopping"
+    },
+    "orderError": {
+        "default": "An error occurred while placing your order. Please try again."
+    },
+    "validation": {
+        "requiredFields": "Please fill in all required shipping information (*).",
+        "invalidPhone": "Invalid phone number. Please check again.",
+        "invalidEmail": "Invalid email address.",
+        "emptyCart": "Your cart is empty. Cannot place order.",
+        "loginRequired": "You need to log in to complete the checkout."
+    }
+  },
+  "accountLayout": {
+    "greeting": "Hello, {{name}}!",
+    "defaultUser": "Guest",
+    "profileLink": "Profile Information",
+    "orderHistoryLink": "Order History",
+    "addressesLink": "Address Book",
+    "changePasswordLink": "Change Password",
+    "logoutButton": "Logout"
+  },
+  "profilePage": {
+    "title": "Profile Information",
+    "editButton": "Edit",
+    "cancelButton": "Cancel",
+    "saveButton": "Save Changes",
+    "savingButton": "Saving...",
+    "virtualBalanceLabel": "Your Virtual Balance",
+    "nameLabel": "Full Name",
+    "usernameLabel": "Username",
+    "usernamePlaceholder": "Display name (optional)",
+    "emailLabel": "Email Address",
+    "emailCannotChange": "Email address cannot be changed.",
+    "phoneLabel": "Phone Number",
+    "addressLabel": "Address",
+    "addressPlaceholder": "Enter your address",
+    "updateSuccess": "Profile updated successfully!",
+    "updateErrorDefault": "Failed to update profile. Please try again.",
+    "loadError": "Error loading profile: {{message}}",
+    "noDataError": "Could not load profile information.",
+    "validation": {
+        "namePhoneRequired": "Full name and phone number are required.",
+        "invalidPhone": "Invalid phone number.",
+        "invalidUsername": "Username must be at least 3 characters and contain no spaces."
+    }
+  },
+  "orderHistoryPage": {
+    "title": "Order History",
+    "noOrders": "You have no orders yet.",
+    "startShoppingLink": "Start shopping now!",
+    "orderIdHeader": "Order ID",
+    "dateHeader": "Date",
+    "statusHeader": "Status",
+    "totalAmountHeader": "Total Amount",
+    "actionsHeader": "Actions",
+    "viewDetailButtonTitle": "View order details",
+    "viewButton": "View",
+    "paginationInfo": "Showing {{count}} of {{total}} orders.",
+    "loadError": "Could not load order history."
+  },
+  "orderDetailPage": {
+    "title": "Order Details #{{orderId}}",
+    "loadingMessage": "Loading order details...",
+    "loadError": "Could not load order details.",
+    "notFoundError": "This order was not found or you do not have permission to view it.",
+    "backToHistoryButton": "Back to Order History",
+    "backButton": "Back",
+    "orderInfoSectionTitle": "Order Information",
+    "orderIdLabel": "Order ID:",
+    "dateLabel": "Date:",
+    "statusLabel": "Status:",
+    "paymentMethodLabel": "Payment Method:",
+    "totalAmountLabel": "Total Amount:",
+    "shippingInfoSectionTitle": "Shipping Information",
+    "recipientNameLabel": "Recipient:",
+    "phoneLabel": "Phone:",
+    "addressLabel": "Address:",
+    "notesLabel": "Notes:",
+    "itemsSectionTitle": "Items in this Order",
+    "productHeader": "Product",
+    "quantityHeader": "Quantity",
+    "unitPriceHeader": "Unit Price",
+    "discountHeader": "Discount",
+    "subtotalHeader": "Subtotal",
+    "skuLabel": "SKU:",
+    "summarySubtotal": "Subtotal:",
+    "summaryDiscount": "Discount:",
+    "summaryShipping": "Shipping:",
+    "summaryTotal": "Grand Total:",
+    "historySectionTitle": "Order History",
+    "notesPrefix": "Notes:"
+  },
+  "imageCarousel": {
+    "noImages": "No images to display",
+    "defaultButtonText": "Shop Now",
+    "defaultSlideAlt": "Slide {{index}}"
+  },
+  "homePage": {
+    "hero": {
+      "title": "Minimal Style. Maximum Noise.",
+      "subtitle": "Discover exclusive designs where minimalism meets bold personality. Each piece is a statement.",
+      "ctaButton": "Shop Now"
+    },
+    "newArrivals": {
+      "title": "New Arrivals",
+      "subtitle": "The latest designs, leading the trend. Don't miss out!",
+      "loadError": "Could not load new products. Please try again.",
+      "noProducts": "No new products available yet.",
+      "viewAllButton": "View All New Arrivals"
+    },
+    "carousel": {
+        "summer25": {
+            "alt": "Summer 2025 Collection",
+            "title": "Summer Noize '25",
+            "text": "Feel the summer breeze with airy and energetic designs.",
+            "button": "Explore Collection"
+        },
+        "essentials": {
+            "alt": "Essential Products",
+            "title": "Noizee Essentials",
+            "text": "Must-have items for your wardrobe, perfect for everyday mix-and-match.",
+            "button": "View Essentials"
+        }
+    }
+  },
+  "collectionsPage": {
+    "defaultTitle": "All Products",
+    "productsCount_one": "{{count}} product",
+    "productsCount_other": "{{count}} products",
+    "findingProducts": "Finding products...",
+    "collectionTitle": "Collection: {{name}}",
+    "searchResultsTitle": "Search results for: \"{{term}}\"",
+    "newArrivalsTitle": "New Arrivals",
+    "productsLoadError": "Error loading products: {{message}}"
   },
   "productFilter": {
-    "filterTitle": "Filter Products",
+    "title": "Filters",
     "resetAll": "Reset All",
     "categoryLabel": "Category",
+    "categoryAriaLabel": "Select category",
     "allCategories": "All Categories",
     "sizeLabel": "Size",
+    "selectSizeTitle": "Select size {{sizeName}}",
     "colorLabel": "Color",
+    "selectColorTitle": "Select color {{colorName}}",
+    "selectColorAriaLabel": "Select color {{colorName}}",
     "priceRangeLabel": "Price Range",
-    "minPricePlaceholder": "Min (USD)",
-    "maxPricePlaceholder": "Max (USD)",
+    "minPriceLabel": "Min Price",
+    "minPricePlaceholder": "Min",
+    "minPriceAriaLabel": "Minimum price",
+    "maxPriceLabel": "Max Price",
+    "maxPricePlaceholder": "Max",
+    "maxPriceAriaLabel": "Maximum price",
     "loadingFilters": "Loading filters...",
     "errorLoadingFilters": "Error loading filters."
   },
-  "orderStatus": {
-    "Pending": "Pending",
-    "Processing": "Processing",
-    "Shipped": "Shipped",
-    "Delivered": "Delivered",
-    "Completed": "Completed",
-    "Cancelled": "Cancelled",
-    "Refunded": "Refunded",
-    "Unknown": "Unknown"
+  "accessoriesPage": {
+    "redirectingMessage": "Redirecting to accessories..."
+  },
+  "routes": {
+    "accessoriesSlug": "accessories",
+    "theNoizeeSlug": "the-noizee"
+  },
+  "theNoizeePage": {
+    "hero": {
+        "title": "The NOIZEE Vibe",
+        "subtitle": "Define your style with unique, bold, and limitless designs."
+    },
+    "story": {
+        "title": "The NOIZEE Story",
+        "imageUrl": "/images/story/noizee-concept.jpg",
+        "imageAlt": "NOIZEE concept and inspiration",
+        "paragraph1": "NOIZEE is more than fashion; it's a statement. We believe every individual has a unique 'voice,' a distinctive 'noise' that deserves to be expressed. NOIZEE's designs are crafted to inspire confidence, break boundaries, and celebrate individuality.",
+        "paragraph2": "From daring cuts to meticulously chosen materials, each product embodies a spirit of freedom, boldness, and constant innovation. Join NOIZEE in making your own stylish 'noise'."
+    },
+    "featuredPieces": {
+        "title": "Signature Pieces",
+        "loadError": "Could not load featured products.",
+        "viewCollectionButton": "View The Noizee Collection"
+    },
+    "behindTheScenes": {
+        "title": "Behind The Design",
+        "description": "Explore the design process and the stories behind each NOIZEE collection. Where ideas become reality.",
+        "imageUrl": "/images/story/noizee-bts.jpg",
+        "imageAlt": "Behind the scenes of a NOIZEE lookbook photoshoot",
+        "viewLookbookButton": "View Lookbook"
+    }
   },
   "floatingChat": {
-    "openOptions": "Open chat options",
+    "messengerTitle": "Chat with us on Messenger",
     "messenger": "Messenger",
-    "instagram": "Instagram"
+    "instagramTitle": "Message us on Instagram",
+    "instagram": "Instagram",
+    "openOptions": "Open chat options",
+    "closeOptions": "Close chat options"
+  },
+  "notFoundPage": {
+    "oops": "Oops!",
+    "pageNotFoundTitle": "Page Not Found",
+    "message": "The page you’re looking for doesn’t exist or has been moved.",
+    "goHomeButton": "Go To Homepage"
   }
 }

@@ -81,4 +81,4 @@ function CartSummary({ showCheckoutButton = true, isCheckoutPage = false }) {
   );
 }
 
-export default CartSummary;
+export default CartSummary; 

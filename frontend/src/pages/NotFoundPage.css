@@ -1,25 +1,53 @@
 /* src/pages/NotFoundPage.css */
-.not-found-page {
-    min-height: 70vh; /* Đảm bảo nó chiếm một phần đáng kể của màn hình */
-    padding: 2rem 0;
+.not-found-page-container {
+    min-height: 100vh; /* Take full viewport height */
+    width: 100vw;
+    overflow: hidden; /* Prevent scrollbars from Lanyard if it overflows slightly */
+    position: relative; /* For stacking context */
+    background-color: #000; /* Black background */
+    display: flex; /* Added */
+    align-items: center; /* Added */
+    justify-content: center; /* Added */
 }
 
-.not-found-image {
-    max-width: 300px; /* Giới hạn kích thước ảnh */
-    margin-bottom: 2rem !important;
+.lanyard-background-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1; /* Lanyard behind content */
 }
+
+/* Make sure .lanyard-wrapper inside Lanyard.jsx is also full width/height and positioned appropriately if needed */
+/* Usually, position:relative on .lanyard-wrapper and width/height 100% is enough */
+
+.content-overlay-notfound {
+    position: relative; /* Ensure it's on top of the lanyard */
+    z-index: 2;
+    padding: 2rem; /* Add some padding */
+    /* background-color: rgba(0, 0, 0, 0.3); Optional: slight dark overlay for text readability */
+    border-radius: 0.5rem;
+    max-width: 90%; /* Limit width */
+}
+
 
 .text-oops {
     font-family: 'Archivo Black', sans-serif;
-    color: var(--color-text-muted);
-    font-size: clamp(6rem, 15vw, 10rem); /* Responsive font size */
+    /* color will be set by FuzzyText component, but can have a fallback */
+    color: var(--color-text-light, #f8f9fa); /* Fallback for text if FuzzyText fails */
+    font-size: clamp(5rem, 20vw, 10rem); /* Responsive font size */
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.1); /* Subtle glow */
 }
 
 .title-oops {
     font-family: var(--font-family-heading-main);
     margin-bottom: 0.5rem;
+    color: var(--color-text-light, #f8f9fa);
 }
 .title-oops .text-danger {
+    /* Use a theme danger color if defined, or fallback */
+    color: var(--color-danger, #dc3545) !important; 
     font-weight: bold;
 }
 
@@ -29,6 +57,7 @@
     margin-left: auto;
     margin-right: auto;
     margin-bottom: 1.5rem !important;
+    color: var(--color-text-muted, #adb5bd);
 }
 
 .go-home-btn {
@@ -36,4 +65,12 @@
     text-transform: uppercase;
     font-weight: 500;
     padding: 0.75rem 2rem;
+    background-color: var(--color-light, #f8f9fa);
+    border-color: var(--color-light, #f8f9fa);
+    color: var(--color-dark, #212529);
+}
+.go-home-btn:hover {
+    background-color: #e2e6ea;
+    border-color: #dae0e5;
+    color: var(--color-dark, #212529);
 }
