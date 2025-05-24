@@ -1,19 +1,13 @@
-    // admin-frontend/src/App.jsx
-    import React from 'react';
-    import AppRoutes from './routes'; // Đảm bảo đường dẫn đúng (thường là './routes/index.jsx')
+import { AdminStateProvider } from './providers/AdminStateProvider';
+import { ApolloProvider } from '@apollo/client';
+import { client } from './apollo';
 
-    // Import CSS toàn cục ở đây hoặc trong main.jsx
-    // import 'bootstrap/dist/css/bootstrap.min.css';
-    // import 'bootstrap-icons/font/bootstrap-icons.css';
-    // import './styles/index.css'; // Nếu có file styles/index.css
-
-    function App() {
-      return (
-        <>
-          <AppRoutes />
-        </>
-      );
-    }
-
-    export default App;
-    
+function App() {
+  return (
+    <ApolloProvider client={client}>
+      <AdminStateProvider>
+        {/* Rest of your app */}
+      </AdminStateProvider>
+    </ApolloProvider>
+  );
+}

@@ -156,6 +156,19 @@
             name(lang: String): String
             # postCount: Int # Số bài viết thuộc về tag này
         }
+        type SaleNotification {
+            sale_id: ID!
+            sale_status: String!
+            customer_name: String
+            total_amount: Float
+            notification_type: String! # "UPDATE" hoặc "NEW"
+            updated_at: String
+        }
+
+        type Subscription {
+            saleStatusUpdated: SaleNotification
+            newSale: SaleNotification
+        }
 
         type BlogPost {
             post_id: ID!

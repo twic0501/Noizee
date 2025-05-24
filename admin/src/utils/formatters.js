@@ -94,6 +94,7 @@ export const truncateString = (str, num = 50) => {
     return str.slice(0, num) + '...';
 };
 
+
 // Hàm lấy URL đầy đủ của ảnh, có xử lý placeholder
 export const getFullImageUrl = (imgPath) => {
     const backendUrl = import.meta.env.VITE_BACKEND_BASE_URL || 'http://localhost:5000';
