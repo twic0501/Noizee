@@ -1183,134 +1183,167 @@ const resolvers = {
             }
         },
         adminGetAllProducts: async (_, { filter = {}, limit = 20, offset = 0, lang = "vi" }, context) => {
-            checkAdmin(context);
-            const { db, sequelize, redis: safeRedis, lang: contextLang } = context; // Ensure sequelize is available from context
-            const currentLang = lang || contextLang || 'vi';
-            const filterKey = generateCacheKeyFromObject(filter);
-            const cacheKey = `adminProducts:${filterKey}:limit${limit}:offset${offset}:lang${currentLang}`;
+    checkAdmin(context);
+    const { db, sequelize, redis: safeRedis, lang: contextLang } = context;
+    const currentLang = lang || contextLang || 'vi';
+    const filterKey = generateCacheKeyFromObject(filter);
+    const cacheKey = `adminProducts:${filterKey}:limit${limit}:offset${offset}:lang${currentLang}`;
 
-            try {
-                if (safeRedis && typeof safeRedis.get === 'function') {
-                    const cachedData = await safeRedis.get(cacheKey);
-                    if (cachedData) {
-                        // logger.debug(`[Cache HIT] AdminProducts List from Redis for key: ${cacheKey}`);
-                        return JSON.parse(cachedData);
-                    }
-                }
-            } catch (cacheError) { logger.error(`[Cache GET Error] AdminProducts List for key ${cacheKey}:`, cacheError); }
-            // logger.debug(`[Cache MISS] AdminProducts List for key ${cacheKey}. Fetching from DB.`);
+    try {
+        if (safeRedis && typeof safeRedis.get === 'function') {
+            const cachedData = await safeRedis.get(cacheKey);
+            if (cachedData) {
+                return JSON.parse(cachedData);
+            }
+        }
+    } catch (cacheError) { 
+        logger.error(`[Cache GET Error] AdminProducts List for key ${cacheKey}:`, cacheError); 
+    }
 
-            try {
-                const whereClause = {};
-                const includeClauseForFiltering = [];
+    try {
+        const whereClause = {};
+        const includeClauseForFiltering = [];
 
-                if (typeof filter.is_active === 'boolean') whereClause.is_active = filter.is_active;
-                if (filter.category_id) whereClause.category_id = filter.category_id;
-                if (typeof filter.is_new_arrival === 'boolean') whereClause.is_new_arrival = filter.is_new_arrival;
+        // Basic filters
+        if (typeof filter.is_active === 'boolean') whereClause.is_active = filter.is_active;
+        if (filter.category_id) whereClause.category_id = filter.category_id;
+        if (typeof filter.is_new_arrival === 'boolean') whereClause.is_new_arrival = filter.is_new_arrival;
 
-                if (filter.search_term) {
-                    const searchTermLike = `%${filter.search_term}%`;
-                    const orConditions = [
-                        { product_name_vi: { [Op.like]: searchTermLike } },
-                    ];
-                    if (db.Product.rawAttributes.product_name_en) {
-                        orConditions.push({ product_name_en: { [Op.like]: searchTermLike } });
-                    }
-                    whereClause[Op.or] = orConditions;
-                }
+        // Search filter
+        if (filter.search_term) {
+            const searchTermLike = `%${filter.search_term}%`;
+            const orConditions = [
+                { product_name_vi: { [Op.like]: searchTermLike } },
+            ];
+            if (db.Product.rawAttributes.product_name_en) {
+                orConditions.push({ product_name_en: { [Op.like]: searchTermLike } });
+            }
+            whereClause[Op.or] = orConditions;
+        }
 
-                if (filter.size_id || filter.color_id) {
-                    const inventoryFilterWhere = {};
-                    if (filter.size_id) inventoryFilterWhere.size_id = String(filter.size_id);
-                    if (filter.color_id) inventoryFilterWhere.color_id = String(filter.color_id);
-                    includeClauseForFiltering.push({
+        // Inventory filters (size & color)
+        if (filter.size_id || filter.color_id) {
+                const inventoryWhere = {};
+                if (filter.size_id) inventoryWhere.size_id = String(filter.size_id);
+                if (filter.color_id) inventoryWhere.color_id = String(filter.color_id);
+                
+                includeClauseForFiltering.push({
+                    model: db.Inventory,
+                    as: 'inventoryItems',
+                    where: inventoryWhere,
+                    attributes: [],
+                    required: true
+                });
+            }
+
+        // Collection filter
+        if (filter.collection_id) {
+            includeClauseForFiltering.push({
+                model: db.Collection,
+                as: 'collections',
+                where: { collection_id: String(filter.collection_id) },
+                required: true,
+                through: { attributes: [] },
+                attributes: [],
+                duplicating: false
+            });
+        }
+
+        // Stock filter
+        if (typeof filter.in_stock === 'boolean') {
+            const stockCondition = filter.in_stock
+                ? sequelize.literal('EXISTS (SELECT 1 FROM `Inventory` inv_check WHERE inv_check.`product_id` = `Product`.`product_id` AND inv_check.`quantity` > 0)')
+                : sequelize.literal('NOT EXISTS (SELECT 1 FROM `Inventory` inv_check WHERE inv_check.`product_id` = `Product`.`product_id` AND inv_check.`quantity` > 0)');
+            whereClause[Op.and] = whereClause[Op.and] ? [...whereClause[Op.and], stockCondition] : [stockCondition];
+        }
+
+        // Step 1: Get distinct product IDs with count
+        const distinctQuery = await db.Product.findAll({
+                attributes: [[sequelize.fn('DISTINCT', sequelize.col('Product.product_id')), 'product_id']],
+                where: whereClause,
+                include: includeClauseForFiltering,
+                raw: true
+            });
+
+            const totalCount = distinctQuery.length;
+
+        if (totalCount === 0) {
+            return { count: 0, products: [] };
+        }
+
+        // Step 2: Get paginated product IDs
+        const productIds = distinctQuery.map(result => result.product_id);
+        const paginatedIds = productIds.slice(offset, offset + limit);
+
+        // Step 3: Get full product details
+        const productsWithFullDetails = await db.Product.findAll({
+                where: { 
+                    product_id: { [Op.in]: paginatedIds } 
+                },
+                order: [['product_name_vi', 'ASC']],
+                include: [
+                    { 
+                        model: db.Category, 
+                        as: 'category', 
+                        required: false 
+                    },
+                    { 
+                        model: db.Collection, 
+                        as: 'collections', 
+                        required: false, 
+                        through: { attributes: [] } 
+                    },
+                    { 
+                        model: db.ProductImage, 
+                        as: 'images', 
+                        required: false,
+                        include: [{ 
+                            model: db.Color, 
+                            as: 'color', 
+                            required: false 
+                        }],
+                        order: [['display_order', 'ASC']]
+                    },
+                    {
                         model: db.Inventory,
                         as: 'inventoryItems',
-                        where: inventoryFilterWhere,
-                        attributes: [], 
-                        required: true, 
-                        duplicating: false 
-                    });
-                }
-                if (filter.collection_id) {
-                    includeClauseForFiltering.push({
-                        model: db.Collection,
-                        as: 'collections',
-                        where: { collection_id: String(filter.collection_id) },
-                        required: true, 
-                        through: { attributes: [] }, 
-                        attributes: [], 
-                        duplicating: false 
-                    });
-                }
-                if (typeof filter.in_stock === 'boolean') {
-                    const stockCondition = filter.in_stock
-                        ? sequelize.literal('EXISTS (SELECT 1 FROM `inventory` inv_check WHERE inv_check.`product_id` = `Product`.`product_id` AND inv_check.`quantity` > 0)')
-                        : sequelize.literal('NOT EXISTS (SELECT 1 FROM `inventory` inv_check WHERE inv_check.`product_id` = `Product`.`product_id` AND inv_check.`quantity` > 0)');
-                    whereClause[Op.and] = whereClause[Op.and] ? [...whereClause[Op.and], stockCondition] : [stockCondition];
-                }
-
-                const orderByNameField = 'product_name_vi'; // Always sort by Vietnamese name in admin view
-
-                // Step 1: Count total distinct products matching the filters
-                // Use findAll with distinct on product_id and count the length of the result
-                const distinctProductIdsForCount = await db.Product.findAll({
-                    where: whereClause,
-                    include: includeClauseForFiltering,
-                    attributes: [
-                        // Important: Use sequelize.fn for distinct within attributes
-                        [sequelize.fn('DISTINCT', sequelize.col('Product.product_id')), 'product_id']
-                    ],
-                    // group: [sequelize.col('Product.product_id')], // Grouping might be redundant if DISTINCT on PK is efficient
-                    raw: true, // Get plain objects, easier to count length
-                    subQuery: includeClauseForFiltering.length > 0, // Ensure includes are applied correctly
-                });
-                const totalCount = distinctProductIdsForCount.length;
-                
-                if (totalCount === 0) {
-                    return { count: 0, products: [] };
-                }
-
-                // Step 2: Fetch product IDs for the current page
-                // This query needs to correctly apply limit and offset AFTER filtering and grouping
-                const productIdsRows = await db.Product.findAll({
-                    where: whereClause,
-                    include: includeClauseForFiltering,
-                    attributes: ['product_id'], 
-                    limit: parseInt(limit, 10),
-                    offset: parseInt(offset, 10),
-                    order: [[orderByNameField, 'ASC']],
-                    group: [sequelize.col('Product.product_id')], 
-                    subQuery: includeClauseForFiltering.length > 0, 
-                });
-                
-                if (productIdsRows.length === 0) {
-                     // This case might happen if offset is beyond the totalCount,
-                     // but totalCount itself was > 0.
-                    return { count: totalCount, products: [] };
-                }
-                const productIds = productIdsRows.map(p => p.product_id);
-                
-                // Step 3: Fetch full details for the retrieved product IDs
-                const productsWithFullDetails = await db.Product.findAll({
-                    where: { product_id: { [Op.in]: productIds } },
-                    order: [[orderByNameField, 'ASC']], 
-                });
-
-                const resultData = { count: totalCount, products: productsWithFullDetails.map(p => p.get({ plain: true })) };
-                if (safeRedis && typeof safeRedis.set === 'function' && resultData.products.length > 0) {
-                    try {
-                        await safeRedis.set(cacheKey, JSON.stringify(resultData), 'EX', 3600);
-                    } catch (cacheSetError) {
-                        logger.error(`[Cache SET Error] AdminProducts List for key ${cacheKey}:`, cacheSetError);
+                        required: false,
+                        include: [
+                            { 
+                                model: db.Size, 
+                                as: 'size', 
+                                required: false 
+                            },
+                            { 
+                                model: db.Color, 
+                                as: 'colorDetail', 
+                                required: false 
+                            }
+                        ]
                     }
+                ]
+            });
+
+            const resultData = {
+                count: totalCount,
+                products: productsWithFullDetails.map(p => p.get({ plain: true }))
+            };
+
+            if (safeRedis && typeof safeRedis.set === 'function' && resultData.products.length > 0) {
+                try {
+                    await safeRedis.set(cacheKey, JSON.stringify(resultData), 'EX', 3600);
+                } catch (cacheSetError) {
+                    logger.error(`[Cache SET Error] AdminProducts List for key ${cacheKey}:`, cacheSetError);
                 }
-                return { count: totalCount, products: productsWithFullDetails };
-            } catch (error) {
-                logger.error("[adminGetAllProducts resolver] Error:", error); 
-                throw new GraphQLError('Could not fetch products for admin.'); 
             }
-        },
+
+            return resultData;
+
+        } catch (error) {
+            logger.error("[adminGetAllProducts resolver] Error:", error);
+            throw new GraphQLError('Could not fetch products for admin.');
+        }
+    },
         adminGetAllColors: async (_, { lang = "vi" }, context) => {
             checkAdmin(context);
             const { db, redis, lang: contextLang } = context;
