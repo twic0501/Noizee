@@ -2,129 +2,123 @@
 import { gql } from '@apollo/client';
 
 // Fragment cho các trường Product cơ bản dùng chung
-// Đã cập nhật để khớp với schema backend (sử dụng mảng 'images', 'is_new_arrival')
-// Bỏ 'sizes' và 'colors' trực tiếp, sẽ lấy qua 'inventory' hoặc resolver riêng nếu cần
+// Đồng bộ hóa:
+// - Các trường trực tiếp: product_id, product_price, is_new_arrival, is_active khớp với Product type.
+// - Resolver ảo 'name': Được sử dụng, backend Product resolver có định nghĩa 'name(parent, args, context)' để xử lý lang.
+// - Category: Lấy category_id và name (qua resolver ảo). Khớp với Category type và resolver.
+// - Collections: Lấy collection_id, name (qua resolver ảo), slug. Khớp với Collection type và resolver.
+// - Images: Lấy image_id, image_url, alt_text (qua resolver ảo), display_order, và color (nếu ảnh gắn với màu).
+//   Khớp với ProductImage type và resolver (bao gồm cả resolver cho ProductImage.color).
+// - Inventory: Lấy inventory_id, quantity, sku, size { size_id, size_name }, color { color_id, name, color_hex }.
+//   Khớp với Inventory type và các resolver lồng nhau cho size và color (Inventory.size, Inventory.color).
 const PRODUCT_CORE_FIELDS = gql`
   fragment ProductCoreFields on Product {
     product_id
-    name # Sử dụng resolver ảo name(lang: String)
-    # product_name_vi # Hoặc lấy trực tiếp nếu không muốn dùng resolver ảo
-    # product_name_en
+    name # Sẽ sử dụng biến $lang được truyền vào query cha
     product_price
-    is_new_arrival # Trường này được định nghĩa trong Product type ở backend
+    is_new_arrival
     is_active
     category {
       category_id
-      name # Sử dụng resolver ảo name(lang: String)
-      # category_name_vi
-      # category_name_en
+      name # Sẽ sử dụng biến $lang được truyền vào query cha
     }
     collections {
-        collection_id
-        name # Sử dụng resolver ảo name(lang: String)
-        # collection_name_vi
-        # collection_name_en
-        slug
+      collection_id
+      name # Sẽ sử dụng biến $lang được truyền vào query cha
+      slug
     }
-    images { # Lấy mảng images thay vì imageUrl
+    images {
       image_id
       image_url
-      alt_text # Sử dụng resolver ảo alt_text(lang: String)
-      # alt_text_vi
-      # alt_text_en
+      alt_text # Sẽ sử dụng biến $lang được truyền vào query cha
       display_order
-      color { # Nếu ảnh được liên kết với một màu cụ thể
+      color {
         color_id
-        name # Sử dụng resolver ảo name(lang: String)
-        # color_name_vi
-        # color_name_en
+        name # Sẽ sử dụng biến $lang được truyền vào query cha
         color_hex
       }
     }
-    inventory { # Lấy thông tin tồn kho, bao gồm size và color của từng biến thể
+    inventory {
       inventory_id
       quantity
       sku
-      size { # Thông tin size của biến thể này
+      size {
         size_id
-        size_name # Giả sử size_name không cần dịch hoặc đã được xử lý
+        size_name
       }
-      color { # Thông tin color của biến thể này
+      color { # Đây là color của inventory item
         color_id
-        name # Sử dụng resolver ảo name(lang: String) cho color
-        # color_name_vi
-        # color_name_en
+        name # Sẽ sử dụng biến $lang được truyền vào query cha
         color_hex
       }
     }
-    # Các trường 'sizes' và 'colors' trực tiếp trên Product có thể không tồn tại
-    # Nếu bạn cần danh sách tất cả các size/color mà sản phẩm có (không phải biến thể cụ thể),
-    # backend cần cung cấp một resolver riêng cho việc này, ví dụ:
-    # availableSizes { size_id size_name }
-    # availableColors { color_id color_name color_hex }
   }
 `;
 
 // Query lấy danh sách sản phẩm
+// Đồng bộ hóa:
+// - Tên query: 'products' và các tham số 'filter', 'limit', 'offset', 'lang' khớp với backend.
+// - Cấu trúc trả về 'ProductListPayload' (count, products) khớp.
+// - Sử dụng PRODUCT_CORE_FIELDS. Biến $lang được truyền vào query sẽ được các resolver ảo trong fragment sử dụng.
 export const GET_PRODUCTS_QUERY = gql`
   query GetProducts($filter: ProductFilterInput, $limit: Int, $offset: Int, $lang: String) {
     products(filter: $filter, limit: $limit, offset: $offset, lang: $lang) {
       count
       products {
         ...ProductCoreFields
-        # Các trường resolver ảo sẽ tự động sử dụng 'lang' từ context nếu không truyền trực tiếp
-        # Hoặc bạn có thể truyền 'lang' vào từng trường nếu cần:
+        # Nếu muốn truyền lang cụ thể cho từng trường, bạn có thể làm như sau,
+        # nhưng thường thì truyền vào query cha là đủ nếu resolver được thiết kế tốt.
         # name(lang: $lang)
-        # category { name(lang: $lang) }
       }
     }
   }
-  ${PRODUCT_CORE_FIELDS} # Đặt fragment ở cuối query
+  ${PRODUCT_CORE_FIELDS}
 `;
 
 // Query lấy chi tiết một sản phẩm
+// Đồng bộ hóa:
+// - Tên query: 'product' và các tham số 'id', 'lang' khớp với backend.
+// - Sử dụng PRODUCT_CORE_FIELDS.
+// - Lấy thêm 'description' (qua resolver ảo). Backend Product resolver có định nghĩa 'description(parent, args, context)'.
 export const GET_PRODUCT_DETAILS_QUERY = gql`
   query GetProductDetails($id: ID!, $lang: String) {
-    product(id: $id, lang: $lang) { # Truyền lang vào product query nếu resolver hỗ trợ
+    product(id: $id, lang: $lang) {
       ...ProductCoreFields
-      description # Sử dụng resolver ảo description(lang: String)
-      # description_vi
-      # description_en
-      # collections đã có trong fragment
-      # Nếu cần danh sách tất cả các size/color có thể có của sản phẩm (không phải tồn kho cụ thể)
-      # thì backend cần cung cấp resolver, ví dụ:
-      # allAvailableSizes { size_id size_name }
-      # allAvailableColors { color_id name(lang: $lang) color_hex }
+      description # Sẽ sử dụng biến $lang được truyền vào query
+      # Các trường khác nếu cần, ví dụ:
+      # meta_title(lang: $lang)
+      # meta_description(lang: $lang)
     }
   }
   ${PRODUCT_CORE_FIELDS}
 `;
 
 // Query lấy các options cho bộ lọc
+// Đồng bộ hóa:
+// - Query 'categories(lang: $lang)': Lấy category_id, name. Khớp với backend.
+// - Query 'sizes': Lấy size_id, size_name. Khớp với backend (sizes thường không cần lang).
+// - Query 'publicGetAllColors(lang: $lang)': Lấy color_id, name, color_hex. Khớp với backend.
+// - Query 'collections(lang: $lang)': (Đã bỏ comment) Lấy collection_id, name, slug. Khớp với backend.
+//   Hữu ích nếu bạn muốn cho phép lọc theo collection.
 export const GET_FILTER_OPTIONS_QUERY = gql`
-  query GetFilterOptions($lang: String) { # Thêm biến lang
-    categories { # Lấy tất cả categories cho filter
+  query GetFilterOptions($lang: String) {
+    categories(lang: $lang) {
       category_id
-      name(lang: $lang) # Sử dụng resolver ảo
-      # category_name_vi
-      # category_name_en
-      # slug # Nếu category có slug và bạn muốn dùng nó
+      name # Sẽ sử dụng biến $lang
     }
-    sizes { # Lấy tất cả sizes cho filter (size_name thường không cần dịch)
+    sizes {
       size_id
       size_name
     }
-    publicGetAllColors(lang: $lang) { # Sử dụng query đã có, truyền lang
+    publicGetAllColors(lang: $lang) {
       color_id
-      name # Resolver ảo name(lang: $lang) sẽ được dùng
-      # color_name_vi
-      # color_name_en
+      name # Sẽ sử dụng biến $lang
       color_hex
     }
-    # collections(lang: $lang) { # Nếu cần filter theo collection
-    #   collection_id
-    #   name # Resolver ảo
-    #   slug
-    # }
+    collections(lang: $lang) { # Bỏ comment nếu bạn muốn dùng filter theo collection
+      collection_id
+      name # Sẽ sử dụng biến $lang
+      slug
+    }
   }
 `;

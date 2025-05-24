@@ -4,7 +4,7 @@ import { Navbar, Nav, Container, Badge, Offcanvas } from 'react-bootstrap';
 import { useScrollPosition } from '../../hooks/useScrollPosition';
 import { useAuth } from '../../hooks/useAuth';
 import { useCart } from '../../hooks/useCart';
-
+import LanguageSwitcher from '../common/LoadingSpinner';
 import { useTranslation } from 'react-i18next'; // << IMPORT useTranslation
 import './Header.css';
 
