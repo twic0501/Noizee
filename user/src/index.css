@@ -1,0 +1,35 @@
+/* src/input.css */
+@import "tailwindcss"; /* Hoặc @import "tailwindcss/theme" tùy theo cấu hình của bạn */
+
+/* Nếu bạn cần định nghĩa các layer base, components, utilities theo cách của v4 */
+@layer base {
+  /* Các style base của bạn */
+  /* Ví dụ:
+  h1 {
+    @apply text-2xl;
+  }
+  */
+}
+
+@layer components {
+  /* Các component class của bạn */
+}
+
+@layer utilities {
+  /* Các utility class tùy chỉnh của bạn (nếu có) */
+}
+
+/* Hoặc nếu bạn tùy chỉnh theme qua CSS variables: */
+/*
+:root {
+  --color-primary: theme('colors.blue.600');
+  --font-body: theme('fontFamily.sans');
+}
+body {
+  font-family: var(--font-body);
+}
+.button-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+*/

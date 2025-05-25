@@ -1,0 +1,78 @@
+# src/services/graphql/productQueries.gql
+
+query GetProducts(
+  $filter: ProductFilterInput
+  $limit: Int
+  $offset: Int
+  $lang: String
+) {
+  products(filter: $filter, limit: $limit, offset: $offset, lang: $lang) {
+    count
+    products {
+      product_id
+      name(lang: $lang)
+      product_price
+      is_new_arrival
+
+      # Lấy tối đa 2 ảnh chung, sắp xếp theo display_order
+      # Giả sử display_order nhỏ hơn là ưu tiên hơn
+      general_images: images(
+        filter: { color_id_is_null: true } # Lọc những ảnh không gán màu cụ thể
+        orderBy: { field: "display_order", direction: ASC }
+        limit: 2
+      ) {
+        image_id
+        image_url
+        alt_text(lang: $lang)
+      }
+
+      # Lấy tất cả ảnh của sản phẩm (bao gồm cả ảnh theo màu và ảnh chung)
+      # để frontend có thể tìm ảnh khi người dùng tương tác với swatch màu
+      all_images: images(orderBy: { field: "display_order", direction: ASC }) {
+        image_id
+        image_url
+        alt_text(lang: $lang)
+        color { # Thông tin màu của ảnh này (nếu có)
+          color_id
+        }
+      }
+
+      # Lấy thông tin các màu có sẵn từ inventory để hiển thị swatch
+      # Giới hạn số lượng màu hiển thị trên card nếu cần (ví dụ 5 màu)
+      # Backend có thể cần một resolver riêng để tối ưu việc này,
+      # hoặc chúng ta xử lý ở client từ 'inventoryItems' đầy đủ
+      inventoryItems: inventory { # Sử dụng alias 'inventoryItems' như trong model Product
+        color {
+          color_id
+          name(lang: $lang)
+          color_hex
+        }
+        # size { size_id size_name } # Có thể không cần size ở đây cho card
+        # quantity # Có thể không cần quantity ở đây cho card
+      }
+    }
+  }
+}
+
+# Query GetProductFiltersData vẫn giữ nguyên hoặc cập nhật nếu cần
+query GetProductFiltersData($lang: String) {
+  categories(lang: $lang) {
+    category_id
+    name(lang: $lang)
+    # slug # Nếu bạn dùng slug cho URL category
+  }
+  collections(lang: $lang) {
+    collection_id
+    name(lang: $lang)
+    slug
+  }
+  publicGetAllColors(lang: $lang) {
+    color_id
+    name(lang: $lang)
+    color_hex
+  }
+  sizes {
+    size_id
+    size_name
+  }
+}
