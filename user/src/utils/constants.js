@@ -1,33 +1,35 @@
-// src/utils/constants.js
+export const APP_NAME = 'Noizee';
 
-// LocalStorage Keys
-export const USER_TOKEN_KEY = 'noizee_user_token';
-export const USER_INFO_KEY = 'noizee_user_info'; // Lưu trữ thông tin user (name, email, balance, etc.)
-export const CART_STORAGE_KEY = 'noizee_cart';
+// API Endpoint
+export const GRAPHQL_ENDPOINT = import.meta.env.VITE_API_GRAPHQL_URL || 'http://localhost:5000/graphql';
 
-// Default Page Limit for pagination
-export const DEFAULT_PAGE_LIMIT = 12; // Ví dụ: 12 sản phẩm mỗi trang
-export const ACCOUNT_ORDERS_LIMIT = 10; // Ví dụ: 10 đơn hàng mỗi trang trong tài khoản
+// Storage Keys
+export const AUTH_TOKEN_KEY = 'userToken'; // Nhất quán với AuthContext và ApolloClient của user/
+export const USER_DATA_KEY = 'userData';   // Key cho object user data
+export const CART_STORAGE_KEY = 'userCart';// Nhất quán với CartContext
 
-// Default images
-export const PLACEHOLDER_PRODUCT_IMAGE = '/images/placeholder.png'; // Đường dẫn tới ảnh placeholder
+// Language Settings
+export const DEFAULT_LANGUAGE = 'en';
+export const SUPPORTED_LANGUAGES = [
+  { code: 'en', name: 'English' },
+  { code: 'vi', name: 'Tiếng Việt' },
+];
 
-// Order Statuses (Nên đồng bộ với backend)
-export const ORDER_STATUS = {
-    PENDING: 'Pending',
-    PROCESSING: 'Processing',
-    SHIPPED: 'Shipped',
-    DELIVERED: 'Delivered',
-    COMPLETED: 'Completed', // Có thể Delivered và Completed là một
-    CANCELLED: 'Cancelled',
-    REFUNDED: 'Refunded',
-};
-export const USER_LANGUAGE_KEY = 'user_preferred_lang';
-export const DEFAULT_USER_LANGUAGE = 'vi';
-// Collection Slugs (Nếu bạn dùng slug cố định để điều hướng hoặc fetch)
-// export const COLLECTION_SLUGS = {
-//   NEW_ARRIVALS: 'new-arrivals',
-//   ACCESSORIES: 'accessories',
-//   THE_NOIZEE: 'the-noizee',
-//   // Thêm các slug khác nếu có
+// UI Constants
+export const PRODUCT_IMAGE_PLACEHOLDER = '/images/product-placeholder.webp'; // Cập nhật đường dẫn nếu cần
+export const AVATAR_PLACEHOLDER = '/images/avatar-placeholder.png';
+export const ITEMS_PER_PAGE_DEFAULT = 12; // Ví dụ cho phân trang sản phẩm
+
+// Roles (tham khảo, backend là nguồn chính)
+// export const USER_ROLES = {
+//   CUSTOMER: 'customer',
+//   ADMIN: 'admin',
+//   SUPERADMIN: 'superadmin',
 // };
+
+// Regex (ví dụ)
+// export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// export const PHONE_REGEX = /^\+?[0-9\s-()]{7,20}$/;
+
+// Các hằng số khác
+// ...

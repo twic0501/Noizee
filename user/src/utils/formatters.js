@@ -1,103 +1,100 @@
-// src/utils/formatters.js
-import { format, parseISO, isValid } from 'date-fns';
-// Import các locale bạn cần
-import { enUS as dateLocaleEn, vi as dateLocaleVi } from 'date-fns/locale';
-import { DEFAULT_USER_LANGUAGE } from './constants'; // Import ngôn ngữ mặc định
-
-// Map mã ngôn ngữ với locale object của date-fns
-const dateFnsLocales = {
-  en: dateLocaleEn,
-  vi: dateLocaleVi,
-};
-
-export const formatCurrency = (amount, lang = DEFAULT_USER_LANGUAGE, fallback = 'N/A') => {
-  const number = Number(amount);
-  if (isNaN(number) || amount === null || amount === undefined) {
-    return fallback;
+/**
+ * Formats a number as currency.
+ * @param {number | string | null | undefined} amount - The amount to format.
+ * @param {string} [currency='VND'] - The currency code (e.g., 'USD', 'VND').
+ * @param {string} [locale='vi-VN'] - The locale for formatting (e.g., 'en-US', 'vi-VN').
+ * @returns {string} The formatted currency string or a fallback.
+ */
+export const formatPrice = (amount, currency = 'VND', locale = 'vi-VN') => {
+  const numAmount = Number(amount);
+  if (amount === null || amount === undefined || isNaN(numAmount)) {
+    return 'N/A'; // Hoặc một giá trị mặc định khác như 'Liên hệ'
   }
-  // Xác định mã tiền tệ và locale string dựa trên ngôn ngữ
-  const currencyCode = lang === 'en' ? 'USD' : 'VND';
-  const localeString = lang === 'en' ? 'en-US' : 'vi-VN';
   try {
-    return number.toLocaleString(localeString, { style: 'currency', currency: currencyCode });
-  } catch (e) {
-    console.error("Currency formatting error:", e);
-    return `${amount} ${currencyCode}`; // Fallback đơn giản
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: (currency === 'VND' || currency === 'JPY') ? 0 : 2, // Điều chỉnh số lẻ tùy currency
+      maximumFractionDigits: (currency === 'VND' || currency === 'JPY') ? 0 : 2,
+    }).format(numAmount);
+  } catch (error) {
+    console.error("Error formatting price:", error);
+    return `${numAmount} ${currency}`; // Fallback đơn giản
   }
 };
 
-// Helper kiểm tra và parse ngày giờ một cách an toàn hơn
-const parseDateTimeSafe = (dateTimeInput) => {
-  if (!dateTimeInput) return null;
-  if (dateTimeInput instanceof Date && isValid(dateTimeInput)) {
-    return dateTimeInput;
-  }
-  if (typeof dateTimeInput === 'number') {
-    const dateFromTimestamp = new Date(dateTimeInput);
-    return isValid(dateFromTimestamp) ? dateFromTimestamp : null;
-  }
-  if (typeof dateTimeInput === 'string') {
-    let date = parseISO(dateTimeInput);
-    if (isValid(date)) return date;
-    // Fallback cho trường hợp ngày không có T và Z
-    if (!dateTimeInput.includes('T') && !dateTimeInput.includes('Z') && dateTimeInput.length === 10) {
-        date = parseISO(dateTimeInput + 'T00:00:00Z');
-         if (isValid(date)) return date;
+/**
+ * Formats a date string or Date object.
+ * @param {string | Date | number | null | undefined} dateInput - The date to format.
+ * @param {string} [locale='vi-VN'] - The locale.
+ * @param {Intl.DateTimeFormatOptions} [options] - Formatting options.
+ * @returns {string} The formatted date string or empty if input is invalid.
+ */
+export const formatDate = (dateInput, locale = 'vi-VN', options) => {
+  if (!dateInput) return '';
+  try {
+    const date = new Date(dateInput);
+    // Kiểm tra nếu date không hợp lệ (ví dụ: new Date('invalid string'))
+    if (isNaN(date.getTime())) {
+        console.warn("Invalid dateInput for formatDate:", dateInput);
+        return ''; // Hoặc giá trị fallback
     }
-    return null;
-  }
-  return null;
-};
-
-export const formatDate = (dateInput, lang = DEFAULT_USER_LANGUAGE, fallback = 'N/A') => {
-  const date = parseDateTimeSafe(dateInput);
-  if (!date) return fallback;
-  try {
-    return format(date, 'P', { locale: dateFnsLocales[lang] || dateFnsLocales[DEFAULT_USER_LANGUAGE] });
+    const defaultOptions = {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      // hour: '2-digit',
+      // minute: '2-digit',
+    };
+    return new Intl.DateTimeFormat(locale, options || defaultOptions).format(date);
   } catch (error) {
-    console.error("Error formatting date:", dateInput, error);
-    return fallback;
+    console.error("Error formatting date:", error);
+    // Trả về ngày tháng gốc nếu không phải là object Date, hoặc chuỗi rỗng
+    return typeof dateInput === 'string' ? dateInput : ''; 
   }
 };
 
-export const formatDateTime = (dateTimeInput, lang = DEFAULT_USER_LANGUAGE, fallback = 'N/A') => {
-  const date = parseDateTimeSafe(dateTimeInput);
-  if (!date) return fallback;
+/**
+ * Capitalizes the first letter of a string.
+ * @param {string | null | undefined} str - The string to capitalize.
+ * @returns {string} The capitalized string or empty string.
+ */
+export const capitalizeFirstLetter = (str) => {
+  if (!str || typeof str !== 'string') return '';
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase(); // Có thể muốn toLowerCase phần còn lại
+};
+
+/**
+ * Truncates text to a specified maximum length, adding an ellipsis.
+ * @param {string | null | undefined} text - The text to truncate.
+ * @param {number} maxLength - The maximum length before truncating.
+ * @returns {string} The truncated text or original text if shorter.
+ */
+export const truncateText = (text, maxLength = 100) => {
+  if (!text || typeof text !== 'string') return '';
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return text.substring(0, maxLength).trimEnd() + '...';
+};
+
+/**
+ * Formats a number with thousand separators.
+ * @param {number | string | null | undefined} number - The number to format.
+ * @param {string} [locale='vi-VN'] - The locale for formatting.
+ * @returns {string} The formatted number string or a fallback.
+ */
+export const formatNumber = (number, locale = 'vi-VN') => {
+  const num = Number(number);
+  if (number === null || number === undefined || isNaN(num)) {
+    return 'N/A';
+  }
   try {
-    return format(date, 'Pp', { locale: dateFnsLocales[lang] || dateFnsLocales[DEFAULT_USER_LANGUAGE] });
+    return new Intl.NumberFormat(locale).format(num);
   } catch (error) {
-    console.error("Error formatting datetime:", dateTimeInput, error);
-    return fallback;
+    console.error("Error formatting number:", error);
+    return String(num);
   }
 };
 
-export const truncateString = (str, num = 50) => {
-  if (!str) return '';
-  if (str.length <= num) {
-    return str;
-  }
-  return str.slice(0, num) + '...';
-};
-
-export const getFullImageUrl = (imgPath) => {
- const backendUrl = import.meta.env.VITE_BACKEND_BASE_URL || 'http://localhost:5000';
- const defaultPlaceholder = '/images/placeholder.png';
-
- if (!imgPath || typeof imgPath !== 'string' || imgPath.trim() === '') {
-    return defaultPlaceholder;
- }
- if (imgPath.startsWith('http://') || imgPath.startsWith('https://') || imgPath.startsWith('data:image')) {
-    return imgPath;
- }
- if (imgPath.startsWith('/')) {
-    const formattedBaseUrl = backendUrl.endsWith('/') ? backendUrl.slice(0, -1) : backendUrl;
-    return `${formattedBaseUrl}${imgPath}`;
- }
- console.warn(`getFullImageUrl: Unknown or relative image path format for "${imgPath}", returning placeholder.`);
- return defaultPlaceholder;
-};
-
-export const capitalizeWords = (str) => {
-    if (!str || typeof str !== 'string') return '';
-    return str.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
-};
+// Thêm các hàm formatter khác nếu cần (ví dụ: formatPhoneNumber, getFileExtension, etc.)

@@ -257,7 +257,7 @@ const resolvers = {
             return null;
         }
     },
-
+    
     Product: {
         name: (parent, args, context) => {
             const langToUse = args.lang || context.lang || 'vi';

@@ -1,205 +1,182 @@
-// src/contexts/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useApolloClient, gql } from '@apollo/client';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import { useApolloClient, useMutation, useLazyQuery } from '@apollo/client'; // Thêm useMutation, useLazyQuery
+import { LOGIN_USER_MUTATION, REGISTER_USER_MUTATION } from '../api/graphql/authMutations';
+import { GET_ME_QUERY } from '../api/graphql/userQueries';
+import LoadingSpinner from '../components/common/LoadingSpinner'; // Giả sử bạn có component này
 
-// Định nghĩa các GraphQL Queries và Mutations cần thiết
-// Bạn nên tạo các file .gql riêng trong src/services/graphql/authQueries.gql (ví dụ)
-// rồi import chúng, nhưng để đơn giản, tôi sẽ định nghĩa trực tiếp ở đây trước.
-
-const LOGIN_MUTATION = gql`
-  mutation Login($identifier: String!, $customer_password: String!) {
-    login(identifier: $identifier, customer_password: $customer_password) {
-      token
-      customer_id
-      customer_name
-      username
-      customer_email
-      isAdmin
-      virtual_balance
-    }
-  }
-`;
-
-const REGISTER_MUTATION = gql`
-  mutation Register($input: RegisterInput!) {
-    register(input: $input) {
-      token
-      customer_id
-      customer_name
-      username
-      customer_email
-      isAdmin
-      virtual_balance
-    }
-  }
-`;
-
-const MY_PROFILE_QUERY = gql`
-  query MyProfile {
-    myProfile {
-      customer_id
-      customer_name
-      username
-      customer_email
-      isAdmin
-      virtual_balance
-      # Thêm các trường khác nếu cần từ Customer type
-    }
-  }
-`;
-
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const client = useApolloClient();
+  const client = useApolloClient(); // Để reset cache
+
   const [authState, setAuthState] = useState({
-    token: localStorage.getItem('authToken') || null,
-    user: null,
-    isAuthenticated: false,
-    isLoading: true, // Ban đầu là true để kiểm tra token
+    token: localStorage.getItem('userToken') || null,
+    user: null, // Sẽ lấy từ localStorage hoặc fetch
+    isAuthenticated: false, // Sẽ xác định sau khi kiểm tra token
+    loading: true, // Loading ban đầu để fetch user
+    authError: null, // Để lưu lỗi xác thực
   });
 
-  const fetchUserProfile = useCallback(async (tokenToUse) => {
-    if (!tokenToUse) {
-      setAuthState({ token: null, user: null, isAuthenticated: false, isLoading: false });
-      return;
-    }
-    try {
-      // Đảm bảo token được gửi kèm request (Apollo Client đã cấu hình authLink)
-      const { data, errors } = await client.query({
-        query: MY_PROFILE_QUERY,
-        // context: { headers: { Authorization: `Bearer ${tokenToUse}` } } // Cách khác nếu authLink chưa set
-      });
-
-      if (errors) {
-        throw new Error(errors.map(e => e.message).join(', '));
-      }
-
-      if (data && data.myProfile) {
+  // --- GraphQL Hooks ---
+  // Login
+  const [loginUserMutation, { loading: loginLoading, error: loginError }] = useMutation(LOGIN_USER_MUTATION, {
+    onError: (error) => setAuthState(prev => ({ ...prev, authError: error.message, loading: false })),
+    onCompleted: (data) => {
+      if (data.loginUser) {
+        const { token, user } = data.loginUser;
+        localStorage.setItem('userToken', token);
+        localStorage.setItem('userData', JSON.stringify(user));
         setAuthState({
-          token: tokenToUse,
-          user: data.myProfile,
+          token,
+          user,
           isAuthenticated: true,
-          isLoading: false,
+          loading: false,
+          authError: null,
         });
-      } else {
-        // Trường hợp token hợp lệ nhưng không lấy được profile (hiếm khi xảy ra nếu backend tốt)
-        throw new Error("Profile not found with current token, or token is invalid.");
+        // client.resetStore(); // Reset store để các query khác có thể fetch dữ liệu mới với user mới
       }
-    } catch (error) {
-      console.error("Auth token validation or profile fetch failed:", error);
-      localStorage.removeItem('authToken');
-      setAuthState({ token: null, user: null, isAuthenticated: false, isLoading: false });
-    }
-  }, [client]);
+    },
+  });
 
+  // Register
+  const [registerUserMutation, { loading: registerLoading, error: registerError }] = useMutation(REGISTER_USER_MUTATION, {
+    onError: (error) => setAuthState(prev => ({ ...prev, authError: error.message, loading: false })),
+    onCompleted: (data) => {
+      if (data.registerUser) {
+        const { token, user } = data.registerUser;
+        localStorage.setItem('userToken', token);
+        localStorage.setItem('userData', JSON.stringify(user));
+        setAuthState({
+          token,
+          user,
+          isAuthenticated: true,
+          loading: false,
+          authError: null,
+        });
+        // client.resetStore();
+      }
+    },
+  });
 
+  // Fetch current user (me)
+  const [fetchMe, { loading: meLoading, error: meError }] = useLazyQuery(GET_ME_QUERY, {
+    fetchPolicy: 'network-only', // Luôn lấy dữ liệu mới nhất từ server
+    onCompleted: (data) => {
+      if (data.me) {
+        localStorage.setItem('userData', JSON.stringify(data.me));
+        setAuthState(prev => ({
+          ...prev,
+          user: data.me,
+          isAuthenticated: true, // Đã xác thực thành công với backend
+          loading: false,
+          authError: null,
+        }));
+      } else { // Token có thể hợp lệ nhưng không tìm thấy user (ít xảy ra nếu backend tốt)
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('userData');
+        setAuthState({ token: null, user: null, isAuthenticated: false, loading: false, authError: "Không thể xác thực người dùng." });
+      }
+    },
+    onError: (error) => { // Lỗi từ query 'me' (ví dụ token hết hạn, không hợp lệ)
+      localStorage.removeItem('userToken');
+      localStorage.removeItem('userData');
+      client.clearStore(); // Xóa cache nếu token không hợp lệ
+      setAuthState({ token: null, user: null, isAuthenticated: false, loading: false, authError: error.message });
+    },
+  });
+
+  // --- Effects ---
+  // Kiểm tra token và fetch user khi component mount
   useEffect(() => {
-    const tokenFromStorage = localStorage.getItem('authToken');
-    if (tokenFromStorage) {
-      fetchUserProfile(tokenFromStorage);
+    const token = localStorage.getItem('userToken');
+    if (token) {
+      // Có token, thử fetch thông tin user để xác thực token với backend
+      fetchMe();
     } else {
-      setAuthState(prevState => ({ ...prevState, isLoading: false }));
+      // Không có token, không cần làm gì thêm, state đã là unauthenticated
+      setAuthState({ token: null, user: null, isAuthenticated: false, loading: false, authError: null });
     }
-  }, [fetchUserProfile]); // fetchUserProfile là dependency
+  }, [fetchMe]); // fetchMe là stable function từ useLazyQuery
 
-  const loginUser = async (identifier, password) => {
+
+  // --- Context Actions ---
+  const login = useCallback(async (email, password) => {
+    setAuthState(prev => ({ ...prev, loading: true, authError: null }));
     try {
-      const { data } = await client.mutate({
-        mutation: LOGIN_MUTATION,
-        variables: { identifier, customer_password: password },
-      });
-      if (data && data.login) {
-        localStorage.setItem('authToken', data.login.token);
-        // user data từ AuthPayload sẽ được chuẩn hóa một chút trước khi set vào state
-        const userData = {
-            customer_id: data.login.customer_id,
-            customer_name: data.login.customer_name,
-            username: data.login.username,
-            customer_email: data.login.customer_email,
-            isAdmin: data.login.isAdmin,
-            virtual_balance: data.login.virtual_balance,
-        };
-        setAuthState({
-          token: data.login.token,
-          user: userData,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-        return { success: true, user: userData };
-      }
-      throw new Error("Login failed: No data returned from server.");
-    } catch (error) {
-      console.error("Login error:", error);
-      localStorage.removeItem('authToken'); // Đảm bảo token cũ bị xóa nếu login thất bại
-      setAuthState(prevState => ({ ...prevState, token: null, user: null, isAuthenticated: false, isLoading: false }));
-      // Ném lỗi ra ngoài để component UI có thể bắt và hiển thị
-      throw error;
+      await loginUserMutation({ variables: { email, password } });
+      // onCompleted sẽ xử lý setAuthState
+    } catch (e) {
+      // Lỗi network hoặc lỗi không bắt được bởi onError của useMutation (ít xảy ra)
+      console.error("Login context function error:", e);
+      setAuthState(prev => ({ ...prev, authError: "Lỗi đăng nhập không xác định.", loading: false }));
     }
-  };
+  }, [loginUserMutation]);
 
-  const registerUser = async (registerInput) => {
+  const register = useCallback(async (input) => {
+    setAuthState(prev => ({ ...prev, loading: true, authError: null }));
     try {
-      const { data } = await client.mutate({
-        mutation: REGISTER_MUTATION,
-        variables: { input: registerInput },
-      });
-      if (data && data.register) {
-        localStorage.setItem('authToken', data.register.token);
-         const userData = { // Chuẩn hóa user data
-            customer_id: data.register.customer_id,
-            customer_name: data.register.customer_name,
-            username: data.register.username,
-            customer_email: data.register.customer_email,
-            isAdmin: data.register.isAdmin,
-            virtual_balance: data.register.virtual_balance,
-        };
-        setAuthState({
-          token: data.register.token,
-          user: userData,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-        return { success: true, user: userData };
-      }
-      throw new Error("Registration failed: No data returned from server.");
-    } catch (error) {
-      console.error("Registration error:", error);
-      // Ném lỗi ra ngoài để component UI có thể bắt và hiển thị
-      throw error;
+      await registerUserMutation({ variables: { input } });
+      // onCompleted sẽ xử lý setAuthState
+    } catch (e) {
+      console.error("Register context function error:", e);
+      setAuthState(prev => ({ ...prev, authError: "Lỗi đăng ký không xác định.", loading: false }));
     }
-  };
+  }, [registerUserMutation]);
 
-  const logoutUser = async () => {
-    localStorage.removeItem('authToken');
-    setAuthState({ token: null, user: null, isAuthenticated: false, isLoading: false });
+  const logout = useCallback(async () => {
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('userData');
     try {
-        await client.resetStore(); // Xóa cache của Apollo Client để đảm bảo dữ liệu cũ không còn
+      await client.clearStore(); // Hoặc client.resetStore();
     } catch (error) {
-        console.error("Error resetting Apollo store on logout:", error);
+      console.error("Error clearing/resetting Apollo Client store on logout:", error);
     }
-    // Bạn có thể muốn điều hướng người dùng về trang chủ hoặc trang đăng nhập ở đây
-    // navigate('/'); // Nếu dùng useNavigate từ react-router-dom
+    setAuthState({
+      token: null,
+      user: null,
+      isAuthenticated: false,
+      loading: false,
+      authError: null,
+    });
+    // Chuyển hướng về trang login có thể được xử lý ở component gọi logout hoặc ProtectedRoute
+  }, [client]);
+  
+  const clearAuthError = useCallback(() => {
+    setAuthState(prev => ({ ...prev, authError: null }));
+  }, []);
+
+
+  // Value của context
+  const contextValue = {
+    authState,
+    login,
+    logout,
+    register,
+    isLoading: authState.loading || loginLoading || registerLoading || meLoading, // Trạng thái loading tổng hợp
+    authError: authState.authError || loginError?.message || registerError?.message || meError?.message,
+    clearAuthError,
   };
 
-  const value = {
-    ...authState,
-    loginUser,
-    logoutUser,
-    registerUser,
-    fetchUserProfile // Có thể cần gọi lại nếu token thay đổi từ nguồn khác
-  };
+  // Hiển thị loading spinner toàn trang khi AuthContext đang xác thực ban đầu
+  if (authState.loading && !authState.user && !authState.authError) {
+     return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+            <LoadingSpinner />
+        </div>
+     );
+  }
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 };
 
+// Hook để sử dụng AuthContext
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === null) { // Kiểm tra null vì giá trị khởi tạo của context là null
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

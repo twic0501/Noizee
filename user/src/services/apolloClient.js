@@ -1,149 +1,106 @@
-// src/services/apolloClient.js
-import { ApolloClient, InMemoryCache, HttpLink, split, ApolloLink } from '@apollo/client';
-import { getMainDefinition } from '@apollo/client/utilities';
-import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
-import { createClient } from 'graphql-ws';
-import { onError } from "@apollo/client/link/error";
+import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
+import { onError } from '@apollo/client/link/error';
+import { RetryLink } from "@apollo/client/link/retry";
 
-// Lấy URL từ biến môi trường, nếu không có thì dùng localhost
-// Bạn có thể tạo file .env ở thư mục gốc dự án noizee-user-frontend
-// và định nghĩa VITE_GRAPHQL_HTTP_URL và VITE_GRAPHQL_WS_URL trong đó
-// Ví dụ: VITE_GRAPHQL_HTTP_URL=http://localhost:4000/graphql
-//        VITE_GRAPHQL_WS_URL=ws://localhost:4000/graphql
-const httpUri = import.meta.env.VITE_GRAPHQL_HTTP_URL || 'http://localhost:4000/graphql';
-const wsUri = import.meta.env.VITE_GRAPHQL_WS_URL || 'ws://localhost:4000/graphql'; // Hoặc /subscriptions tùy backend
-
-const httpLink = new HttpLink({
-  uri: httpUri,
+// URI của GraphQL endpoint
+const httpLink = createHttpLink({
+  uri: import.meta.env.VITE_API_GRAPHQL_URL || 'http://localhost:5000/graphql',
 });
 
-const wsLink = new GraphQLWsLink(createClient({
-  url: wsUri,
-  connectionParams: () => {
-    // Bạn có thể thêm token xác thực ở đây nếu subscription cần
-    // const token = localStorage.getItem('authToken');
-    // return token ? { authToken: token } : {};
-    return {};
-  },
-}));
+// Tên key cho token trong localStorage của user app
+const TOKEN_KEY_NAME = 'userToken';
 
-// Middleware để thêm token vào header của HTTP requests (cho Queries/Mutations)
-const authLink = new ApolloLink((operation, forward) => {
-  const token = localStorage.getItem('authToken'); // Lấy token từ localStorage
-
-  operation.setContext({
+// Link để thêm Authorization header
+const authLink = setContext((_, { headers }) => {
+  const token = localStorage.getItem(TOKEN_KEY_NAME);
+  return {
     headers: {
+      ...headers,
       authorization: token ? `Bearer ${token}` : '',
-    }
-  });
-
-  return forward(operation);
+    },
+  };
 });
 
-// Link xử lý lỗi (ví dụ: log lỗi, hoặc xử lý lỗi logout khi token hết hạn)
-const errorLink = onError(({ graphQLErrors, networkError }) => {
-  if (graphQLErrors)
+// Link để xử lý lỗi tập trung
+const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
+  if (graphQLErrors) {
     graphQLErrors.forEach(({ message, locations, path, extensions }) => {
       console.error(
-        `[GraphQL error]: Message: ${message}, Location: ${JSON.stringify(locations)}, Path: ${path}, Code: ${extensions?.code}`
+        `[GraphQL error]: Message: ${message}, Location: ${JSON.stringify(locations)}, Path: ${path}`, extensions
       );
-      // Ví dụ: Nếu lỗi là UNAUTHENTICATED, bạn có thể xử lý logout
-      if (extensions?.code === 'UNAUTHENTICATED') {
-        // localStorage.removeItem('authToken');
-        // Xử lý logout, ví dụ redirect về trang login
-        // window.location.href = '/login';
-        console.warn("GraphQL authentication error. User might need to log in again.");
+      // Xử lý lỗi xác thực (UNAUTHENTICATED)
+      // Quan trọng: Cần có cơ chế để gọi hàm logout từ AuthContext một cách an toàn
+      // Hoặc một cách khác để thông báo cho AuthContext biết cần logout
+      if (extensions && (extensions.code === 'UNAUTHENTICATED' || extensions.code === 'FORBIDDEN')) {
+        // Xử lý logout ở đây có thể không phải là nơi tốt nhất vì access trực tiếp vào AuthContext khó.
+        // Một cách tiếp cận là dispatch một custom event mà AuthContext lắng nghe.
+        // Hoặc, các component sử dụng useMutation/useQuery sẽ tự xử lý lỗi này và gọi logout.
+        // Tạm thời chỉ log và cảnh báo.
+        console.warn(`GraphQL authentication/authorization error (${extensions.code}). Consider logging out user.`);
+        // localStorage.removeItem(TOKEN_KEY_NAME); // AuthContext sẽ làm điều này khi logout
+        // window.dispatchEvent(new CustomEvent('auth-error-logout')); // Ví dụ custom event
       }
     });
+  }
 
-  if (networkError) console.error(`[Network error]: ${networkError}`);
+  if (networkError) {
+    console.error(`[Network error]: ${networkError} - Operation: ${operation.operationName}`);
+    // TODO: Hiển thị thông báo lỗi mạng thân thiện cho người dùng
+  }
 });
 
-
-// Sử dụng split để định tuyến request đến link phù hợp
-// Queries/Mutations sẽ qua HTTP, Subscriptions sẽ qua WebSocket
-const splitLink = split(
-  ({ query }) => {
-    const definition = getMainDefinition(query);
-    return (
-      definition.kind === 'OperationDefinition' &&
-      definition.operation === 'subscription'
-    );
+// Link để tự động thử lại request
+const retryLink = new RetryLink({
+  delay: {
+    initial: 300,
+    max: Infinity,
+    jitter: true
   },
-  wsLink, // Link cho subscriptions
-  ApolloLink.from([errorLink, authLink, httpLink]) // Link cho queries/mutations (đi qua error, auth rồi http)
-);
+  attempts: {
+    max: 3, // Giảm số lần thử lại cho user-facing app để không chờ quá lâu
+    retryIf: (error, _operation) => !!error // Thử lại với mọi lỗi mạng hoặc lỗi server (5xx)
+  }
+});
+
+// Kết hợp các link lại
+const link = from([
+  retryLink,
+  errorLink,
+  authLink,
+  httpLink,
+]);
 
 const client = new ApolloClient({
-  link: splitLink,
+  link: link,
   cache: new InMemoryCache({
     typePolicies: {
+      // Các typePolicies này rất quan trọng để Apollo Client quản lý cache hiệu quả
+      // Đặc biệt là keyFields để nhận diện các object.
       Query: {
         fields: {
-          // Ví dụ về cách merge khi phân trang cho products, sales, blogPosts
-          // Điều này giúp Apollo Client tự động nối thêm dữ liệu mới vào danh sách hiện tại
-          // khi bạn fetch thêm (ví dụ: "Load More" button)
-          products: {
-            keyArgs: ["filter", "lang"], // Các args quyết định một danh sách là duy nhất
-            merge(existing = { products: [], count: 0 }, incoming, { args }) {
-              const mergedProducts = existing.products ? existing.products.slice(0) : [];
-              if (incoming && incoming.products) {
-                // Nếu offset = 0 hoặc không có offset, thay thế hoàn toàn
-                if (!args || args.offset === 0 || typeof args.offset === 'undefined') {
-                   return {
-                    ...incoming,
-                    products: [...incoming.products],
-                   }
-                }
-                // Nối products
-                for (let i = 0; i < incoming.products.length; ++i) {
-                  mergedProducts[args.offset + i] = incoming.products[i];
-                }
-              }
-              return {
-                ...existing,
-                ...incoming,
-                products: mergedProducts,
-              };
-            },
-          },
-          // Tương tự cho mySales, adminGetAllSales, blogPosts, adminGetAllBlogPosts, etc.
-          mySales: {
-            keyArgs: false, // Hoặc các args filter nếu có
-             merge(existing = { sales: [], count: 0 }, incoming, { args }) {
-               // Logic tương tự như products
-                const mergedSales = existing.sales ? existing.sales.slice(0) : [];
-                if (incoming && incoming.sales) {
-                    if (!args || args.offset === 0 || typeof args.offset === 'undefined') {
-                       return { ...incoming, sales: [...incoming.sales] };
-                    }
-                    for (let i = 0; i < incoming.sales.length; ++i) {
-                        mergedSales[args.offset + i] = incoming.sales[i];
-                    }
-                }
-                return { ...existing, ...incoming, sales: mergedSales };
-            },
-          },
-           blogPosts: {
-            keyArgs: ["filter", "lang"],
-             merge(existing = { posts: [], count: 0 }, incoming, { args }) {
-               // Logic tương tự như products
-                const mergedPosts = existing.posts ? existing.posts.slice(0) : [];
-                if (incoming && incoming.posts) {
-                    if (!args || args.offset === 0 || typeof args.offset === 'undefined') {
-                       return { ...incoming, posts: [...incoming.posts] };
-                    }
-                    for (let i = 0; i < incoming.posts.length; ++i) {
-                        mergedPosts[args.offset + i] = incoming.posts[i];
-                    }
-                }
-                return { ...existing, ...incoming, posts: mergedPosts };
-            },
-          },
-        }
-      }
-    }
-  })
+          // Ví dụ cho query products nếu có phân trang/filter
+          // products: {
+          //   keyArgs: ["filter", "sortBy", "sortOrder"], // Các args dùng để phân biệt cache
+          //   merge(existing = { items: [], totalCount: 0 }, incoming) {
+          //     return {
+          //       ...incoming, // incoming có thể có totalCount mới
+          //       items: [...(existing.items || []), ...incoming.items],
+          //     };
+          //   },
+          // },
+        },
+      },
+      // Dựa theo typeDefs.js của bạn:
+      CustomerType: { keyFields: ["id"] },
+      ProductType: { keyFields: ["id"] }, // Nếu ProductType có trường id
+      CategoryType: { keyFields: ["id"] },// Nếu CategoryType có trường id
+      CollectionType: { keyFields: ["id"] },// Nếu CollectionType có trường id
+      SaleType: { keyFields: ["id"] }, // Nếu SaleType (Order) có trường id
+      // Thêm các Type khác nếu cần
+    },
+  }),
+  connectToDevTools: process.env.NODE_ENV !== 'production',
 });
 
 export default client;

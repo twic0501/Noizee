@@ -1,186 +1,208 @@
-// src/components/product/ProductCard.jsx
-import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { formatCurrency, getFullImageUrl } from '../../utils/formatters'; // Import từ file mới
-// import { useCart } from '../../contexts/CartContext';
+import { FiShoppingCart, FiHeart, FiEye } from 'react-icons/fi'; // Icons
 
-const ProductCard = ({ product }) => {
-  const { t, i18n } = useTranslation();
-  // const { addToCart } = useCart(); // Sẽ dùng sau
+import { useCart } from '../../contexts/CartContext'; // Hook useCart
+import { useAuth } from '../../contexts/AuthContext'; // Hook useAuth (nếu cần cho wishlist)
+import { formatPrice } from '../../utils/formatters';
+import { classNames } from '../../utils/helpers';
+import OptimizedImage from '../common/OptimizedImage'; // Component OptimizedImage
+import { PRODUCT_IMAGE_PLACEHOLDER } from '../../utils/constants';
+// import ProductQuickViewModal from './ProductQuickViewModal'; // Component này sẽ tạo sau nếu cần
 
-  // State cho ảnh hiển thị
-  const [currentImage, setCurrentImage] = useState(getFullImageUrl(null));
-  // State cho ảnh sẽ hiển thị khi hover (ảnh thứ 2 không theo màu)
-  const [hoverPreviewImage, setHoverPreviewImage] = useState(null);
-  // State cho màu đang được active (khi click hoặc hover swatch)
-  const [activeColorInfo, setActiveColorInfo] = useState(null); // { id, hex, firstImage, secondImage }
+const ProductCard = ({ product, className = '' }) => {
+  const { t } = useTranslation();
+  const { addToCart, isLoading: cartLoading } = useCart();
+  // const { authState, addToWishlist, removeFromWishlist, isInWishlist } = useAuth(); // Giả sử AuthContext có logic wishlist
+  const navigate = useNavigate();
 
-  // Lấy tên sản phẩm đã dịch (GraphQL resolver nên trả về tên đã dịch dựa trên 'lang')
-  const productName = useMemo(() => {
-    if (!product) return t('productCard.defaultProductName', 'Sản phẩm');
-    return product.name || product.product_name_vi; // product.name từ resolver đã có lang
-  }, [product, t]);
+  // State cho ảnh hover và màu được chọn
+  const [currentImage, setCurrentImage] = useState('');
+  const [isHovering, setIsHovering] = useState(false);
+  const [selectedColor, setSelectedColor] = useState(null); // object màu được chọn
 
-  const productPriceFormatted = useMemo(() => {
-    if (!product || typeof product.product_price !== 'number') return '';
-    return formatCurrency(product.product_price, i18n.language);
-  }, [product, i18n.language]);
-
-  // Xác định ảnh mặc định và ảnh hover mặc định khi component mount hoặc product thay đổi
+  // Xác định ảnh hiển thị ban đầu và khi chọn màu
   useEffect(() => {
-    let defaultMainImg = getFullImageUrl(null);
-    let defaultHoverImg = null;
-
-    if (product?.general_images && product.general_images.length > 0) {
-      defaultMainImg = getFullImageUrl(product.general_images[0].image_url);
-      if (product.general_images.length > 1) {
-        defaultHoverImg = getFullImageUrl(product.general_images[1].image_url);
-      }
-    } else if (product?.all_images && product.all_images.length > 0) {
-      // Fallback: nếu không có ảnh chung, lấy ảnh đầu tiên từ all_images
-      defaultMainImg = getFullImageUrl(product.all_images[0].image_url);
-      if (product.all_images.length > 1) {
-        defaultHoverImg = getFullImageUrl(product.all_images[1].image_url);
-      }
+    let primaryImage = PRODUCT_IMAGE_PLACEHOLDER;
+    if (selectedColor && selectedColor.images && selectedColor.images.length > 0) {
+      primaryImage = selectedColor.images[0]?.imageUrl || PRODUCT_IMAGE_PLACEHOLDER;
+    } else if (product.images && product.images.length > 0) {
+      primaryImage = product.images[0]?.imageUrl || PRODUCT_IMAGE_PLACEHOLDER;
     }
-
-    setCurrentImage(defaultMainImg);
-    setHoverPreviewImage(defaultHoverImg || defaultMainImg); // Nếu không có ảnh hover, dùng ảnh chính
-    setActiveColorInfo(null); // Reset màu active
-  }, [product]);
-
-  // Lấy danh sách màu duy nhất từ inventoryItems
-  const uniqueColors = useMemo(() => {
-    if (!product?.inventoryItems) return [];
-    const colorsMap = new Map();
-    product.inventoryItems.forEach(item => {
-      if (item.color && !colorsMap.has(item.color.color_id)) {
-        // Tìm ảnh cho màu này
-        const colorImages = product.all_images?.filter(img => img.color?.color_id === item.color.color_id) || [];
-        colorsMap.set(item.color.color_id, {
-            ...item.color,
-            firstImage: colorImages.length > 0 ? getFullImageUrl(colorImages[0].image_url) : null,
-            secondImage: colorImages.length > 1 ? getFullImageUrl(colorImages[1].image_url) : null
-        });
-      }
-    });
-    return Array.from(colorsMap.values());
-  }, [product?.inventoryItems, product?.all_images]);
-
-  const handleMouseEnterCard = () => {
-    if (!activeColorInfo) { // Nếu không có màu nào đang "ghim"
-      setCurrentImage(hoverPreviewImage);
-    } else if (activeColorInfo.secondImage) {
-        setCurrentImage(activeColorInfo.secondImage);
-    }
-  };
-
-  const handleMouseLeaveCard = () => {
-    if (!activeColorInfo) {
-      setCurrentImage(defaultImage); // Quay về ảnh default của sản phẩm
-    } else {
-        setCurrentImage(activeColorInfo.firstImage || defaultImage); // Quay về ảnh chính của màu active
-    }
-  };
-
-  const handleColorSwatchInteraction = (colorData, interactionType = 'hover') => {
-    // interactionType có thể là 'hover' hoặc 'click'
-    const imageToShow = colorData.firstImage || defaultImage;
-    const hoverToShow = colorData.secondImage || colorData.firstImage || hoverPreviewImage;
-
-    setCurrentImage(imageToShow);
-    // Nếu muốn hiệu ứng hover trên swatch cũng đổi ảnh thứ 2 của màu đó:
-    // setHoverPreviewImage(hoverToShow); // Cập nhật cả hoverPreviewImage cho màu đó
-
-    if (interactionType === 'click') {
-        setActiveColorInfo(colorData); // "Ghim" màu này
-    } else if (interactionType === 'hover_enter' && !activeColorInfo) { // Chỉ set active nếu chưa có màu nào ghim
-        setActiveColorInfo(colorData);
-    }
-  };
-
-  const handleMouseLeaveSwatches = () => {
-      if (activeColorInfo && !activeColorInfo.isPinned) { // Giả sử có isPinned nếu click
-          setActiveColorInfo(null);
-          setCurrentImage(defaultImage);
-          setHoverPreviewImage(product?.general_images?.[1]?.image_url ? getFullImageUrl(product.general_images[1].image_url) : defaultImage);
-      }
-  }
-
+    setCurrentImage(primaryImage);
+  }, [product.images, selectedColor]);
 
   if (!product) return null;
 
+  const productLink = product.slug ? `/product/${product.slug}` : (product.id ? `/product/${product.id}` : '#');
+
+  const imagesForCurrentSelection = selectedColor?.images?.length > 0 ? selectedColor.images : product.images;
+  const mainImage = imagesForCurrentSelection?.[0]?.imageUrl || PRODUCT_IMAGE_PLACEHOLDER;
+  const hoverImage = imagesForCurrentSelection?.[1]?.imageUrl; // Ảnh thứ 2 cho hover
+
+  const displayPrice = product.salePrice || product.price;
+  const originalPrice = product.price;
+  const hasSale = product.salePrice && product.salePrice < product.price;
+
+  const handleAddToCart = (e) => {
+    e.preventDefault(); // Ngăn Link điều hướng khi bấm nút Add to Cart
+    e.stopPropagation();
+    // addToCart cần input: { productId, quantity, productVariantId? }
+    // Giả sử chỉ thêm 1 sản phẩm và không có variant phức tạp ở card
+    addToCart({ productId: product.id, quantity: 1 });
+  };
+
+  const handleColorSelect = (e, color) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedColor(color);
+  };
+
+  // const handleWishlistToggle = (e) => {
+  //   e.preventDefault();
+  //   e.stopPropagation();
+  //   if (!authState.isAuthenticated) {
+  //     navigate('/login', { state: { from: location } }); // location cần được lấy từ useLocation nếu dùng ở đây
+  //     return;
+  //   }
+  //   // Logic thêm/xóa wishlist
+  //   // if (isInWishlist(product.id)) {
+  //   //   removeFromWishlist(product.id);
+  //   // } else {
+  //   //   addToWishlist(product);
+  //   // }
+  // };
+
+  // const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
+  // const openQuickView = (e) => {
+  //   e.preventDefault(); e.stopPropagation();
+  //   setIsQuickViewOpen(true);
+  // }
+  // const closeQuickView = () => setIsQuickViewOpen(false);
+
+
   return (
     <div
-        className="group flex flex-col bg-white rounded-md border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
-        onMouseLeave={handleMouseLeaveCard} // Reset về ảnh default (hoặc ảnh màu active) khi rời card
+      className={classNames(
+        "product-card group bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-xl flex flex-col",
+        className
+      )}
+      onMouseEnter={() => hoverImage && setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
     >
-      <Link to={`/${i18n.language}/products/${product.product_id}`} className="block">
-        <div
-          className="relative w-full aspect-[3/4] overflow-hidden bg-gray-100" // Tỉ lệ 3:4, bạn có thể đổi
-          onMouseEnter={handleMouseEnterCard} // Hover vào vùng ảnh
-        >
-          <img
-            src={currentImage}
-            alt={productName}
-            className="absolute inset-0 w-full h-full object-contain transition-opacity duration-300"
-            onError={(e) => { e.target.src = getFullImageUrl(null); }}
+      <Link to={productLink} className="block relative">
+        <div className="relative w-full aspect-square overflow-hidden"> {/* Giữ tỷ lệ 1:1 hoặc thay đổi tùy ý */}
+          <OptimizedImage
+            src={isHovering && hoverImage ? hoverImage : currentImage}
+            alt={product.name || 'Product image'}
+            containerClassName="w-full h-full"
+            aspectRatio={null} // Để container quyết định
+            objectFit="object-cover" // Hoặc object-contain nếu muốn thấy toàn bộ ảnh
+            className="w-full h-full transition-transform duration-300 ease-in-out group-hover:scale-105"
           />
-          {product.is_new_arrival && (
-            <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded font-semibold z-10">
-              {t('productCard.new', 'Mới')}
-            </span>
-          )}
-           {/* Có thể thêm badge hết hàng sau khi có logic isCompletelyOutOfStock */}
+          {/* Lớp phủ cho các action buttons (Quick View, Wishlist) */}
+          <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            {/* <button
+              onClick={openQuickView}
+              className="p-2 bg-white rounded-full text-gray-700 hover:bg-indigo-500 hover:text-white transition-colors"
+              aria-label={t('product.quickView', "Xem nhanh")}
+            >
+              <FiEye size={18} />
+            </button> */}
+            {/* <button
+              onClick={handleWishlistToggle}
+              className="p-2 bg-white rounded-full text-gray-700 hover:bg-pink-500 hover:text-white transition-colors"
+              aria-label={t('product.wishlist', "Yêu thích")}
+            >
+              <FiHeart size={18} className={isInWishlist(product.id) ? "fill-pink-500 text-pink-500" : ""} />
+            </button> */}
+          </div>
         </div>
+        {hasSale && (
+          <span className="absolute top-2 left-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
+            {t('product.sale', 'SALE')} {Math.round(((originalPrice - displayPrice) / originalPrice) * 100)}%
+          </span>
+        )}
       </Link>
 
-      <div className="p-3 md:p-4 flex flex-col flex-grow">
-        <h3 className="text-xs sm:text-sm font-medium text-gray-700 truncate hover:text-blue-600 mb-1 min-h-[2.5em] sm:min-h-[2.75em] line-clamp-2">
-          <Link to={`/${i18n.language}/products/${product.product_id}`} title={productName}>
-            {productName}
+      <div className="p-4 flex flex-col flex-grow">
+        {/* Tên sản phẩm */}
+        <h3 className="text-sm md:text-base font-medium text-gray-800 mb-1">
+          <Link to={productLink} className="hover:text-indigo-600 line-clamp-2">
+            {product.name || t('product.untitled', 'Sản phẩm không tên')}
           </Link>
         </h3>
 
-        {/* Color Swatches */}
-        {uniqueColors && uniqueColors.length > 0 && (
-          <div className="flex space-x-1.5 mb-2 items-center min-h-[24px]" onMouseLeave={handleMouseLeaveSwatches}>
-            {uniqueColors.slice(0, 5).map(color => (
+        {/* Màu sắc (nếu có) */}
+        {product.colors && product.colors.length > 0 && (
+          <div className="mt-1 mb-2 flex items-center space-x-1.5">
+            {product.colors.slice(0, 5).map((color) => ( // Hiển thị tối đa 5 màu
               <button
-                key={color.color_id}
-                type="button"
-                title={color.name}
-                className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border focus:outline-none transition-all duration-150
-                            ${activeColorInfo?.color_id === color.color_id ? 'ring-2 ring-offset-1 ring-blue-500 scale-110 border-white' : 'border-gray-300 hover:border-gray-400'}
-                            ${color.color_hex === '#FFFFFF' || color.color_hex === '#FFF' ? '!border-gray-400' : ''}`}
-                style={{ backgroundColor: color.color_hex || '#DDDDDD' }}
-                onMouseEnter={() => handleColorSwatchInteraction(color, 'hover_enter')}
-                // onClick={() => handleColorSwatchInteraction(color, 'click')} // Dùng nếu muốn ghim màu khi click
-              />
+                key={color.id || color.name}
+                onClick={(e) => handleColorSelect(e, color)}
+                aria-label={t('product.selectColor', 'Chọn màu {{colorName}}', { colorName: color.name })}
+                className={classNames(
+                  "w-5 h-5 rounded-full border-2 focus:outline-none focus:ring-2 focus:ring-offset-1",
+                  selectedColor?.id === color.id || (!selectedColor && product.colors[0].id === color.id)
+                    ? 'ring-indigo-500 border-indigo-500'
+                    : 'border-transparent hover:border-gray-400'
+                )}
+                style={{ backgroundColor: color.hexCode || color.name.toLowerCase() }} // Sử dụng hexCode hoặc tên màu
+              >
+                <span className="sr-only">{color.name}</span>
+              </button>
             ))}
-            {uniqueColors.length > 5 && (
-              <span className="text-xs text-gray-500 ml-1">+{uniqueColors.length - 5}</span>
+            {product.colors.length > 5 && (
+              <span className="text-xs text-gray-500">+{product.colors.length - 5}</span>
             )}
           </div>
         )}
 
-        <p className="text-sm sm:text-base font-semibold text-gray-900 mt-auto pt-1">
-          {productPriceFormatted}
-        </p>
+        {/* Size (hiển thị đơn giản, chi tiết hơn ở trang sản phẩm) */}
+        {/* {product.sizes && product.sizes.length > 0 && (
+          <p className="text-xs text-gray-500 mb-2 truncate">
+            {t('product.sizesAvailable', 'Sizes')}: {product.sizes.map(s => s.name).join(', ')}
+          </p>
+        )} */}
 
-        {/* Nút thêm vào giỏ hàng hoặc xem chi tiết (Tạm ẩn nút Add to Cart) */}
-        {/*
-        <button
-          onClick={() => console.log("Add to cart (logic TBD):", product.product_id)}
-          className="mt-2 w-full bg-gray-800 text-white text-center py-2 px-3 rounded-md hover:bg-gray-700 transition-colors text-xs sm:text-sm font-medium"
-        >
-          {t('productCard.addToCart', 'Thêm vào giỏ')}
-        </button>
-        */}
+        {/* Giá */}
+        <div className="mt-auto flex items-center justify-between">
+          <p className="text-base md:text-lg font-semibold text-indigo-600">
+            {formatPrice(displayPrice)}
+            {hasSale && originalPrice && (
+              <span className="ml-2 text-xs text-gray-500 line-through">
+                {formatPrice(originalPrice)}
+              </span>
+            )}
+          </p>
+          
+          {/* Nút Add to Cart (có thể bỏ nếu muốn user vào trang chi tiết) */}
+          <button
+            onClick={handleAddToCart}
+            disabled={cartLoading || product.stockQuantity === 0} // Disable nếu hết hàng
+            className={classNames(
+              "p-1.5 sm:p-2 rounded-md text-white transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed",
+              product.stockQuantity === 0 ? "bg-gray-400" : "bg-indigo-500 hover:bg-indigo-600"
+            )}
+            aria-label={t('product.addToCart', "Thêm vào giỏ")}
+          >
+            {cartLoading ? <LoadingSpinner size="xs" color="text-white"/> : <FiShoppingCart size={16} />}
+          </button>
+        </div>
+        {product.stockQuantity === 0 && (
+            <p className="text-xs text-red-500 mt-1">{t('product.outOfStock', 'Hết hàng')}</p>
+        )}
       </div>
+      {/* {isQuickViewOpen && (
+        <ProductQuickViewModal
+          productId={product.id} // Hoặc slug
+          isOpen={isQuickViewOpen}
+          onClose={closeQuickView}
+        />
+      )} */}
     </div>
   );
 };
 
-export default React.memo(ProductCard);
+export default ProductCard;

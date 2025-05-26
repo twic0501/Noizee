@@ -1,0 +1,22 @@
+.fuzzy-text-container {
+  display: inline-block; /* Or block, depending on usage */
+  position: relative;
+  /* Recommended: Use a monospaced font for more consistent fuzzy effect */
+  /* font-family: 'Courier New', Courier, monospace; */
+  line-height: 1.2em; /* Or inherit, helps maintain layout during animation */
+  min-width: 1ch; /* Ensure some width even if text is empty initially */
+}
+
+.fuzzy-text-content {
+  display: inline-block;
+  white-space: pre; /* Preserve spaces, important for multi-word text */
+  /* Transition for smoother character changes if desired, but can be complex with fuzzy */
+  /* transition: opacity 0.05s linear; */
+}
+
+/* Optional: Styles during the revealing process */
+/* .fuzzy-text-container.is-revealing .fuzzy-text-content { */
+  /* Example: make fuzzy characters slightly less prominent */
+  /* opacity: 0.75; */
+  /* color: #999; */
+/* } */

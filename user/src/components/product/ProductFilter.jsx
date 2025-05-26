@@ -1,257 +1,235 @@
-// src/components/product/ProductFilter.jsx
+// user/src/components/product/ProductFilter.jsx
 import React, { useState, useEffect } from 'react';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery } from '@apollo/client';
 import { useTranslation } from 'react-i18next';
-import LoadingSpinner from '../common/LoadingSpinner'; // Component spinner của bạn
-import AlertMessage from '../common/AlertMessage'; // Component alert của bạn
-import { formatCurrency } from '../../utils/formatters'; // Import hàm định dạng tiền tệ
+import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
+// Import các query (cần tạo file và định nghĩa các query này)
+import {
+  // GET_FILTER_CATEGORIES_QUERY, // Bỏ comment khi có query
+  // GET_FILTER_COLLECTIONS_QUERY,
+  // GET_FILTER_COLORS_QUERY,
+  // GET_FILTER_SIZES_QUERY,
+  // GET_PRICE_RANGE_QUERY,
+} from '../../api/graphql/filterQueries'; // Hoặc productQueries.js
+import LoadingSpinner from '../common/LoadingSpinner';
+import useToggle from '../../hooks/useToggle'; // Hook useToggle
 
-// Import query GET_PRODUCT_FILTERS_DATA_QUERY từ file .gql của bạn
-// (Đảm bảo query này đã được định nghĩa trong src/services/graphql/productQueries.gql)
-// Ví dụ: import { GET_PRODUCT_FILTERS_DATA_QUERY } from '../../services/graphql/productQueries';
+const FilterSection = ({ title, children, defaultOpen = false }) => {
+  const [isOpen, toggleOpen] = useToggle(defaultOpen);
+  return (
+    <div className="py-4 border-b border-gray-200 last:border-b-0">
+      <button
+        onClick={toggleOpen}
+        className="flex items-center justify-between w-full text-left"
+        aria-expanded={isOpen}
+      >
+        <span className="text-sm font-medium text-gray-800">{title}</span>
+        {isOpen ? <FiChevronUp className="h-5 w-5 text-gray-400" /> : <FiChevronDown className="h-5 w-5 text-gray-400" />}
+      </button>
+      {isOpen && <div className="mt-3 space-y-2">{children}</div>}
+    </div>
+  );
+};
 
-// Tạm thời định nghĩa query ở đây nếu chưa có file riêng
-const GET_PRODUCT_FILTERS_DATA_QUERY = gql`
-  query GetProductFiltersData($lang: String) {
-    categories(lang: $lang) {
-      category_id
-      name(lang: $lang)
+const ProductFilter = ({ currentFilters = {}, onFilterChange, onClearFilters }) => {
+  const { t } = useTranslation();
+  const [selectedCategories, setSelectedCategories] = useState(currentFilters.categories || []);
+  const [selectedCollections, setSelectedCollections] = useState(currentFilters.collections || []);
+  const [selectedColors, setSelectedColors] = useState(currentFilters.colors || []);
+  const [selectedSizes, setSelectedSizes] = useState(currentFilters.sizes || []);
+  const [priceRange, setPriceRange] = useState(currentFilters.priceRange || { min: 0, max: 10000000 }); // Giá trị mặc định lớn
+
+  // ---- API Calls cho Filter Options (Bỏ comment khi query sẵn sàng) ----
+  // const { data: categoriesData, loading: categoriesLoading } = useQuery(GET_FILTER_CATEGORIES_QUERY);
+  // const { data: collectionsData, loading: collectionsLoading } = useQuery(GET_FILTER_COLLECTIONS_QUERY);
+  // const { data: colorsData, loading: colorsLoading } = useQuery(GET_FILTER_COLORS_QUERY);
+  // const { data: sizesData, loading: sizesLoading } = useQuery(GET_FILTER_SIZES_QUERY);
+  // const { data: priceRangeData, loading: priceRangeLoading } = useQuery(GET_PRICE_RANGE_QUERY);
+
+  // useEffect(() => {
+  //   if (priceRangeData?.productPriceRange) {
+  //     if (!currentFilters.priceRange) { // Chỉ set mặc định nếu chưa có filter giá từ props
+  //       setPriceRange(priceRangeData.productPriceRange);
+  //     }
+  //   }
+  // }, [priceRangeData, currentFilters.priceRange]);
+
+  // Placeholder data (thay thế bằng data từ API sau)
+  const categoriesData = { filterableCategories: [{id: 'cat1', name: 'Áo Thun', slug: 'ao-thun'}, {id: 'cat2', name: 'Quần Jeans', slug: 'quan-jeans'}] };
+  const collectionsData = { filterableCollections: [{id: 'col1', name: 'Bộ Sưu Tập Hè', slug: 'bst-he'}, {id: 'col2', name: 'Đồ Công Sở', slug: 'do-cong-so'}] };
+  const colorsData = { filterableColors: [{id: 'color1', name: 'Đỏ', hexCode: '#FF0000'}, {id: 'color2', name: 'Xanh Dương', hexCode: '#0000FF'}] };
+  const sizesData = { filterableSizes: [{id: 'size1', name: 'S'}, {id: 'size2', name: 'M'}, {id: 'size3', name: 'L'}] };
+  const priceRangeData = { productPriceRange: { min: 0, max: 5000000 }};
+  const categoriesLoading = false, collectionsLoading = false, colorsLoading = false, sizesLoading = false, priceRangeLoading = false;
+
+   useEffect(() => {
+    if (priceRangeData?.productPriceRange && !currentFilters.priceRange) {
+      setPriceRange(priceRangeData.productPriceRange);
     }
-    collections(lang: $lang) {
-      collection_id
-      name(lang: $lang)
-      slug
-    }
-    publicGetAllColors(lang: $lang) {
-      color_id
-      name(lang: $lang)
-      color_hex
-    }
-    sizes {
-      size_id
-      size_name
-    }
-  }
-`;
+  }, [priceRangeData, currentFilters.priceRange]);
 
+  const handleCheckboxChange = (setter, selectedValues, value) => {
+    const newSelectedValues = selectedValues.includes(value)
+      ? selectedValues.filter((v) => v !== value)
+      : [...selectedValues, value];
+    setter(newSelectedValues);
+  };
 
-const ProductFilter = ({ currentFilters = {}, onFilterChange, isLoadingExternally = false }) => {
-  const { t, i18n } = useTranslation();
-  const currentLang = i18n.language;
+  const handlePriceInputChange = (e, type) => {
+    const value = parseInt(e.target.value, 10);
+    setPriceRange((prev) => ({
+      ...prev,
+      [type]: isNaN(value) ? (type === 'min' ? 0 : priceRangeData?.productPriceRange?.max || 10000000) : value,
+    }));
+  };
 
-  const [internalFilters, setInternalFilters] = useState(currentFilters);
-  const [priceValues, setPriceValues] = useState({
-    min: currentFilters.min_price || '',
-    max: currentFilters.max_price || '',
-  });
-
-  const { data: optionsData, loading: optionsLoading, error: optionsError } = useQuery(GET_PRODUCT_FILTERS_DATA_QUERY, {
-    variables: { lang: currentLang },
-  });
-
-  // Cập nhật internalFilters khi currentFilters từ component cha thay đổi (ví dụ: từ URL)
-  useEffect(() => {
-    setInternalFilters(currentFilters);
-    setPriceValues({
-        min: currentFilters.min_price || '',
-        max: currentFilters.max_price || ''
+  const applyFilters = () => {
+    onFilterChange({
+      categories: selectedCategories,
+      collections: selectedCollections,
+      colors: selectedColors,
+      sizes: selectedSizes,
+      priceRange: (priceRange.min === (priceRangeData?.productPriceRange?.min || 0) && priceRange.max === (priceRangeData?.productPriceRange?.max || 10000000)) ? undefined : priceRange,
+      // Thêm các filter khác nếu có (ví dụ: sortBy)
     });
-  }, [currentFilters]);
-
-
-  const handleSelectChange = (e) => {
-    const { name, value } = e.target;
-    const newFilters = { ...internalFilters, [name]: value || null }; // Nếu value rỗng thì coi như null
-    setInternalFilters(newFilters);
-    onFilterChange(newFilters); // Gọi ngay khi thay đổi select
   };
-
-  const handleToggleFilter = (filterName, value) => {
-    const currentFilterValue = internalFilters[filterName];
-    let newValue;
-    if (Array.isArray(currentFilterValue)) {
-      newValue = currentFilterValue.includes(value)
-        ? currentFilterValue.filter(v => v !== value)
-        : [...currentFilterValue, value];
-      if (newValue.length === 0) newValue = null; // Nếu mảng rỗng thì coi như null
-    } else {
-      newValue = currentFilterValue === value ? null : value; // Toggle
+  
+  const clearAllFilters = () => {
+    setSelectedCategories([]);
+    setSelectedCollections([]);
+    setSelectedColors([]);
+    setSelectedSizes([]);
+    setPriceRange(priceRangeData?.productPriceRange || { min: 0, max: 10000000 });
+    if (onClearFilters) {
+        onClearFilters(); // Gọi hàm từ component cha để reset cả query params nếu cần
+    } else { // Nếu không có hàm onClearFilters, tự gọi onFilterChange với object rỗng
+        onFilterChange({});
     }
-    const newFilters = { ...internalFilters, [filterName]: newValue };
-    setInternalFilters(newFilters);
-    onFilterChange(newFilters);
-  };
-
-  const handlePriceInputChange = (e) => {
-    const { name, value } = e.target;
-    setPriceValues(prev => ({ ...prev, [name]: value }));
-  };
-
-  const applyPriceFilter = () => {
-    const newFilters = { ...internalFilters };
-    if (priceValues.min) newFilters.min_price = parseFloat(priceValues.min); else delete newFilters.min_price;
-    if (priceValues.max) newFilters.max_price = parseFloat(priceValues.max); else delete newFilters.max_price;
-    setInternalFilters(newFilters);
-    onFilterChange(newFilters);
-  };
-
-  const handleResetFilters = () => {
-    setInternalFilters({});
-    setPriceValues({ min: '', max: '' });
-    onFilterChange({});
   };
 
 
-  if (isLoadingExternally || optionsLoading) {
-    return (
-      <div className="p-4 bg-gray-50 rounded-lg shadow animate-pulse">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="mb-6">
-            <div className="h-4 bg-gray-300 rounded w-1/3 mb-3"></div>
-            <div className="h-8 bg-gray-300 rounded w-full mb-1"></div>
-            <div className="h-8 bg-gray-300 rounded w-full"></div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (optionsError) {
-    return <AlertMessage type="error" message={t('productFilter.errorLoadingFilters', 'Lỗi tải bộ lọc.')} />;
-  }
-
-  const { categories = [], collections = [], publicGetAllColors: colors = [], sizes = [] } = optionsData || {};
+  const renderLoading = () => <LoadingSpinner size="sm" className="my-2"/>;
 
   return (
-    <aside className="w-full lg:w-72 xl:w-80 p-4 space-y-6 bg-white rounded-lg shadow-md border border-gray-200">
-      <div className="flex justify-between items-center border-b pb-3 mb-3">
-        <h2 className="text-xl font-semibold text-gray-800">{t('productFilter.title', 'Bộ lọc')}</h2>
+    <aside className="w-full lg:w-64 xl:w-72 bg-white p-5 rounded-lg shadow-md lg:sticky lg:top-24 self-start"> {/* Sticky sidebar */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">{t('filter.title', 'Bộ lọc')}</h3>
         <button
-          onClick={handleResetFilters}
-          className="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+          onClick={clearAllFilters}
+          className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
         >
-          {t('productFilter.resetAll', 'Xóa tất cả')}
+          {t('filter.clearAll', 'Xóa tất cả')}
         </button>
       </div>
 
       {/* Categories Filter */}
-      {categories.length > 0 && (
-        <div className="filter-group">
-          <h3 className="text-md font-semibold mb-2 text-gray-700">{t('productFilter.categoryLabel', 'Danh mục')}</h3>
-          <select
-            name="category_id"
-            value={internalFilters.category_id || ''}
-            onChange={handleSelectChange}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-          >
-            <option value="">{t('productFilter.allCategories', 'Tất cả danh mục')}</option>
-            {categories.map(cat => (
-              <option key={cat.category_id} value={cat.category_id}>{cat.name}</option>
-            ))}
-          </select>
-        </div>
+      {/* {categoriesLoading ? renderLoading() : categoriesData?.filterableCategories?.length > 0 && (
+        <FilterSection title={t('filter.categories', 'Danh mục')} defaultOpen={true}>
+          {categoriesData.filterableCategories.map((category) => (
+            <label key={category.id} className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                value={category.slug || category.id} // Sử dụng slug hoặc id làm value
+                checked={selectedCategories.includes(category.slug || category.id)}
+                onChange={(e) => handleCheckboxChange(setSelectedCategories, selectedCategories, e.target.value)}
+              />
+              <span>{category.name}</span>
+            </label>
+          ))}
+        </FilterSection>
+      )} */}
+      
+      {/* Collections Filter */}
+      {/* {collectionsLoading ? renderLoading() : collectionsData?.filterableCollections?.length > 0 && (
+        <FilterSection title={t('filter.collections', 'Bộ sưu tập')}>
+          {collectionsData.filterableCollections.map((collection) => (
+            <label key={collection.id} className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                value={collection.slug || collection.id}
+                checked={selectedCollections.includes(collection.slug || collection.id)}
+                onChange={(e) => handleCheckboxChange(setSelectedCollections, selectedCollections, e.target.value)}
+              />
+              <span>{collection.name}</span>
+            </label>
+          ))}
+        </FilterSection>
+      )} */}
+
+      {/* Price Range Filter */}
+      {priceRangeLoading ? renderLoading() : priceRangeData?.productPriceRange && (
+        <FilterSection title={t('filter.price', 'Giá')} defaultOpen={true}>
+          <div className="flex items-center space-x-2">
+            <input
+              type="number"
+              placeholder={t('filter.minPrice', 'Từ')}
+              value={priceRange.min}
+              min={priceRangeData.productPriceRange.min}
+              max={priceRange.max}
+              onChange={(e) => handlePriceInputChange(e, 'min')}
+              className="w-1/2 px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            />
+            <span>-</span>
+            <input
+              type="number"
+              placeholder={t('filter.maxPrice', 'Đến')}
+              value={priceRange.max}
+              min={priceRange.min}
+              max={priceRangeData.productPriceRange.max}
+              onChange={(e) => handlePriceInputChange(e, 'max')}
+              className="w-1/2 px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          {/* Có thể thêm slider ở đây nếu muốn, ví dụ dùng react-slider */}
+        </FilterSection>
       )}
-
-      {/* Collections Filter (Tương tự categories) */}
-      {collections.length > 0 && (
-        <div className="filter-group">
-          <h3 className="text-md font-semibold mb-2 text-gray-700">{t('productFilter.collectionLabel', 'Bộ sưu tập')}</h3>
-          <select
-            name="collection_id"
-            value={internalFilters.collection_id || ''}
-            onChange={handleSelectChange}
-            className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
-          >
-            <option value="">{t('productFilter.allCollections', 'Tất cả BST')}</option>
-            {collections.map(col => (
-              <option key={col.collection_id} value={col.collection_id}>{col.name}</option>
+      
+      {/* Colors Filter */}
+      {/* {colorsLoading ? renderLoading() : colorsData?.filterableColors?.length > 0 && (
+        <FilterSection title={t('filter.color', 'Màu sắc')}>
+          <div className="flex flex-wrap gap-2">
+            {colorsData.filterableColors.map((color) => (
+              <button
+                key={color.id}
+                onClick={() => handleCheckboxChange(setSelectedColors, selectedColors, color.id)} // Giả sử value là color.id
+                className={`w-6 h-6 rounded-full border-2 ${selectedColors.includes(color.id) ? 'ring-2 ring-offset-1 ring-indigo-500 border-white' : 'border-gray-300'} focus:outline-none`}
+                style={{ backgroundColor: color.hexCode || color.name.toLowerCase() }}
+                aria-label={color.name}
+              />
             ))}
-          </select>
-        </div>
-      )}
+          </div>
+        </FilterSection>
+      )} */}
 
+      {/* Sizes Filter */}
+      {/* {sizesLoading ? renderLoading() : sizesData?.filterableSizes?.length > 0 && (
+        <FilterSection title={t('filter.size', 'Kích thước')}>
+          <div className="flex flex-wrap gap-2">
+            {sizesData.filterableSizes.map((size) => (
+              <button
+                key={size.id}
+                onClick={() => handleCheckboxChange(setSelectedSizes, selectedSizes, size.id)} // Giả sử value là size.id
+                className={`px-2.5 py-1 text-xs border rounded-md ${selectedSizes.includes(size.id) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}`}
+              >
+                {size.name}
+              </button>
+            ))}
+          </div>
+        </FilterSection>
+      )} */}
 
-      {/* Price Filter */}
-      <div className="filter-group">
-        <h3 className="text-md font-semibold mb-2 text-gray-700">{t('productFilter.priceRangeLabel', 'Khoảng giá')}</h3>
-        <div className="flex items-center space-x-2">
-          <input
-            type="number"
-            name="min"
-            value={priceValues.min}
-            onChange={handlePriceInputChange}
-            placeholder={t('productFilter.minPricePlaceholder', 'Từ')}
-            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-            min="0"
-          />
-          <span className="text-gray-500">-</span>
-          <input
-            type="number"
-            name="max"
-            value={priceValues.max}
-            onChange={handlePriceInputChange}
-            placeholder={t('productFilter.maxPricePlaceholder', 'Đến')}
-            className="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
-            min="0"
-          />
-        </div>
+      <div className="mt-6 pt-4 border-t border-gray-200">
         <button
-            onClick={applyPriceFilter}
-            className="mt-2 w-full bg-blue-500 text-white py-1.5 px-3 rounded-md hover:bg-blue-600 transition-colors text-sm font-medium"
+          onClick={applyFilters}
+          className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-indigo-700 transition-colors duration-150 text-sm"
         >
-            {t('productFilter.applyPrice', 'Áp dụng giá')}
+          {t('filter.applyButton', 'Áp dụng bộ lọc')}
         </button>
       </div>
-
-      {/* Color Filter */}
-      {colors.length > 0 && (
-        <div className="filter-group">
-          <h3 className="text-md font-semibold mb-2 text-gray-700">{t('productFilter.colorLabel', 'Màu sắc')}</h3>
-          <div className="flex flex-wrap gap-2">
-            {colors.map(color => (
-              <button
-                key={color.color_id}
-                type="button"
-                title={color.name}
-                onClick={() => handleToggleFilter('color_id', color.color_id)}
-                className={`w-6 h-6 rounded-full border-2 transition-all duration-150
-                            ${internalFilters.color_id === color.color_id ? 'ring-2 ring-offset-1 ring-blue-500 border-white scale-110' : 'border-gray-300 hover:border-gray-400'}
-                            ${color.color_hex === '#FFFFFF' || color.color_hex === '#FFF' ? '!border-gray-400' : ''}
-                            `}
-                style={{ backgroundColor: color.color_hex || '#DDDDDD' }}
-                aria-pressed={internalFilters.color_id === color.color_id}
-              >
-                {internalFilters.color_id === color.color_id && (
-                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path></svg>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Size Filter */}
-      {sizes.length > 0 && (
-        <div className="filter-group">
-          <h3 className="text-md font-semibold mb-2 text-gray-700">{t('productFilter.sizeLabel', 'Kích thước')}</h3>
-          <div className="flex flex-wrap gap-2">
-            {sizes.map(size => (
-              <button
-                key={size.size_id}
-                type="button"
-                onClick={() => handleToggleFilter('size_id', size.size_id)}
-                className={`px-3 py-1 border rounded-md text-xs sm:text-sm transition-colors
-                                ${internalFilters.size_id === size.size_id ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100 hover:border-gray-400'}`}
-                aria-pressed={internalFilters.size_id === size.size_id}
-              >
-                {size.size_name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </aside>
   );
 };
 
-export default React.memo(ProductFilter);
+export default ProductFilter;
