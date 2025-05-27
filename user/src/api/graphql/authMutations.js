@@ -1,68 +1,66 @@
 import { gql } from '@apollo/client';
 
 // LOGIN_USER_MUTATION
-// Backend typeDefs: loginUser(email: String!, password: String!): AuthPayload
-// AuthPayload { token: String!, user: CustomerType! }
-// CustomerType fields (camelCase from typeDefs, mapped in Customer resolver):
-// id, firstName, lastName, email, role, phoneNumber, address, isActive, createdAt, updatedAt, lastLogin
+// Backend typeDefs: login(identifier: String!, customer_password: String!): AuthPayload
+// AuthPayload { token, customer_id, customer_name, username, customer_email, isAdmin, virtual_balance }
 export const LOGIN_USER_MUTATION = gql`
-  mutation LoginUser($email: String!, $password: String!) {
-    loginUser(email: $email, password: $password) {
+  mutation Login($identifier: String!, $password: String!) {
+    login(identifier: $identifier, customer_password: $password) {
       token
-      user {
-        id
-        firstName
-        lastName
-        email
-        role
-        phoneNumber
-        address
-        isActive
-        # Không cần lấy createdAt, updatedAt, lastLogin ở đây trừ khi thực sự cần ngay sau login
-      }
+      customer_id
+      customer_name
+      username
+      customer_email
+      isAdmin
+      virtual_balance
     }
   }
 `;
 
 // REGISTER_USER_MUTATION
-// Backend typeDefs: registerUser(input: RegisterUserInput!): AuthPayload
-// RegisterUserInput { firstName!, lastName!, email!, password!, phoneNumber, address }
+// Backend typeDefs: register(input: RegisterInput!): AuthPayload
+// RegisterInput { username?, customer_name!, customer_email!, customer_password!, customer_tel!, customer_address? }
 export const REGISTER_USER_MUTATION = gql`
-  mutation RegisterUser($input: RegisterUserInput!) {
-    registerUser(input: $input) {
+  mutation Register($input: RegisterInput!) {
+    register(input: $input) {
       token
-      user {
-        id
-        firstName
-        lastName
-        email
-        role
-        # Các trường khác nếu cần ngay sau đăng ký
-      }
+      customer_id
+      customer_name
+      username
+      customer_email
+      isAdmin
+      virtual_balance
     }
   }
 `;
 
 // REQUEST_PASSWORD_RESET_MUTATION
-// Backend typeDefs: requestPasswordReset(email: String!): String
+// Backend typeDefs: forgotPassword(email: String!): ForgotPasswordPayload
 export const REQUEST_PASSWORD_RESET_MUTATION = gql`
   mutation RequestPasswordReset($email: String!) {
-    requestPasswordReset(email: $email) # Trả về message
+    forgotPassword(email: $email) {
+      success
+      message
+    }
   }
 `;
 
 // RESET_PASSWORD_MUTATION
-// Backend typeDefs: resetPassword(token: String!, newPassword: String!): AuthPayload
+// Backend typeDefs: resetPassword(token: String!, newPassword: String!): ResetPasswordPayload
+// ResetPasswordPayload includes success, message, and optionally token and customer details for auto-login.
 export const RESET_PASSWORD_MUTATION = gql`
   mutation ResetPassword($token: String!, $newPassword: String!) {
     resetPassword(token: $token, newPassword: $newPassword) {
-      token # Giả sử backend trả về AuthPayload để tự động đăng nhập
-      user {
-        id
-        firstName
-        lastName
-        email
-        role
+      success
+      message
+      token # For auto-login
+      customer { # Assuming backend's ResetPasswordPayload.customer provides these fields
+        customer_id
+        customer_name
+        username
+        customer_email
+        isAdmin
+        # virtual_balance # Potentially include if backend sends it upon reset
       }
     }
   }

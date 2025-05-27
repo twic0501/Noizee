@@ -1,9 +1,17 @@
-/* src/input.css */
-@import "tailwindcss"; /* Hoặc @import "tailwindcss/theme" tùy theo cấu hình của bạn */
+/* src/index.css */
+@import "tailwindcss"; /* Hoặc @import "tailwindcss/theme" tùy theo cấu hình của bạn */ /* */
 
-/* Nếu bạn cần định nghĩa các layer base, components, utilities theo cách của v4 */
 @layer base {
-  /* Các style base của bạn */
+  body {
+    @apply font-sans; /* Áp dụng font-family 'Oswald' (đã định nghĩa trong tailwind.config.js) làm mặc định */
+    /* Bạn có thể thêm các style base khác cho body tại đây */
+    /* Ví dụ:
+       color: theme('colors.gray.800'); 
+       line-height: 1.6;
+    */
+  }
+  
+  /* Các style base khác của bạn */ /* */
   /* Ví dụ:
   h1 {
     @apply text-2xl;
@@ -12,14 +20,14 @@
 }
 
 @layer components {
-  /* Các component class của bạn */
+  /* Các component class của bạn */ /* */
 }
 
 @layer utilities {
-  /* Các utility class tùy chỉnh của bạn (nếu có) */
+  /* Các utility class tùy chỉnh của bạn (nếu có) */ /* */
 }
 
-/* Hoặc nếu bạn tùy chỉnh theme qua CSS variables: */
+/* Phần CSS variables này từ tệp gốc của bạn, có thể giữ lại nếu bạn dùng chúng */ /* */
 /*
 :root {
   --color-primary: theme('colors.blue.600');

@@ -4,13 +4,13 @@ import { useQuery } from '@apollo/client';
 import { useSearchParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-import { GET_PRODUCTS_QUERY } from '../../api/graphql/productQueries'; // API đã đề xuất
-import ProductFilter from '../../components/product/ProductFilter';     // Component đã tạo/đề xuất
-import ProductGrid from '../../components/product/ProductGrid';         // Component đã tạo/đề xuất
-import Pagination from '../../components/common/Pagination';             // Component đã tạo/đề xuất
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import AlertMessage from '../../components/common/AlertMessage';
-import { ITEMS_PER_PAGE_DEFAULT } from '../../utils/constants';
+import { GET_PRODUCTS_QUERY } from '../api/graphql/productQueries'; // API đã đề xuất
+import ProductFilter from '../components/product/ProductFilter';     // Component đã tạo/đề xuất
+import ProductGrid from '../components/product/ProductGrid';         // Component đã tạo/đề xuất
+import Pagination from '../components/common/Pagination';             // Component đã tạo/đề xuất
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import AlertMessage from '../components/common/AlertMessage';
+import { ITEMS_PER_PAGE_DEFAULT } from '../utils/constants';
 // import Breadcrumbs from '../../components/common/Breadcrumbs'; // Nếu có
 
 const ProductListingPage = ({

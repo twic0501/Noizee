@@ -92,11 +92,11 @@ const client = new ApolloClient({
         },
       },
       // Dựa theo typeDefs.js của bạn:
-      CustomerType: { keyFields: ["id"] },
-      ProductType: { keyFields: ["id"] }, // Nếu ProductType có trường id
-      CategoryType: { keyFields: ["id"] },// Nếu CategoryType có trường id
-      CollectionType: { keyFields: ["id"] },// Nếu CollectionType có trường id
-      SaleType: { keyFields: ["id"] }, // Nếu SaleType (Order) có trường id
+      CustomerType: { keyFields: ["customer_id"] },
+      ProductType: { keyFields: ["product_id"] }, // Nếu ProductType có trường id
+      CategoryType: { keyFields: ["category_id"] },// Nếu CategoryType có trường id
+      CollectionType: { keyFields: ["collection_id"] },// Nếu CollectionType có trường id
+      SaleType: { keyFields: ["sale_id"] }, // Nếu SaleType (Order) có trường id
       // Thêm các Type khác nếu cần
     },
   }),

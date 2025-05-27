@@ -129,15 +129,47 @@ export const GET_COLLECTIONS_QUERY = gql`
     }
   }
 `;
-
-// Input type ProductFilterInput (ví dụ, cần định nghĩa ở backend typeDefs.js)
-// input ProductFilterInput {
-//   categoryId: ID
-//   collectionId: ID
-//   minPrice: Float
-//   maxPrice: Float
-//   searchTerm: String
-//   isFeatured: Boolean
-//   isActive: Boolean
-//   # Thêm các filter khác: colorId, sizeId, tags, etc.
-// }
+export const GET_FEATURED_PRODUCTS_QUERY = gql`
+  query GetFeaturedProducts($limit: Int) { # Tên query có thể khác
+    # Nội dung GraphQL query của bạn ở đây
+    # Ví dụ:
+    products(filter: { is_new_arrival: false }, limit: $limit, sortBy: "createdAt", sortOrder: "DESC") { # Giả sử bạn có filter is_featured hoặc tương tự
+      items {
+        product_id
+        name(lang: "vi") # Hoặc product_name_vi tùy theo schema và resolver
+        slug
+        product_price
+        # ... các trường khác bạn cần cho ProductCard
+        images(limit: 2) { # Lấy 1-2 ảnh
+          image_url
+          alt_text(lang: "vi")
+        }
+        # colors { # Nếu cần hiển thị màu trên card
+        #   color_id
+        #   name(lang: "vi")
+        #   color_hex
+        # }
+        # stockQuantity # (Cân nhắc: có thể không cần thiết trên card, hoặc là tổng stock)
+      }
+    }
+  }
+`;
+export const GET_NEW_ARRIVALS_QUERY = gql`
+  query GetNewArrivals($limit: Int) { 
+    # Nội dung GraphQL query của bạn cho sản phẩm mới
+    # Ví dụ:
+    products(filter: { is_new_arrival: true }, limit: $limit, sortBy: "createdAt", sortOrder: "DESC") {
+      items {
+        product_id
+        name(lang: "vi")
+        slug
+        product_price
+        # ... các trường khác bạn cần cho ProductCard
+        images(limit: 2) {
+          image_url
+          alt_text(lang: "vi")
+        }
+      }
+    }
+  }
+`;

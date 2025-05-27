@@ -11,7 +11,7 @@ const HomePage = React.lazy(() => import('../pages/HomePage'));
 const ProductListingPage = React.lazy(() => import('../pages/ProductListingPage'));
 const CollectionProductsPage = React.lazy(() => import('../pages/CollectionProductsPage'));
 const CategoryProductsPage = React.lazy(() => import('../pages/CategoryProductsPage'));
-const ProductDetailPage = React.lazy(() => import('../pages/ProductListingPage'));
+const ProductDetailPage = React.lazy(() => import('../pages/ProductDetailPage'));
 const CartPage = React.lazy(() => import('../pages/CartPage'));
 const CheckoutPage = React.lazy(() => import('../pages/CheckoutPage'));
 const NotFoundPage = React.lazy(() => import('../pages/NotFoundPage'));
