@@ -1,0 +1,206 @@
+.product-filter-offcanvas.offcanvas {
+  background-color: #1A1A1A; /* Nền đen/xám đậm */
+  color: #f8f9fa; /* Chữ màu sáng */
+  border-left: 1px solid #333; /* Đường viền nhẹ */
+  width: 320px; /* Độ rộng của panel filter */
+}
+
+@media (max-width: 576px) {
+  .product-filter-offcanvas.offcanvas {
+    width: 85%; /* Rộng hơn trên mobile */
+  }
+}
+
+.product-filter-offcanvas .offcanvas-header {
+  border-bottom: 1px solid #333; /* Đường kẻ mờ */
+  padding: 1rem 1.25rem;
+}
+
+.product-filter-offcanvas .offcanvas-title {
+  font-family: var(--font-primary); /* Archivo Black */
+  font-weight: 900;
+  font-size: 1.1rem; /* Điều chỉnh kích thước nếu cần */
+  letter-spacing: 0.05em;
+}
+
+.product-filter-offcanvas .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%); /* Làm nút close màu trắng */
+}
+.product-filter-offcanvas .btn-close:focus {
+  box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+}
+
+
+.product-filter-offcanvas .offcanvas-body {
+  padding: 1.25rem;
+  /* Cho phép scroll nếu nội dung dài */
+}
+
+/* Custom scrollbar cho Offcanvas Body */
+.product-filter-offcanvas .offcanvas-body.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.product-filter-offcanvas .offcanvas-body.custom-scrollbar::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+.product-filter-offcanvas .offcanvas-body.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 3px;
+}
+.product-filter-offcanvas .offcanvas-body.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #777;
+}
+
+
+/* Accordion Styling (cho Category, Color, Size sections) */
+.filter-accordion .accordion-item {
+  background-color: transparent;
+  border: none;
+}
+.filter-accordion .accordion-button {
+  background-color: transparent;
+  color: #e0e0e0; /* Chữ màu sáng hơn */
+  font-family: var(--font-secondary); /* Oswald */
+  font-weight: 500;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 0; /* Giảm padding */
+  border-bottom: 1px solid #333; /* Đường kẻ giữa các section */
+}
+.filter-accordion .accordion-button:not(.collapsed) {
+  color: #ffffff;
+  background-color: transparent;
+  box-shadow: none;
+}
+.filter-accordion .accordion-button:focus {
+  box-shadow: none;
+  border-color: transparent;
+}
+.filter-accordion .accordion-button::after { /* Mũi tên của Bootstrap Accordion */
+  filter: invert(1) grayscale(100%) brightness(150%);
+}
+.filter-accordion .accordion-body {
+  padding: 0.75rem 0 1rem 0; /* Giảm padding */
+  background-color: transparent;
+  color: #adb5bd; /* Chữ trong body của accordion */
+}
+.filter-accordion .accordion-item:last-of-type .accordion-button.collapsed,
+.filter-accordion .accordion-item:last-of-type {
+    border-bottom: none; /* Bỏ border cuối cùng */
+}
+.filter-accordion hr.border-secondary {
+    border-color: #333 !important; /* Đảm bảo hr có màu đúng */
+}
+
+
+/* Switch "In Stock" */
+.filter-switch .form-check-input {
+  background-color: #495057;
+  border-color: #6c757d;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%236c757d'/%3e%3c/svg%3e");
+}
+.filter-switch .form-check-input:checked {
+  background-color: #fff; /* Nền trắng khi checked */
+  border-color: #fff;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23000'/%3e%3c/svg%3e"); /* Chấm đen */
+}
+.filter-switch .form-check-input:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(200, 200, 200, 0.25);
+}
+.filter-switch .form-check-label {
+  color: #f8f9fa;
+  width: 100%;
+}
+.filter-switch .form-check-label .text-uppercase {
+    font-family: var(--font-secondary);
+    font-weight: 500;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+.filter-switch .form-check-label .text-muted {
+    color: #adb5bd !important;
+    font-size: 0.7rem;
+}
+
+
+/* Custom Checkbox (cho Category) */
+.custom-checkbox-dark .form-check-input {
+  border-color: #6c757d;
+  background-color: transparent;
+}
+.custom-checkbox-dark .form-check-input:checked {
+  background-color: #ffffff;
+  border-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill-rule='evenodd' d='M13.485 3.515a.5.5 0 0 1 0 .707l-8 8a.5.5 0 0 1-.707 0l-4-4a.5.5 0 1 1 .707-.707L5 11.293l7.646-7.647a.5.5 0 0 1 .708 0z' fill='%23000000'/%3e%3c/svg%3e"); /* Checkmark màu đen */
+}
+.custom-checkbox-dark .form-check-input:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(200, 200, 200, 0.25);
+}
+.custom-checkbox-dark .form-check-label {
+  color: #adb5bd; /* text-neutral-200 */
+  font-size: 0.8rem; /* small */
+  cursor: pointer;
+}
+.custom-checkbox-dark .form-check-label:hover {
+  color: #ffffff; /* group-hover:text-white */
+}
+
+/* Color Swatch */
+.filter-color-swatch-dark {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  vertical-align: middle;
+}
+
+/* Size Button */
+.filter-size-button-dark.btn {
+  font-size: 0.75rem; /* ~text-xs sm:text-sm */
+  padding: 0.25rem 0.6rem; /* ~px-2.5 py-1 */
+  font-weight: 500;
+  border-radius: 0.25rem; /* rounded-md */
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+.filter-size-button-dark.btn-outline-light {
+  color: #adb5bd; /* text-neutral-300 */
+  border-color: #495057; /* border-neutral-600 */
+  background-color: #343a40; /* bg-neutral-700 */
+}
+.filter-size-button-dark.btn-outline-light:hover {
+  color: #ffffff; /* hover:text-white */
+  background-color: #495057; /* hover:bg-neutral-600 */
+  border-color: #6c757d;
+}
+.filter-size-button-dark.btn-light { /* Active state */
+  color: #000000; /* text-black */
+  background-color: #f8f9fa; /* bg-white */
+  border-color: #f8f9fa; /* border-white */
+}
+
+/* Buttons ở Footer của Offcanvas */
+.product-filter-offcanvas .btn-light {
+    background-color: #f8f9fa;
+    color: #000000;
+    border-color: #f8f9fa;
+}
+.product-filter-offcanvas .btn-light:hover {
+    background-color: #e2e6ea;
+    border-color: #dae0e5;
+}
+.product-filter-offcanvas .btn-outline-secondary {
+    color: #adb5bd;
+    border-color: #495057;
+}
+.product-filter-offcanvas .btn-outline-secondary:hover {
+    color: #ffffff;
+    background-color: #495057;
+    border-color: #6c757d;
+}

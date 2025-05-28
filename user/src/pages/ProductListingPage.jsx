@@ -1,212 +1,235 @@
-// src/pages/ProductListingPage.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+// user/src/pages/ProductListingPage.jsx
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useQuery } from '@apollo/client';
 import { useSearchParams, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next'; // Đảm bảo đã import useTranslation
+import { useTranslation } from 'react-i18next';
+import { SlidersHorizontal } from 'lucide-react'; // Using lucide-react icon
 
 import { GET_PRODUCTS_QUERY } from '../api/graphql/productQueries';
+import { GET_FILTER_CATEGORIES_QUERY, GET_FILTER_COLORS_QUERY, GET_FILTER_SIZES_QUERY } from '../api/graphql/filterQueries';
 import ProductFilter from '../components/product/ProductFilter';
+import SortDropdown from '../components/product/SortDropdown';
 import ProductGrid from '../components/product/ProductGrid';
-import Pagination from '../components/common/Pagination';
-import LoadingSpinner from '../components/common/LoadingSpinner';
-import AlertMessage from '../components/common/AlertMessage';
+import Pagination from '../components/common/Pagination'; // Assuming this is Tailwind-styled
+import AlertMessage from '../components/common/AlertMessage'; // Assuming this is Tailwind-styled
 import { ITEMS_PER_PAGE_DEFAULT } from '../utils/constants';
+// import logger from '../utils/logger';
 
 const ProductListingPage = ({
-  pageType = 'all',
-  slug,
-  pageTitleKey,
-  pageTitleDefault,
-  filterId,
+    pageType = 'all', // 'all', 'category', 'collection'
+    slug, // categorySlug hoặc collectionSlug (nếu pageType is category/collection)
+    pageTitleKey, // i18n key for page title
+    pageTitleDefault, // Default title if key not found or not provided
+    filterId, // category_id or collection_id to pre-filter by
 }) => {
-  const { t, i18n } = useTranslation(); // Lấy i18n instance từ hook useTranslation
+    const { t, i18n } = useTranslation();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const location = useLocation();
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const location = useLocation();
+    const [showFilterPanel, setShowFilterPanel] = useState(false);
 
-  const initialFilters = useMemo(() => {
-    const params = {};
-    if (searchParams.get('categories')) params.categories = searchParams.get('categories').split(',');
-    if (searchParams.get('collections')) params.collections = searchParams.get('collections').split(',');
-    if (searchParams.get('colors')) params.colors = searchParams.get('colors').split(',');
-    if (searchParams.get('sizes')) params.sizes = searchParams.get('sizes').split(',');
-    if (searchParams.get('minPrice') || searchParams.get('maxPrice')) {
-      params.priceRange = {
-        min: parseInt(searchParams.get('minPrice') || '0', 10),
-        max: parseInt(searchParams.get('maxPrice') || '100000000', 10),
-      };
-    }
-    return params;
-  }, [searchParams]);
+    const initialMemoizedFilters = useMemo(() => {
+        const params = { inStock: true, categories: [], colors: [], sizes: [] }; // Default structure
+        if (searchParams.get('categories')) params.categories = searchParams.get('categories').split(',');
+        if (searchParams.get('colors')) params.colors = searchParams.get('colors').split(',');
+        if (searchParams.get('sizes')) params.sizes = searchParams.get('sizes').split(',');
+        if (searchParams.get('inStock') !== null) params.inStock = searchParams.get('inStock') === 'true';
+        return params;
+    }, [searchParams]);
 
-  const [activeFilters, setActiveFilters] = useState(initialFilters);
+    const [activeFilters, setActiveFilters] = useState(initialMemoizedFilters);
 
-  const currentPage = parseInt(searchParams.get('page') || '1', 10);
-  const itemsPerPage = parseInt(searchParams.get('limit') || String(ITEMS_PER_PAGE_DEFAULT), 10);
-  const sortBy = searchParams.get('sortBy') || 'createdAt';
-  const sortOrder = searchParams.get('sortOrder') || 'DESC';
-  const currentLang = searchParams.get('lang') || i18n.language || 'vi'; // Bây giờ i18n đã được định nghĩa
+    const currentPage = parseInt(searchParams.get('page') || '1', 10);
+    const itemsPerPage = parseInt(searchParams.get('limit') || String(ITEMS_PER_PAGE_DEFAULT), 10);
+    const currentSortBy = searchParams.get('sortBy') || 'createdAt';
+    const currentSortOrder = searchParams.get('sortOrder') || 'DESC';
+    const currentLang = i18n.language || 'vi';
 
-  const baseFilter = {};
-  if (pageType === 'collection' && filterId) {
-    baseFilter.collection_id = filterId;
-  } else if (pageType === 'category' && filterId) {
-    baseFilter.category_id = filterId;
-  }
+    const { data: categoriesData, loading: categoriesLoading } = useQuery(GET_FILTER_CATEGORIES_QUERY, { variables: { lang: currentLang } });
+    const { data: colorsData, loading: colorsLoading } = useQuery(GET_FILTER_COLORS_QUERY, { variables: { lang: currentLang } });
+    const { data: sizesData, loading: sizesLoading } = useQuery(GET_FILTER_SIZES_QUERY);
+    const loadingFilterOptions = categoriesLoading || colorsLoading || sizesLoading;
 
-  const queryVariables = {
-    limit: itemsPerPage,
-    offset: (currentPage - 1) * itemsPerPage,
-    lang: currentLang,
-    filter: {
-      ...baseFilter,
-      ...(activeFilters.categories?.length && { category_id: activeFilters.categories[0] }),
-      ...(activeFilters.collections?.length && { collection_id: activeFilters.collections[0] }),
-      ...(activeFilters.colors?.length && { color_id: activeFilters.colors[0] }),
-      ...(activeFilters.sizes?.length && { size_id: activeFilters.sizes[0] }),
-      ...(activeFilters.priceRange && {
-          min_price: activeFilters.priceRange.min,
-          max_price: activeFilters.priceRange.max
-      }),
-    },
-  };
+    const buildGraphQLFilter = useCallback(() => {
+        const gqlFilter = {};
+        // Apply pre-filter based on pageType and filterId
+        if (pageType === 'category' && filterId) gqlFilter.category_id = filterId;
+        if (pageType === 'collection' && filterId) gqlFilter.collection_id = filterId;
 
-  const { data, loading, error, refetch } = useQuery(GET_PRODUCTS_QUERY, {
-    variables: queryVariables,
-    fetchPolicy: 'cache-and-network',
-    notifyOnNetworkStatusChange: true,
-  });
+        // Apply active filters from user selection
+        if (activeFilters.categories?.length) {
+            // If pageType is category, this filter might be redundant or could be for sub-categories
+            // For now, assume it overrides or adds if pageType isn't category
+            if (pageType !== 'category') gqlFilter.category_id = activeFilters.categories[0]; // Example: take the first one if multi-select not supported by GQL for ID
+        }
+        if (activeFilters.colors?.length) gqlFilter.color_id = activeFilters.colors; // Assuming GQL filter accepts array of color_ids
+        if (activeFilters.sizes?.length) gqlFilter.size_id = activeFilters.sizes;   // Assuming GQL filter accepts array of size_ids
 
-  const handleFilterChange = (newFilters) => {
-    setActiveFilters(newFilters);
-    const params = new URLSearchParams();
-    if (newFilters.categories?.length) params.set('categories', newFilters.categories.join(','));
-    if (newFilters.collections?.length) params.set('collections', newFilters.collections.join(','));
-    if (newFilters.colors?.length) params.set('colors', newFilters.colors.join(','));
-    if (newFilters.sizes?.length) params.set('sizes', newFilters.sizes.join(','));
-    if (newFilters.priceRange) {
-      params.set('minPrice', newFilters.priceRange.min.toString());
-      params.set('maxPrice', newFilters.priceRange.max.toString());
-    }
-    params.set('page', '1');
-    if(currentLang) params.set('lang', currentLang);
-    setSearchParams(params);
-  };
+        if (activeFilters.inStock !== undefined) gqlFilter.in_stock = activeFilters.inStock;
 
-  const handleClearFilters = () => {
-    setActiveFilters({});
-    const params = new URLSearchParams();
-    params.set('page', '1');
-    if(currentLang) params.set('lang', currentLang);
-    setSearchParams(params);
-  };
+        // Add other filters like priceRange, searchTerm if they are part of activeFilters
+        // if (activeFilters.priceRange) {
+        //     gqlFilter.min_price = activeFilters.priceRange.min;
+        //     gqlFilter.max_price = activeFilters.priceRange.max;
+        // }
+        // if (activeFilters.searchTerm) gqlFilter.search_term = activeFilters.searchTerm;
 
-  const handlePageChange = (newPage) => {
-    const params = new URLSearchParams(searchParams);
-    params.set('page', newPage.toString());
-    setSearchParams(params);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+        return gqlFilter;
+    }, [activeFilters, pageType, filterId]);
 
-  const handleSortChange = (e) => {
-    const [newSortBy, newSortOrder] = e.target.value.split('_');
-    const params = new URLSearchParams(searchParams);
-    params.set('page', '1');
-    setSearchParams(params);
-  };
+    const queryVariables = {
+        limit: itemsPerPage,
+        offset: (currentPage - 1) * itemsPerPage,
+        lang: currentLang,
+        // sortBy: currentSortBy, // GQL schema's products query needs to support this
+        // sortOrder: currentSortOrder, // GQL schema's products query needs to support this
+        filter: buildGraphQLFilter(),
+    };
 
-  const products = data?.products?.products || [];
-  const totalProducts = data?.products?.count || 0;
+    const { data, loading, error } = useQuery(GET_PRODUCTS_QUERY, {
+        variables: queryVariables,
+        fetchPolicy: 'cache-and-network',
+        notifyOnNetworkStatusChange: true,
+    });
 
-  const finalPageTitle = pageTitleKey
-    ? t(pageTitleKey, { defaultValue: pageTitleDefault || "Sản phẩm", name: slug || '' })
-    : pageTitleDefault || t('products.allProductsTitle', "Tất cả sản phẩm");
+    const products = data?.products?.products || []; // Adjusted path based on your GQL structure
+    const totalProducts = data?.products?.count || 0; // Adjusted path
 
-  // --- CONSOLE LOGS ĐỂ DEBUG ---
-  // console.log("ProductListingPage Props:", { pageType, slug, pageTitleKey, pageTitleDefault, filterId });
-  // console.log("ProductListingPage queryVariables:", JSON.stringify(queryVariables, null, 2));
-  // console.log("ProductListingPage GraphQL Data:", data);
-  // console.log("ProductListingPage Loading:", loading);
-  // console.log("ProductListingPage Error:", error);
-  // console.log("ProductListingPage Parsed Products (count):", products.length);
-  // console.log("ProductListingPage Total Products from API:", totalProducts);
-  // --- KẾT THÚC CONSOLE LOGS ---
+    const updateSearchParams = (newParams) => {
+        const allParams = new URLSearchParams(searchParams);
+        Object.keys(newParams).forEach(key => {
+            if (newParams[key] === null || newParams[key] === undefined || (Array.isArray(newParams[key]) && newParams[key].length === 0)) {
+                allParams.delete(key);
+            } else {
+                allParams.set(key, Array.isArray(newParams[key]) ? newParams[key].join(',') : newParams[key]);
+            }
+        });
+        setSearchParams(allParams, { replace: true }); // Use replace to avoid history buildup for filters
+    };
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <header className="mb-6 md:mb-8 text-center md:text-left">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-          {finalPageTitle}
-        </h1>
-        <div className="mt-4 md:flex md:items-center md:justify-between text-sm text-gray-600">
-            <p>
-                {(!loading && products.length === 0 && totalProducts === 0) ? "" :
-                  loading && products.length === 0 ? t('products.loadingProducts', 'Đang tải sản phẩm...') :
-                    t('products.showingResults', 'Hiển thị {{count}} trên tổng số {{total}} sản phẩm', { count: products.length, total: totalProducts})
-                }
-            </p>
-            <div className="mt-2 md:mt-0">
-                <label htmlFor="sort-products" className="sr-only">{t('products.sortBy', 'Sắp xếp theo')}</label>
-                <select
-                    id="sort-products"
-                    name="sort-products"
-                    className="pl-3 pr-8 py-2 text-sm border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md bg-white shadow-sm"
-                    value={`${sortBy}_${sortOrder}`}
-                    onChange={handleSortChange}
-                    disabled
-                >
-                    <option value="createdAt_DESC">{t('products.sort.newest', 'Mới nhất')}</option>
-                </select>
+    const handleApplyPanelFilters = useCallback((newPanelFilters) => {
+        setActiveFilters(newPanelFilters);
+        updateSearchParams({
+            categories: newPanelFilters.categories,
+            colors: newPanelFilters.colors,
+            sizes: newPanelFilters.sizes,
+            inStock: newPanelFilters.inStock.toString(), // Ensure boolean is string for URL
+            page: '1'
+        });
+    }, [setSearchParams]);
+
+    const handleClearPanelFilters = useCallback(() => {
+        const cleared = { inStock: true, categories: [], colors: [], sizes: [] };
+        setActiveFilters(cleared);
+        updateSearchParams({
+            categories: null, colors: null, sizes: null, inStock: 'true', page: '1'
+        });
+    }, [setSearchParams]);
+
+    const handleSortChange = useCallback((sortByValue, sortOrderValue) => {
+        updateSearchParams({
+            sortBy: sortByValue === 'featured' ? null : sortByValue,
+            sortOrder: sortByValue === 'featured' ? null : sortOrderValue,
+            page: '1'
+        });
+    }, [setSearchParams]);
+
+    const handlePageChange = (newPage) => {
+        updateSearchParams({ page: newPage.toString() });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const activeFilterCountVal = useMemo(() => {
+        let count = 0;
+        if (activeFilters.inStock === false) count++;
+        if (activeFilters.categories) count += activeFilters.categories.length;
+        if (activeFilters.colors) count += activeFilters.colors.length;
+        if (activeFilters.sizes) count += activeFilters.sizes.length;
+        return count;
+    }, [activeFilters]);
+
+    const finalPageTitle = pageTitleKey
+        ? t(pageTitleKey, { defaultValue: pageTitleDefault || t('products.allProductsTitle', "Tất cả sản phẩm"), name: slug || '' })
+        : pageTitleDefault || t('products.allProductsTitle', "Tất cả sản phẩm");
+
+    return (
+        <div className="min-h-screen bg-white text-black">
+            {/* Header is part of MainLayout */}
+            <div className="container mx-auto px-4 py-6">
+                <div className="text-center mb-6">
+                    <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-wider text-black">
+                        {finalPageTitle}
+                    </h1>
+                    <p className="text-xs sm:text-sm text-neutral-600">
+                        {(!loading && products.length === 0 && totalProducts === 0) ? "" :
+                          loading && products.length === 0 ? t('products.loadingProducts', 'Đang tải sản phẩm...') :
+                            t('products.showingResults', '{{count}} sản phẩm', { count: totalProducts })
+                        }
+                    </p>
+                </div>
+
+                {/* Filter and Sort Bar */}
+                <div className="mb-6 border-y border-neutral-300 py-3 flex justify-between items-center sticky top-16 bg-white z-20"> {/* Adjust top value based on actual header height */}
+                    <button
+                        onClick={() => setShowFilterPanel(true)}
+                        className="flex items-center text-xs sm:text-sm text-black hover:text-neutral-700 group border border-neutral-400 rounded-md px-3 py-2 bg-white"
+                    >
+                        <SlidersHorizontal size={14} className="mr-1.5 text-neutral-600 group-hover:text-black" />
+                        {t('filter.title', 'Filter')}
+                        {activeFilterCountVal > 0 && (
+                             <span className="ml-1.5 bg-black text-white text-[10px] rounded-full px-1.5 py-0.5 font-semibold">{activeFilterCountVal}</span>
+                        )}
+                        <span className="ml-2 hidden sm:inline text-neutral-500 group-hover:text-neutral-700">({totalProducts} {t('products.productsLabel', 'sản phẩm')})</span>
+                    </button>
+                    <SortDropdown
+                        onSortChange={handleSortChange}
+                        initialSortBy={currentSortBy}
+                        initialSortOrder={currentSortOrder}
+                    />
+                </div>
+
+                <main className="w-full">
+                    {/* Product Grid will be rendered here */}
+                    {/* Loading state is handled by ProductGrid internally for initial load */}
+                    {error && (
+                        <AlertMessage type="error" title={t('products.errorLoadingTitle')} message={error.message} className="mb-6"/>
+                    )}
+                    <ProductGrid
+                        products={products}
+                        loading={loading} // Pass loading state to ProductGrid
+                        error={null} // Error is handled above
+                    />
+                    {/* No products message handled by ProductGrid */}
+
+                    {totalProducts > itemsPerPage && !loading && products.length > 0 && (
+                        <div className="mt-10 pt-6 border-t border-gray-200">
+                           <Pagination
+                                currentPage={currentPage}
+                                totalItems={totalProducts}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={handlePageChange}
+                                // Ensure Pagination is Tailwind-styled or use classes for centering
+                                className="flex justify-center"
+                            />
+                        </div>
+                    )}
+                </main>
             </div>
-        </div>
-      </header>
 
-      <div className="lg:flex lg:space-x-8">
-        <div className="w-full lg:w-1/4 xl:w-1/5 mb-8 lg:mb-0">
-          <ProductFilter
-            currentFilters={activeFilters}
-            onFilterChange={handleFilterChange}
-            onClearFilters={handleClearFilters}
-          />
-        </div>
-
-        <div className="w-full lg:w-3/4 xl:w-4/5">
-          {loading && products.length === 0 && (
-            <div className="flex justify-center items-center py-20">
-              <LoadingSpinner size="lg" />
-            </div>
-          )}
-          {error && (
-            <AlertMessage type="error" title={t('products.errorLoadingTitle')} message={error.message || t('common.errorOccurred')} className="mb-6"/>
-          )}
-          
-          {(!loading || products.length > 0) && !error && (
-            <ProductGrid
-                products={products}
-                loading={loading && products.length > 0}
+            <ProductFilter
+                isOpen={showFilterPanel}
+                onClose={() => setShowFilterPanel(false)}
+                onApplyFilters={handleApplyPanelFilters}
+                onClearFilters={handleClearPanelFilters}
+                initialFilters={activeFilters}
+                availableCategories={categoriesData?.categories || []} // Adjusted path to categories
+                availableColors={colorsData?.publicGetAllColors || []} // Adjusted path to publicGetAllColors
+                availableSizes={sizesData?.sizes || []}               // Adjusted path to sizes
+                loadingOptions={loadingFilterOptions}
             />
-          )}
-
-          {!loading && !error && products.length === 0 && totalProducts === 0 && (
-             <div className="my-8 text-center">
-                <AlertMessage type="info" message={t('products.noProductsFound', 'Không tìm thấy sản phẩm nào phù hợp.')} />
-             </div>
-          )}
-
-          {totalProducts > itemsPerPage && !error && products.length > 0 && (
-            <div className="mt-10 pt-6 border-t border-gray-200">
-              <Pagination
-                currentPage={currentPage}
-                totalItems={totalProducts}
-                itemsPerPage={itemsPerPage}
-                onPageChange={handlePageChange}
-              />
-            </div>
-          )}
+            {/* CartSliderPanel is typically part of Header or a global layout context item */}
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default ProductListingPage;

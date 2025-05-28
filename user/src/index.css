@@ -395,3 +395,16 @@ position: relative; }
 .z-index-below-navbar {
     z-index: 1029; /* Giá trị này phải thấp hơn z-index của navbar (thường là 1030 cho fixed-top) */
 }
+.custom-scrollbar-dark::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar-dark::-webkit-scrollbar-track {
+  background: #2a2a2a; /* Darker track for dark panel */
+}
+.custom-scrollbar-dark::-webkit-scrollbar-thumb {
+  background-color: #555; /* Lighter thumb */
+  border-radius: 3px;
+}
+.custom-scrollbar-dark::-webkit-scrollbar-thumb:hover {
+  background-color: #777;
+}

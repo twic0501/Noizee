@@ -1,358 +1,283 @@
-// src/components/product/ProductCard.jsx (User Frontend)
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+// user/src/components/product/ProductCard.jsx
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FiPlus, FiShoppingCart } from 'react-icons/fi'; // Using FiPlus for add to cart
+import { ShoppingCart, ChevronDown } from 'lucide-react'; // Using lucide-react
 
-import { useCart } from '../../contexts/CartContext'; //
-import { formatPrice } from '../../utils/formatters'; //
-import { classNames } from '../../utils/helpers'; //
-import OptimizedImage from '../common/OptimizedImage'; //
-import LoadingSpinner from '../common/LoadingSpinner'; //
-import { PRODUCT_IMAGE_PLACEHOLDER, API_BASE_URL } from '../../utils/constants'; //
+import { useCart } from '../../contexts/CartContext';
+import { formatPrice } from '../../utils/formatters';
+import OptimizedImage from '../common/OptimizedImage';
+import { PRODUCT_IMAGE_PLACEHOLDER, API_BASE_URL } from '../../utils/constants';
+// import logger from '../../utils/logger';
 
 const ProductCard = ({ product, className = '' }) => {
-  const { t, i18n } = useTranslation();
-  const { addToCart, isLoading: cartLoading, cartError, clearCartError } = useCart(); //
+    const { t, i18n } = useTranslation();
+    const { addToCart, isLoading: cartLoadingContext, cartError, clearCartError } = useCart();
+    const currentLang = i18n.language;
+    const navigate = useNavigate();
 
-  const [selectedColor, setSelectedColor] = useState(null);
-  const [selectedSize, setSelectedSize] = useState(null);
-  const [mainDisplayImage, setMainDisplayImage] = useState(PRODUCT_IMAGE_PLACEHOLDER);
-  const [hoverDisplayImage, setHoverDisplayImage] = useState(null);
-  const [isHovering, setIsHovering] = useState(false);
-  const [addToCartFeedback, setAddToCartFeedback] = useState({ error: null, success: null });
+    // State from your original ProductCard
+    const [selectedColorId, setSelectedColorId] = useState(null);
+    const [selectedSizeId, setSelectedSizeId] = useState(null);
+    const [mainImage, setMainImage] = useState(PRODUCT_IMAGE_PLACEHOLDER);
+    const [hoverImage, setHoverImage] = useState(null);
+    const [isHovering, setIsHovering] = useState(false);
+    const [showSizeSelector, setShowSizeSelector] = useState(false);
+    const [addToCartFeedback, setAddToCartFeedback] = useState({ error: null, success: null, loading: false });
+    
+    const sizeSelectorRef = useRef(null);
 
-  const currentLang = i18n.language;
+    // Available colors derived from product inventory (your logic)
+    const availableColors = useMemo(() => {
+        if (!product?.inventory) return [];
+        const colorsMap = new Map();
+        product.inventory.forEach(inv => {
+            if (inv.color && inv.color.color_id && inv.quantity > 0) {
+                const colorName = inv.color.name || (currentLang === 'en' && inv.color.color_name_en ? inv.color.color_name_en : inv.color.color_name_vi) || inv.color.color_name;
+                if (!colorsMap.has(inv.color.color_id)) {
+                     colorsMap.set(inv.color.color_id, { ...inv.color, name: colorName });
+                }
+            }
+        });
+        return Array.from(colorsMap.values());
+    }, [product, currentLang]);
 
-  // Memoize available colors from inventory (unique and with stock)
-  const availableColors = useMemo(() => {
-    if (!product?.inventory) return [];
-    const colorsMap = new Map();
-    product.inventory.forEach(inv => {
-      if (inv.color && inv.color.color_id && inv.quantity > 0) {
-        if (!colorsMap.has(inv.color.color_id)) {
-          colorsMap.set(inv.color.color_id, inv.color);
+    // Effect to set initial selectedColorId (your logic)
+    useEffect(() => {
+        if (availableColors.length > 0) {
+            const defaultColorFromImage = product.images?.find(img => img.display_order === 0 && img.color)?.color;
+            const initialColor = defaultColorFromImage && availableColors.find(ac => ac.color_id === defaultColorFromImage.color_id)
+                ? availableColors.find(ac => ac.color_id === defaultColorFromImage.color_id)
+                : availableColors[0];
+            setSelectedColorId(initialColor.color_id);
+        } else {
+            setSelectedColorId(null);
         }
-      }
-    });
-    return Array.from(colorsMap.values());
-  }, [product]);
+    }, [availableColors, product.images]);
 
-  // Effect to set initial selected color
-  useEffect(() => {
-    if (availableColors.length > 0) {
-      // Try to keep current selectedColor if it's still available, otherwise pick the first.
-      const currentSelectedColorStillAvailable = availableColors.find(c => c.color_id === selectedColor?.color_id);
-      if (currentSelectedColorStillAvailable) {
-        setSelectedColor(currentSelectedColorStillAvailable);
-      } else {
-        setSelectedColor(availableColors[0]);
-      }
-    } else {
-      setSelectedColor(null); // No colors with stock
-    }
-  }, [availableColors, product.product_id]); // Re-run if product changes or availableColors memo updates
+    // Effect to update main and hover images based on selected color (your logic)
+     useEffect(() => {
+        if (!product?.images || product.images.length === 0) {
+            setMainImage(PRODUCT_IMAGE_PLACEHOLDER.replace(API_BASE_URL, '')); // Ensure relative path
+            setHoverImage(null);
+            return;
+        }
+        let imagesForSelectedColor = product.images.filter(img => selectedColorId && img.color?.color_id === selectedColorId);
+        if (imagesForSelectedColor.length === 0) imagesForSelectedColor = product.images.filter(img => !img.color);
+        if (imagesForSelectedColor.length === 0) imagesForSelectedColor = product.images;
+        
+        const sortedImages = [...imagesForSelectedColor].sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+        
+        // DECLARE newMainImage and newHoverImage here before using them
+        const imageForMainDisplay = sortedImages.find(img => img.display_order === 0) || sortedImages[0];
+        const imageForHoverDisplay = sortedImages.find(img => img.display_order === 1) || (sortedImages.length > 1 ? sortedImages[1] : null);
 
-  // Memoize available sizes based on selected color and stock
-  const availableSizes = useMemo(() => {
-    if (!product?.inventory || !selectedColor) {
-      // If no color is selected but product has sizes (e.g. product without color variants but with size variants)
-      if (!selectedColor && product?.inventory?.some(inv => inv.size && inv.quantity > 0)) {
+        // Correctly use the declared variables
+        setMainImage(imageForMainDisplay ? imageForMainDisplay.image_url : PRODUCT_IMAGE_PLACEHOLDER.replace(API_BASE_URL, ''));
+        setHoverImage(imageForHoverDisplay ? imageForHoverDisplay.image_url : null);
+
+    }, [product, selectedColorId, API_BASE_URL]);
+
+    // Available sizes derived from inventory and selected color (your logic)
+    const availableSizes = useMemo(() => {
+        if (!product?.inventory || !selectedColorId) return [];
         const sizesMap = new Map();
         product.inventory.forEach(inv => {
-          if (inv.size && inv.size.size_id && inv.quantity > 0 && !inv.color) { // Only consider general inventory if no color selected
-            if (!sizesMap.has(inv.size.size_id)) {
-              sizesMap.set(inv.size.size_id, { ...inv.size, available: true });
+            if (inv.color?.color_id === selectedColorId && inv.size && inv.quantity > 0) {
+                if (!sizesMap.has(inv.size.size_id)) {
+                    sizesMap.set(inv.size.size_id, inv.size);
+                }
             }
-          }
         });
-        return Array.from(sizesMap.values());
-      }
-      return [];
-    }
+        return Array.from(sizesMap.values()).sort((a,b) => a.size_name.localeCompare(b.size_name));
+    }, [product, selectedColorId]);
 
-    const sizesMap = new Map();
-    product.inventory.forEach(inv => {
-      if (inv.color?.color_id === selectedColor.color_id && inv.size && inv.size.size_id) {
-        if (inv.quantity > 0) {
-          if (!sizesMap.has(inv.size.size_id)) {
-            sizesMap.set(inv.size.size_id, { ...inv.size, available: true });
-          }
+    // Effect to set initial selectedSizeId (your logic)
+    useEffect(() => {
+        if (availableSizes.length > 0) {
+            setSelectedSizeId(availableSizes[0].size_id);
         } else {
-          // Optionally include sizes that are out of stock for this color, marked as unavailable
-          // if (!sizesMap.has(inv.size.size_id)) {
-          //   sizesMap.set(inv.size.size_id, { ...inv.size, available: false });
-          // }
+            setSelectedSizeId(null);
         }
-      }
-    });
-    return Array.from(sizesMap.values()).sort((a,b) => a.size_name.localeCompare(b.size_name)); // Sort sizes
-  }, [product, selectedColor]);
+    }, [availableSizes]);
 
-  // Effect to set initial/update selected size
-  useEffect(() => {
-    if (availableSizes.length > 0) {
-      const availableOnly = availableSizes.filter(s => s.available);
-      if (availableOnly.length > 0) {
-         const currentSelectedSizeStillAvailable = availableOnly.find(s => s.size_id === selectedSize?.size_id);
-         if (currentSelectedSizeStillAvailable) {
-            setSelectedSize(currentSelectedSizeStillAvailable);
-         } else {
-            setSelectedSize(availableOnly[0]); // Default to first available size
-         }
-      } else {
-         setSelectedSize(null); // No sizes available for this color
-      }
-    } else {
-      setSelectedSize(null); // No sizes offered for this color
-    }
-  }, [availableSizes, selectedColor, product.product_id]); // Re-run if availableSizes changes
+    // Close size selector on outside click (your logic)
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (sizeSelectorRef.current && !sizeSelectorRef.current.contains(event.target)) {
+                setShowSizeSelector(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [sizeSelectorRef]);
 
-  // Effect to update display images based on product and selectedColor
-  useEffect(() => {
-    if (!product || !product.images) {
-      setMainDisplayImage(PRODUCT_IMAGE_PLACEHOLDER);
-      setHoverDisplayImage(null);
-      return;
-    }
+    const handleColorChange = useCallback((colorId, e) => {
+        e.stopPropagation();
+        setSelectedColorId(colorId);
+        setAddToCartFeedback({ error: null, success: null, loading: false });
+    }, []);
 
-    let imagesForCurrentSelectionSource = product.images;
+    const handleSizeSelect = useCallback((sizeId, e) => {
+        e.stopPropagation();
+        setSelectedSizeId(sizeId);
+        setShowSizeSelector(false);
+        setAddToCartFeedback({ error: null, success: null, loading: false });
+    }, []);
 
-    if (selectedColor) {
-      const colorSpecificImages = product.images.filter(img => img.color?.color_id === selectedColor.color_id);
-      if (colorSpecificImages.length > 0) {
-        imagesForCurrentSelectionSource = colorSpecificImages;
-      } else {
-        imagesForCurrentSelectionSource = product.images.filter(img => !img.color || !img.color.color_id);
-      }
-    } else {
-      imagesForCurrentSelectionSource = product.images.filter(img => !img.color || !img.color.color_id);
-    }
-    
-    if (imagesForCurrentSelectionSource.length === 0 && product.images.length > 0) {
-        imagesForCurrentSelectionSource = product.images;
-    }
+    const handleAddToCartOnCard = useCallback(async (e) => {
+        e.stopPropagation();
+        if (cartLoadingContext || addToCartFeedback.loading) return;
 
-    // Create a shallow copy before sorting to avoid mutating the read-only array
-    const mutableImagesForSorting = [...imagesForCurrentSelectionSource]; // MODIFICATION HERE
+        clearCartError();
+        setAddToCartFeedback({ error: null, success: null, loading: true });
 
-    mutableImagesForSorting.sort((a, b) => (a.display_order || 0) - (b.display_order || 0)); // Sort the copy
+        if (!product) {
+            setAddToCartFeedback({ error: t('common.errorOccurred'), success: null, loading: false }); return;
+        }
+        if (availableColors.length > 0 && !selectedColorId) {
+            setAddToCartFeedback({ error: t('productDetail.selectColorPrompt'), success: null, loading: false }); return;
+        }
+        if (availableSizes.length > 0 && !selectedSizeId) {
+            setShowSizeSelector(true);
+            setAddToCartFeedback({ error: t('productDetail.selectSizePrompt'), success: null, loading: false }); return;
+        }
+        const inventoryItem = product.inventory?.find(inv => inv.product_id === product.product_id && inv.color?.color_id === selectedColorId && inv.size?.size_id === selectedSizeId);
+        if (!inventoryItem || inventoryItem.quantity <= 0) {
+            setAddToCartFeedback({ error: t('product.outOfStock'), success: null, loading: false }); return;
+        }
+        const itemToAdd = { productId: product.product_id, quantity: 1, productVariantId: inventoryItem.inventory_id };
+        try {
+            await addToCart(itemToAdd);
+            setAddToCartFeedback({ error: null, success: t('productDetail.addedToCartSuccessShort', 'Đã thêm!'), loading: false });
+            setTimeout(() => setAddToCartFeedback({ error: null, success: null, loading: false }), 2000);
+        } catch (err) {
+            setAddToCartFeedback({ error: cartError?.message || t('common.errorOccurred'), success: null, loading: false });
+        }
+    }, [product, selectedColorId, selectedSizeId, addToCart, t, cartError, clearCartError, availableColors.length, availableSizes.length, cartLoadingContext, addToCartFeedback.loading]);
 
-    const mainImg = mutableImagesForSorting.find(img => img.display_order === 0) || mutableImagesForSorting[0];
-    const hoverImg = mutableImagesForSorting.find(img => img.display_order === 1) || (mutableImagesForSorting.length > 1 ? mutableImagesForSorting[1] : null);
+    const productLink = `/product/${product.product_id}`; // Using product_id for link
+    const displayProductName = product.name || product.product_name_vi; // Use GQL name field if available
+    const displayPrice = product.product_price;
+    const currentSelectedColorObject = availableColors.find(c => c.color_id === selectedColorId);
+    const currentSelectedColorName = currentSelectedColorObject?.name;
 
-    setMainDisplayImage(mainImg?.image_url ? mainImg.image_url : PRODUCT_IMAGE_PLACEHOLDER);
-    setHoverDisplayImage(hoverImg?.image_url ? hoverImg.image_url : null);
+    return (
+        <div className={`group relative flex flex-col h-full bg-white ${className}`}>
+            <div
+                className="aspect-[3/4] bg-neutral-200 overflow-hidden relative cursor-pointer"
+                onMouseEnter={() => setIsHovering(true)}
+                onMouseLeave={() => setIsHovering(false)}
+                onClick={() => navigate(productLink)}
+            >
+                <OptimizedImage
+                    // Pass mainImage and hoverImage directly, as they now store relative paths
+                    src={isHovering && hoverImage ? hoverImage : mainImage}
+                    alt={displayProductName || 'Product image'}
+                    containerClassName="w-full"
+                    aspectRatioClass="aspect-[3/4]"
+                    objectFitClass="object-cover"
+                />
+                {product.is_new_arrival && (
+                    <span className="absolute top-2 right-2 bg-black text-white text-[9px] px-1.5 py-0.5 font-semibold uppercase tracking-wider">
+                        NEW
+                    </span>
+                )}
+            </div>
+            <div className="p-3 flex flex-col flex-grow">
+                <h3
+                    className="text-xs font-medium text-black truncate cursor-pointer hover:underline mb-1"
+                    title={displayProductName}
+                    onClick={() => navigate(productLink)}
+                >
+                    {displayProductName || t('product.untitled', 'Sản phẩm không tên')}
+                </h3>
+                <div className="flex justify-between items-center mb-2">
+                    <p className="text-sm font-semibold text-black">{formatPrice(displayPrice)}</p>
+                    {availableColors.length > 0 && (
+                        <div className="flex space-x-1">
+                            {availableColors.slice(0, 4).map(color => (
+                                <button
+                                    key={color.color_id}
+                                    onClick={(e) => handleColorChange(color.color_id, e)}
+                                    className={`w-4 h-4 rounded-full border-2 focus:outline-none transition-all duration-150 ${selectedColorId === color.color_id ? 'ring-1 ring-offset-1 ring-black border-black' : 'border-neutral-400 hover:border-black'}`}
+                                    style={{ backgroundColor: color.color_hex }}
+                                    title={color.name}
+                                    aria-label={`Select color ${color.name}`}
+                                />
+                            ))}
+                            {/* Show +N if more than 4 colors */}
+                            {availableColors.length > 4 && (
+                                <span className="text-[10px] text-neutral-500 self-center">+{availableColors.length - 4}</span>
+                            )}
+                        </div>
+                    )}
+                </div>
 
-  }, [product, selectedColor]);
-
-  const handleColorClick = useCallback((e, color) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSelectedColor(color);
-    setAddToCartFeedback({ error: null, success: null }); // Clear feedback on variant change
-  }, []);
-
-  const handleSizeClick = useCallback((e, size) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSelectedSize(size);
-    setAddToCartFeedback({ error: null, success: null }); // Clear feedback on variant change
-  }, []);
-
-  const handleAddToCart = useCallback(async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    clearCartError(); // Clear previous cart errors
-    setAddToCartFeedback({ error: null, success: null });
+                 {currentSelectedColorName && (
+                     <p className="text-[11px] text-neutral-600 mb-2 truncate h-4">
+                        {t('product.color', 'Màu')}: {currentSelectedColorName}
+                    </p>
+                )}
+                {!currentSelectedColorName && availableColors.length > 0 && (
+                    <p className="text-[11px] h-4 mb-2"> </p> // Placeholder for height consistency
+                )}
 
 
-    if (!product) return;
-
-    // Validation before adding to cart
-    if (availableColors.length > 0 && !selectedColor) {
-      setAddToCartFeedback({ error: t('productDetail.selectColorPrompt'), success: null });
-      return;
-    }
-    if (availableSizes.length > 0 && !selectedSize) {
-      setAddToCartFeedback({ error: t('productDetail.selectSizePrompt'), success: null });
-      return;
-    }
-
-    let inventoryItem = null;
-    if (product.inventory) {
-        inventoryItem = product.inventory.find(inv => {
-            const colorMatch = !selectedColor || (inv.color?.color_id === selectedColor.color_id);
-            const sizeMatch = !selectedSize || (inv.size?.size_id === selectedSize.size_id);
-            // If product has no color/size options, match inventory items that also have no color/size
-            const noVariantOptions = availableColors.length === 0 && availableSizes.length === 0;
-            const generalInventoryItemMatch = noVariantOptions && !inv.color && !inv.size;
-
-            return generalInventoryItemMatch || (colorMatch && sizeMatch);
-        });
-    }
-    
-    if (!inventoryItem || inventoryItem.quantity <= 0) {
-      setAddToCartFeedback({ error: t('product.outOfStock', 'Hết hàng'), success: null });
-      return;
-    }
-
-    const itemToAdd = {
-      productId: product.product_id,
-      quantity: 1, // Default to 1 for product card
-      productVariantId: inventoryItem.inventory_id,
-    };
-
-    try {
-      await addToCart(itemToAdd); //
-      setAddToCartFeedback({ error: null, success: t('productDetail.addedToCartSuccess', 'Đã thêm vào giỏ!') });
-      setTimeout(() => setAddToCartFeedback({ error: null, success: null }), 2000);
-    } catch (err) {
-      // Error is already handled by CartContext and set in cartError
-      // We can display cartError directly or set a local message
-      setAddToCartFeedback({ error: cartError || t('common.errorOccurred'), success: null });
-    }
-  }, [product, selectedColor, selectedSize, availableColors.length, availableSizes.length, addToCart, t, cartError, clearCartError]);
-
-  if (!product || !product.product_id) return null;
-
-  const productLink = `/product/${product.product_id}`; // Or use slug: `/product/${product.slug}` if available and preferred
-  const displayProductName = product.name; // Already localized by GraphQL resolver
-  const displayPrice = product.product_price;
-
-  const currentStockForItem = useMemo(() => {
-    if (!product?.inventory) return 0;
-    const item = product.inventory.find(inv => 
-        (!selectedColor || inv.color?.color_id === selectedColor?.color_id) &&
-        (!selectedSize || inv.size?.size_id === selectedSize?.size_id) &&
-        // Handle case where product has no color/size variants
-        (availableColors.length > 0 || availableSizes.length > 0 || (!inv.color_id && !inv.size_id))
+                <div className="flex items-center justify-between mt-auto pt-2 border-t border-neutral-200">
+                    <div className="relative flex-grow mr-2" ref={sizeSelectorRef}>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setShowSizeSelector(!showSizeSelector); }}
+                            className="w-full text-left text-[11px] text-neutral-700 border border-neutral-300 rounded px-2 py-1 hover:border-black flex justify-between items-center"
+                        >
+                            <span className="truncate">
+                                {availableSizes.find(s => s.size_id === selectedSizeId)?.size_name || t('product.selectSizeShort', 'Size')}
+                            </span>
+                            <ChevronDown size={12} className={`transition-transform ${showSizeSelector ? 'rotate-180' : ''}`} />
+                        </button>
+                        {showSizeSelector && (
+                            <div className="absolute bottom-full left-0 mb-1 w-full bg-white border border-neutral-300 rounded shadow-lg z-20 max-h-28 overflow-y-auto">
+                                {availableSizes.map(size => (
+                                    <button
+                                        key={size.size_id}
+                                        onClick={(e) => handleSizeSelect(size.size_id, e)}
+                                        className={`block w-full text-left px-2 py-1 text-[11px] hover:bg-neutral-100 ${selectedSizeId === size.size_id ? 'bg-neutral-200 font-semibold' : ''}`}
+                                    >
+                                        {size.size_name}
+                                    </button>
+                                ))}
+                                {availableSizes.length === 0 && (
+                                    <span className="block px-2 py-1 text-[11px] text-neutral-500">
+                                        {t('product.noSizesForColor', 'Chọn màu')}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    <button
+                        onClick={handleAddToCartOnCard}
+                        disabled={cartLoadingContext || addToCartFeedback.loading || (availableSizes.length > 0 && !selectedSizeId)}
+                        className="p-1.5 bg-black text-white rounded hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 disabled:opacity-50"
+                        aria-label={t('product.addToCart', 'Thêm vào giỏ hàng')}
+                    >
+                        {addToCartFeedback.loading ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <ShoppingCart size={16} />
+                        )}
+                    </button>
+                </div>
+                {/* Feedback message area */}
+                <div className="h-3 mt-1 text-right"> {/* Fixed height to prevent layout shifts */}
+                    {(addToCartFeedback.error || addToCartFeedback.success) && (
+                        <p className={`text-[10px] ${addToCartFeedback.error ? 'text-red-600' : 'text-green-600'}`}>
+                            {addToCartFeedback.error || addToCartFeedback.success}
+                        </p>
+                    )}
+                </div>
+            </div>
+        </div>
     );
-    return item?.quantity || 0;
-  }, [product, selectedColor, selectedSize, availableColors, availableSizes]);
-
-  const isOutOfStock = currentStockForItem <= 0;
-
-  return (
-    <div
-      className={classNames(
-        "product-card group bg-white rounded-md shadow-sm overflow-hidden transition-all duration-300 hover:shadow-lg flex flex-col text-sm relative border border-transparent hover:border-gray-200",
-        className
-      )}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
-    >
-      <Link to={productLink} className="block relative">
-        <div className="relative w-full aspect-[3/4] overflow-hidden bg-gray-100 rounded-t-md">
-          <OptimizedImage
-            src={(isHovering && hoverDisplayImage) ? hoverDisplayImage : mainDisplayImage}
-            alt={displayProductName || 'Product image'}
-            containerClassName="w-full h-full"
-            objectFit="object-cover"
-            className="w-full h-full transition-opacity duration-300 ease-in-out"
-            placeholderSrc={PRODUCT_IMAGE_PLACEHOLDER.replace(API_BASE_URL, '')} // OptimizedImage handles API_BASE_URL
-          />
-        </div>
-      </Link>
-
-      <div className="p-3 md:p-4 flex flex-col flex-grow">
-        <h3 className="font-semibold text-gray-800 hover:text-indigo-600 mb-1 text-xs md:text-sm truncate transition-colors">
-          <Link to={productLink}>
-            {displayProductName || t('product.untitled', 'Sản phẩm không tên')}
-          </Link>
-        </h3>
-
-        {/* Color Selector */}
-        {availableColors.length > 0 && (
-          <div className="my-1.5 flex items-center space-x-1.5">
-            {availableColors.slice(0, 7).map((color) => ( // Show max 7 colors, then '+'
-              <button
-                key={color.color_id}
-                onClick={(e) => handleColorClick(e, color)}
-                className={classNames(
-                  "w-5 h-5 rounded-full border-2 focus:outline-none transition-all duration-150",
-                  selectedColor?.color_id === color.color_id
-                    ? 'ring-2 ring-offset-1 ring-indigo-500 border-white shadow-md'
-                    : 'border-gray-200 hover:border-gray-400'
-                )}
-                style={{ backgroundColor: color.color_hex }}
-                title={color.name} // Localized name
-                aria-label={t('product.selectColor', { colorName: color.name })}
-              >
-                <span className="sr-only">{color.name}</span>
-              </button>
-            ))}
-            {availableColors.length > 7 && (
-              <span className="text-xs text-gray-400">+{availableColors.length - 7}</span>
-            )}
-          </div>
-        )}
-        {selectedColor && <p className="text-[10px] text-gray-500 mb-1 truncate h-4">{t('product.color', 'Màu')}: {selectedColor.name}</p>}
-         {!selectedColor && availableColors.length > 0 && <p className="text-[10px] text-gray-500 mb-1 truncate h-4">&nbsp;</p>}
-
-
-        {/* Size Selector */}
-        {availableSizes.length > 0 && (
-          <div className="my-1.5 flex flex-wrap gap-1 items-center min-h-[26px]"> {/* Min height to prevent layout shift */}
-            {availableSizes.filter(s => s.available).slice(0,4).map((size) => ( // Show max 4 available sizes
-              <button
-                key={size.size_id}
-                onClick={(e) => handleSizeClick(e, size)}
-                className={classNames(
-                  'px-2 py-0.5 border rounded text-[10px] font-medium transition-colors',
-                  selectedSize?.size_id === size.size_id
-                    ? 'bg-black text-white border-black'
-                    : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-500'
-                )}
-                title={size.size_name}
-                aria-label={t('product.selectSize', { sizeName: size.size_name })}
-              >
-                {size.size_name}
-              </button>
-            ))}
-            {availableSizes.filter(s => s.available).length > 4 && <span className="text-[10px] text-gray-400 self-center">+{availableSizes.filter(s => s.available).length - 4}</span>}
-          </div>
-        )}
-        {selectedSize && <p className="text-[10px] text-gray-500 mb-1 truncate h-4">{t('product.size', 'Kích thước')}: {selectedSize.size_name}</p>}
-        {!selectedSize && availableSizes.length > 0 && <p className="text-[10px] text-gray-500 mb-1 truncate h-4">&nbsp;</p>}
-
-
-        {/* Price and Add to Cart Button */}
-        <div className="mt-auto flex items-center justify-between pt-2">
-          <p className="text-gray-900 font-semibold text-sm md:text-base">{formatPrice(displayPrice)}</p>
-          <button
-            onClick={handleAddToCart}
-            disabled={cartLoading || isOutOfStock}
-            className={classNames(
-              "p-2.5 rounded-md text-white transition-colors duration-150 flex-shrink-0",
-              isOutOfStock ? "bg-gray-300 cursor-not-allowed" : "bg-black hover:bg-gray-700 active:bg-gray-900"
-            )}
-            title={isOutOfStock ? t('product.outOfStock') : t('product.addToCart')}
-            aria-label={isOutOfStock ? t('product.outOfStock') : t('product.addToCart')}
-          >
-            {cartLoading && (product.product_id === (addToCartFeedback?.productIdForLoading || null) ) ? <LoadingSpinner size="xs" color="text-white"/> : <FiPlus size={18} />}
-          </button>
-        </div>
-        
-        {/* Feedback Messages */}
-        {addToCartFeedback.error && (
-            <p className="text-xs text-red-500 mt-1 text-right h-4">{addToCartFeedback.error}</p>
-        )}
-        {addToCartFeedback.success && (
-            <p className="text-xs text-green-600 mt-1 text-right h-4">{addToCartFeedback.success}</p>
-        )}
-        {/* Fallback for out of stock if no other message */}
-        {isOutOfStock && !addToCartFeedback.error && !addToCartFeedback.success && (
-            <p className="text-xs text-red-500 mt-1 text-right h-4">{t('product.outOfStock')}</p>
-        )}
-        {/* Placeholder for spacing if no message and not out of stock */}
-        {!isOutOfStock && !addToCartFeedback.error && !addToCartFeedback.success && (
-            <p className="text-xs mt-1 text-right h-4">&nbsp;</p>
-        )}
-
-      </div>
-    </div>
-  );
 };
 
 export default ProductCard;

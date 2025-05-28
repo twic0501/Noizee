@@ -1,0 +1,97 @@
+.cart-slider-panel.offcanvas {
+  width: 360px; /* Độ rộng panel */
+  border-left: 1px solid var(--color-border-primary);
+}
+
+@media (max-width: 576px) {
+  .cart-slider-panel.offcanvas {
+    width: 90%; /* Rộng hơn trên mobile */
+  }
+}
+
+.cart-slider-panel .offcanvas-header.cart-slider-header {
+  padding: 0.75rem 1rem; /* Giảm padding header */
+}
+.cart-slider-panel .offcanvas-header .offcanvas-title {
+  font-family: var(--font-secondary); /* Oswald */
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+}
+
+.cart-slider-panel .offcanvas-body {
+  /* custom-scrollbar-light sẽ được dùng cho ListGroup */
+}
+
+.cart-items-list.list-group-flush .list-group-item.cart-slider-item {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+.cart-items-list.list-group-flush .list-group-item.cart-slider-item:last-child {
+  border-bottom: none;
+}
+
+
+.cart-item-image {
+  width: 64px; /* ~w-16 */
+  height: 80px; /* ~h-20, giữ tỷ lệ ảnh dọc */
+  object-fit: cover;
+}
+
+.cart-item-name {
+  font-size: 0.8rem; /* small */
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cart-item-name:hover {
+  text-decoration: underline;
+}
+
+.text-muted.extra-small {
+  font-size: 0.68rem; /* Nhỏ hơn small một chút */
+  line-height: 1.2;
+}
+
+.quantity-selector-sm .btn-link {
+  padding: 0.25rem 0.5rem; /* Nhỏ hơn cho panel */
+  line-height: 1;
+}
+.quantity-selector-sm .px-2.small {
+  font-size: 0.8rem;
+  min-width: 20px; /* Đảm bảo không bị co quá nhỏ */
+  display: inline-block;
+  text-align: center;
+}
+
+.hover-danger:hover {
+  color: var(--bs-danger) !important;
+}
+
+.cart-slider-footer {
+  background-color: #f8f9fa; /* bg-light */
+}
+.cart-slider-footer .btn {
+    font-family: var(--font-secondary);
+    font-weight: 600;
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+}
+
+/* Custom scrollbar cho nền sáng (nếu cần) */
+.custom-scrollbar-light::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar-light::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+.custom-scrollbar-light::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 3px;
+}
+.custom-scrollbar-light::-webkit-scrollbar-thumb:hover {
+  background-color: #aaa;
+}

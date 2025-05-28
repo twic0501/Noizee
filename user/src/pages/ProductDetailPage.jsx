@@ -1,36 +1,44 @@
-// src/pages/ProductDetailPage.jsx
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+// user/src/pages/ProductDetailPage.jsx
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { useTranslation } from 'react-i18next';
-import { FiShoppingCart, FiMinus, FiPlus, FiCheckCircle, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import {
+    ShoppingCart, Minus, Plus, CheckCircle, ChevronDown, ChevronUp, ArrowLeft,
+    Maximize, Heart, Share2
+} from 'lucide-react';
+import DOMPurify from 'dompurify';
 
 import { GET_PRODUCT_DETAILS_QUERY } from '../api/graphql/productQueries';
 import { useCart } from '../contexts/CartContext';
-// import { useAuth } from '../../contexts/AuthContext'; // If wishlist or other auth features needed
+// Assuming LoadingSpinner and AlertMessage are Tailwind-styled
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import AlertMessage from '../components/common/AlertMessage';
-import ImageCarousel from '../components/product/ImageCarousel';
-import ColorSelector from '../components/product/ColorSelector';
-import SizeSelector from '../components/product/SizeSelector';
+// ImageCarousel might need its own refactoring if it's not just OptimizedImage
+// For simplicity, the target design uses simple main image + thumbnails, so we'll build that here
+import OptimizedImage from '../components/common/OptimizedImage';
 import { formatPrice } from '../utils/formatters';
 import { API_BASE_URL, PRODUCT_IMAGE_PLACEHOLDER } from '../utils/constants';
-import useToggle from '../hooks/useToggle'; // For accordion-like details
+// import logger from '../utils/logger';
 
-const DetailAccordionItem = ({ title, content, defaultOpen = false }) => {
-    const [isOpen, toggleOpen] = useToggle(defaultOpen);
-    if (!content) return null;
+// DetailAccordionItem (Tailwind styled)
+const DetailAccordionItem = ({ title, htmlContent, defaultOpen = false }) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    if (!htmlContent) return null;
+    const cleanContent = DOMPurify.sanitize(htmlContent);
+
     return (
-        <div className="border-b border-gray-200 py-5">
+        <div className="border-b border-neutral-200">
             <button
-                onClick={toggleOpen}
-                className="flex justify-between items-center w-full text-left text-gray-700 hover:text-gray-900"
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex justify-between items-center w-full py-4 text-left text-sm font-medium text-black focus:outline-none"
             >
-                <span className="font-medium">{title}</span>
-                {isOpen ? <FiChevronUp className="h-5 w-5" /> : <FiChevronDown className="h-5 w-5" />}
+                <span>{title}</span>
+                {isOpen ? <Minus size={16} /> : <Plus size={16} />}
             </button>
             {isOpen && (
-                <div className="mt-3 text-sm text-gray-600 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: content }} />
+                <div className="pb-4 text-xs text-neutral-700 leading-relaxed prose prose-sm max-w-none"
+                     dangerouslySetInnerHTML={{ __html: cleanContent }} />
             )}
         </div>
     );
@@ -38,272 +46,348 @@ const DetailAccordionItem = ({ title, content, defaultOpen = false }) => {
 
 
 const ProductDetailPage = () => {
-  const { t, i18n } = useTranslation();
-  const { productSlug } = useParams(); // Assuming productSlug is used, adjust if it's product_id
-  const { addToCart, isLoading: cartLoading } = useCart();
-  const currentLang = i18n.language;
+    const { t, i18n } = useTranslation();
+    const { productSlug } = useParams(); // Assuming slug is product_id from your GQL
+    const navigate = useNavigate();
+    const { addToCart, isLoading: cartLoadingContext, cartError, clearCartError } = useCart();
+    const currentLang = i18n.language;
 
-  const [selectedColor, setSelectedColor] = useState(null);
-  const [selectedSize, setSelectedSize] = useState(null);
-  const [quantity, setQuantity] = useState(1);
-  const [addToCartSuccess, setAddToCartSuccess] = useState(false);
-  const [activeGalleryImages, setActiveGalleryImages] = useState([]);
+    const [selectedColorId, setSelectedColorId] = useState(null);
+    const [selectedSizeId, setSelectedSizeId] = useState(null);
+    const [quantity, setQuantity] = useState(1);
+    const [addToCartFeedback, setAddToCartFeedback] = useState({ error: null, success: null, loading: false });
 
-  const { data, loading, error } = useQuery(GET_PRODUCT_DETAILS_QUERY, {
-    variables: { id: productSlug, lang: currentLang }, // Query uses 'id', ensure productSlug is the ID or change query var name
-    fetchPolicy: 'cache-and-network',
-  });
-  const product = data?.product;
+    const [activeMainImage, setActiveMainImage] = useState(PRODUCT_IMAGE_PLACEHOLDER);
+    const [galleryThumbnails, setGalleryThumbnails] = useState([]);
 
-  const availableColors = useMemo(() => {
-    if (!product?.inventory) return [];
-    const colorsMap = new Map();
-    product.inventory.forEach(inv => {
-      if (inv.color && inv.color.color_id && !colorsMap.has(inv.color.color_id)) {
-        colorsMap.set(inv.color.color_id, inv.color);
-      }
-    });
-    return Array.from(colorsMap.values());
-  }, [product]);
 
-  useEffect(() => {
-    if (availableColors.length > 0 && !selectedColor) {
-      setSelectedColor(availableColors[0]);
-    } else if (availableColors.length === 0 && selectedColor) {
-        setSelectedColor(null);
-    }
-  }, [availableColors, selectedColor]);
+    const { data, loading: queryLoading, error: queryError } = useQuery(GET_PRODUCT_DETAILS_QUERY, {
+        variables: { id: productSlug, lang: currentLang }, // Use 'id' if your GQL query expects 'id'
+        fetchPolicy: 'cache-and-network',
+        onCompleted: (queryData) => {
+            if (queryData?.product) {
+                const product = queryData.product;
+                const initialAvailableColors = product.inventory
+                    ?.filter(inv => inv.color && inv.color.color_id && inv.quantity > 0)
+                    .map(inv => inv.color)
+                    .filter((color, index, self) => index === self.findIndex(c => c.color_id === color.color_id)) || [];
 
-  const availableSizesForSelectedColor = useMemo(() => {
-    if (!product?.inventory) return [];
-    const sizesMap = new Map();
-    let inventoryToCheck = product.inventory;
-    if (selectedColor) {
-        inventoryToCheck = product.inventory.filter(inv => inv.color?.color_id === selectedColor.color_id);
-    } else {
-        inventoryToCheck = product.inventory.filter(inv => !inv.color_id); // Sizes for products with no color variants
-    }
-    inventoryToCheck.forEach(inv => {
-      if (inv.size && inv.size.size_id && inv.quantity > 0) {
-        if (!sizesMap.has(inv.size.size_id)) {
-          sizesMap.set(inv.size.size_id, { ...inv.size, available: true }); // Mark as available
+                let initialColorIdToSet = null;
+                if (initialAvailableColors.length > 0) {
+                    const defaultColorFromImage = product.images?.find(img => img.display_order === 0 && img.color)?.color;
+                    const initialColor = defaultColorFromImage && initialAvailableColors.find(ac => ac.color_id === defaultColorFromImage.color_id)
+                        ? initialAvailableColors.find(ac => ac.color_id === defaultColorFromImage.color_id)
+                        : initialAvailableColors[0];
+                    initialColorIdToSet = initialColor.color_id;
+                }
+                setSelectedColorId(initialColorIdToSet); // This will trigger the image update useEffect
+            }
         }
-      }
     });
-    // Also add sizes that might exist but have 0 quantity for this color, marking them as unavailable
-     if (selectedColor) { // Only do this if a color is selected
+
+    const product = data?.product;
+
+    // Memoized selectors for colors and sizes
+    const availableColors = useMemo(() => {
+        if (!product?.inventory) return [];
+        const colorsMap = new Map();
         product.inventory.forEach(inv => {
-            if (inv.color?.color_id === selectedColor.color_id && inv.size && inv.size.size_id && inv.quantity <= 0) {
-                if (!sizesMap.has(inv.size.size_id)) { // Add if not already added as available
-                    sizesMap.set(inv.size.size_id, { ...inv.size, available: false });
+            if (inv.color && inv.color.color_id && inv.quantity > 0) {
+                 if (!colorsMap.has(inv.color.color_id)) {
+                    const colorName = inv.color.name || (currentLang === 'en' && inv.color.color_name_en ? inv.color.color_name_en : inv.color.color_name_vi) || inv.color.color_name; // Get translated name
+                    colorsMap.set(inv.color.color_id, { ...inv.color, name: colorName });
                 }
             }
         });
-    }
+        return Array.from(colorsMap.values());
+    }, [product, currentLang]);
 
-    return Array.from(sizesMap.values());
-  }, [product, selectedColor]);
+    const availableSizes = useMemo(() => {
+        if (!product?.inventory || !selectedColorId) return [];
+        const sizesMap = new Map();
+        product.inventory.forEach(inv => {
+            if (inv.color?.color_id === selectedColorId && inv.size && inv.size.size_id) {
+                sizesMap.set(inv.size.size_id, { ...inv.size, available: inv.quantity > 0 });
+            }
+        });
+        return Array.from(sizesMap.values()).sort((a,b) => a.size_name.localeCompare(b.size_name));
+    }, [product, selectedColorId]);
 
-  useEffect(() => {
-    const targetSizes = availableSizesForSelectedColor.filter(s => s.available); // Only consider available sizes for default
-    if (targetSizes.length > 0) {
-      const currentSizeStillAvailable = targetSizes.find(s => s.size_id === selectedSize?.size_id);
-      if (!currentSizeStillAvailable) {
-        setSelectedSize(targetSizes[0]);
-      } else {
-         setSelectedSize(currentSizeStillAvailable);
-      }
-    } else {
-      setSelectedSize(null);
-    }
-  }, [selectedColor, availableSizesForSelectedColor, selectedSize]); // product removed
-
-  useEffect(() => {
-    if (!product || !product.images) {
-      setActiveGalleryImages([]); return;
-    }
-    let imagesToDisplay = [];
-    const generalImages = product.images.filter(img => !img.color || !img.color.color_id);
-
-    if (selectedColor) {
-      imagesToDisplay = product.images.filter(img => img.color?.color_id === selectedColor.color_id);
-    }
-    
-    // Smartly combine: if color selected and has specific images, use them. Then append general if not already present.
-    // If no color selected, or selected color has no images, use general images.
-    let finalImageSet = [];
-    if (selectedColor && imagesToDisplay.length > 0) {
-        finalImageSet = [...imagesToDisplay];
-        // Add general images that are not already part of the color-specific set (by image_url perhaps, or rely on display_order)
-        // This logic might need refinement based on how you want to merge.
-        // For now, let's assume variant images take precedence.
-    } else {
-        finalImageSet = [...generalImages];
-    }
-     if (finalImageSet.length === 0 && product.images.length > 0) { // Ultimate fallback
-        finalImageSet = product.images;
-    }
+    // Update selected size when color changes or availableSizes change
+    useEffect(() => {
+        if (availableSizes.length > 0) {
+            const firstAvailableSize = availableSizes.find(s => s.available);
+            setSelectedSizeId(firstAvailableSize ? firstAvailableSize.size_id : null);
+        } else {
+            setSelectedSizeId(null);
+        }
+        setQuantity(1); // Reset quantity on variant change
+        setAddToCartFeedback({ error: null, success: null, loading: false });
+    }, [selectedColorId, availableSizes]);
 
 
-    setActiveGalleryImages(
-      finalImageSet
-        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
-        .map(img => ({
-          original: `${API_BASE_URL}${img.image_url}`,
-          thumbnail: `${API_BASE_URL}${img.image_url}`,
-          originalAlt: img.alt_text || product.name,
-          id: img.image_id,
-      }))
-    );
-  }, [product, selectedColor, currentLang, API_BASE_URL]);
+    // Update active images based on product and selected color
+    useEffect(() => {
+        if (!product || !product.images) {
+            setActiveMainImage(PRODUCT_IMAGE_PLACEHOLDER.replace(API_BASE_URL, ''));
+            setGalleryThumbnails([]);
+            return;
+        }
+        let imagesToDisplay = product.images.filter(img => selectedColorId && img.color?.color_id === selectedColorId);
+        if (imagesToDisplay.length === 0) imagesToDisplay = product.images.filter(img => !img.color); // Fallback to general images
+        if (imagesToDisplay.length === 0) imagesToDisplay = product.images; // Fallback to all images
 
-  const handleColorSelect = (color) => { setSelectedColor(color); setQuantity(1); setAddToCartSuccess(false); };
-  const handleSizeSelect = (size) => { setSelectedSize(size); setQuantity(1); setAddToCartSuccess(false);};
+        const sortedImages = [...imagesToDisplay].sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
 
-  let currentInventoryItem = null;
-  if (product?.inventory) {
-      if (selectedColor && selectedSize) {
-          currentInventoryItem = product.inventory.find(inv => inv.color?.color_id === selectedColor.color_id && inv.size?.size_id === selectedSize.size_id);
-      } else if (selectedColor && availableSizesForSelectedColor.length === 0) {
-           currentInventoryItem = product.inventory.find(inv => inv.color?.color_id === selectedColor.color_id && !inv.size_id);
-      } else if (!selectedColor && selectedSize) {
-          currentInventoryItem = product.inventory.find(inv => !inv.color_id && inv.size?.size_id === selectedSize.size_id);
-      } else if (!selectedColor && !selectedSize && product.inventory?.length === 1 && !product.inventory[0].color_id && !product.inventory[0].size_id) {
-          currentInventoryItem = product.inventory[0];
-      } else if (!selectedColor && !selectedSize && product.inventory?.length > 0 && !availableColors.length && availableSizesForSelectedColor.length === 0) {
-          currentInventoryItem = product.inventory.find(inv => inv.quantity > 0);
-      }
-  }
-  const stockForSelection = currentInventoryItem?.quantity || 0;
+        if (sortedImages.length > 0) {
+            setActiveMainImage(sortedImages[0].image_url); // Store relative path
+            setGalleryThumbnails(sortedImages.map(img => ({
+                src: img.image_url, // Store relative path
+                alt: img.alt_text || product.name || `Thumbnail ${img.image_id}`
+            })));
+        } else {
+            setActiveMainImage(PRODUCT_IMAGE_PLACEHOLDER.replace(API_BASE_URL, ''));
+            setGalleryThumbnails([]);
+        }
+    }, [product, selectedColorId, currentLang]);
 
-  const handleQuantityChange = (amount) => {
-    setQuantity((prev) => {
-      const newQuantity = prev + amount;
-      if (newQuantity >= 1 && newQuantity <= stockForSelection) return newQuantity;
-      if (newQuantity < 1) return 1;
-      if (newQuantity > stockForSelection) return stockForSelection; // Cap at stock
-      return prev;
-    });
-  };
 
-  const handleAddToCart = async () => {
-    if (!product) return;
-    const requiresVariantSelection = availableColors.length > 0 || availableSizesForSelectedColor.length > 0;
+    const handleColorSelect = useCallback((color) => {
+        setSelectedColorId(color.color_id);
+    }, []);
 
-    if (availableColors.length > 0 && !selectedColor) {
-      alert(t('productDetail.selectColorPrompt')); return;
-    }
-    if (availableSizesForSelectedColor.length > 0 && !selectedSize) {
-      alert(t('productDetail.selectSizePrompt')); return;
-    }
-    if (requiresVariantSelection && !currentInventoryItem) {
-        alert(t('product.variantNotAvailable', 'Sản phẩm với lựa chọn này hiện không có sẵn.')); return;
-    }
-    if (stockForSelection <= 0) {
-        alert(t('product.outOfStock', 'Sản phẩm này đã hết hàng.')); return;
-    }
+    const handleSizeSelect = useCallback((size) => {
+        setSelectedSizeId(size.size_id);
+    }, []);
 
-    setAddToCartSuccess(false);
-    const itemToAdd = {
-      productId: product.product_id,
-      quantity: quantity,
-      productVariantId: currentInventoryItem ? currentInventoryItem.inventory_id : null,
+    const currentInventoryItem = useMemo(() => {
+        if (!product?.inventory || !selectedColorId || (availableSizes.length > 0 && !selectedSizeId)) return null;
+        return product.inventory.find(inv =>
+            inv.color?.color_id === selectedColorId &&
+            (availableSizes.length === 0 || inv.size?.size_id === selectedSizeId)
+        );
+    }, [product, selectedColorId, selectedSizeId, availableSizes]);
+
+    const stockForSelection = currentInventoryItem?.quantity || 0;
+    const isSelectionOutOfStock = stockForSelection <= 0 && (selectedColorId && (availableSizes.length === 0 || selectedSizeId));
+
+
+    const handleQuantityChange = (amount) => {
+        setQuantity((prev) => {
+            const newQuantity = prev + amount;
+            if (newQuantity >= 1 && newQuantity <= stockForSelection) return newQuantity;
+            if (newQuantity < 1) return 1;
+            if (newQuantity > stockForSelection && stockForSelection > 0) return stockForSelection;
+            if (stockForSelection === 0 && quantity !== 1) return 1; // If out of stock, allow quantity 1 for display
+            return prev;
+        });
     };
-    try {
-      await addToCart(itemToAdd);
-      setAddToCartSuccess(true);
-      setTimeout(() => setAddToCartSuccess(false), 3000);
-    } catch (err) { /* console.error */ }
-  };
 
-  if (loading) return <div className="flex justify-center items-center min-h-[calc(100vh-200px)]"><LoadingSpinner size="xl" /></div>;
-  if (error) return <div className="container mx-auto px-4 py-8"><AlertMessage type="error" title={t('productDetail.errorLoadingTitle')} message={error.message} /></div>;
-  if (!product) return <div className="container mx-auto px-4 py-8"><AlertMessage type="info" message={t('productDetail.notFound')} /></div>;
+     const handleAddToCartClick = useCallback(async () => {
+        if (cartLoadingContext) return;
+        clearCartError();
+        setAddToCartFeedback({ error: null, success: null, loading: true });
 
-  const isSelectionOutOfStock = stockForSelection <= 0;
+        if (!product) { setAddToCartFeedback({ error: t('common.errorOccurred'), success: null, loading: false }); return; }
+        if (availableColors.length > 0 && !selectedColorId) { setAddToCartFeedback({ error: t('productDetail.selectColorPrompt'), success: null, loading: false }); return; }
+        if (availableSizes.length > 0 && !selectedSizeId) { setAddToCartFeedback({ error: t('productDetail.selectSizePrompt'), success: null, loading: false }); return; }
+        if (!currentInventoryItem || stockForSelection <= 0) { setAddToCartFeedback({ error: t('product.outOfStock'), success: null, loading: false }); return; }
+        if (quantity <= 0) { setAddToCartFeedback({ error: t('productDetail.quantityMustBePositive'), success: null, loading: false }); return; }
+        if (quantity > stockForSelection) { setAddToCartFeedback({ error: t('productDetail.notEnoughStock'), success: null, loading: false }); return; }
+
+        const itemToAdd = { productId: product.product_id, quantity: quantity, productVariantId: currentInventoryItem.inventory_id };
+        try {
+            await addToCart(itemToAdd);
+            setAddToCartFeedback({ error: null, success: t('productDetail.addedToCartSuccess'), loading: false });
+            setTimeout(() => setAddToCartFeedback({ error: null, success: null, loading: false }), 3000);
+        } catch (err) {
+            setAddToCartFeedback({ error: cartError?.message || t('common.errorOccurred'), success: null, loading: false });
+        }
+    }, [product, selectedColorId, selectedSizeId, quantity, addToCart, t, cartError, clearCartError, availableColors.length, availableSizes.length, currentInventoryItem, stockForSelection, cartLoadingContext]);
 
 
-  return (
-    <div className="bg-white"> {/* Changed background to white for product page */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-        {/* Optional Breadcrumbs */}
-        {/* <Breadcrumbs items={[...]} className="mb-6"/> */}
+    if (queryLoading && !data) return <div className="container mx-auto py-10 text-center"><div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto"></div></div>;
+    if (queryError) return <div className="container mx-auto my-4"><AlertMessage type="error" title={t('productDetail.errorLoadingTitle')} message={queryError.message} /></div>;
+    if (!product) return <div className="container mx-auto my-4"><AlertMessage type="info" message={t('productDetail.notFound')} /></div>;
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 lg:gap-x-12">
-          {/* Left: Image Carousel */}
-          <div className="product-gallery-container lg:sticky lg:top-24 self-start"> {/* Sticky for desktop */}
-            <ImageCarousel images={activeGalleryImages} productName={product.name} />
-          </div>
+    const displayProductName = product.name; // GQL field 'name' is already localized by resolver
+    const displayDescription = product.description; // GQL field 'description' is localized
 
-          {/* Right: Product Details & Actions */}
-          <div className="product-info-container mt-8 lg:mt-0">
-            {/* <p className="text-sm text-gray-500 mb-1">{product.category?.name || 'Uncategorized'}</p> */}
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 leading-tight">{product.name}</h1>
-            {/* SKU/Brand can go here if needed */}
-            <p className="text-2xl lg:text-3xl font-semibold text-gray-800 mb-5">{formatPrice(product.product_price)}</p>
+    return (
+        <div className="min-h-screen bg-white text-black">
+            {/* Header is part of MainLayout */}
+            <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <button onClick={() => navigate(-1)} className="text-sm text-black hover:underline flex items-center mb-6">
+                    <ArrowLeft size={18} className="mr-1" /> {t('productDetail.backToListing', 'Back to products')}
+                </button>
 
-            {availableColors.length > 0 && (
-              <ColorSelector
-                colors={availableColors}
-                selectedColor={selectedColor}
-                onColorSelect={handleColorSelect}
-                className="mb-5"
-              />
-            )}
+                <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+                    {/* Image Gallery Column */}
+                    <div className="w-full lg:w-3/5 flex flex-col-reverse lg:flex-row gap-4">
+                        {/* Thumbnails (Vertical on lg+) */}
+                        <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto lg:max-h-[500px] pr-2 pb-2 lg:pb-0 lg:pr-0 scrollbar-thin scrollbar-thumb-neutral-400 scrollbar-track-neutral-200">
+                            {galleryThumbnails.map((thumb, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => setActiveMainImage(thumb.src)}
+                                    className={`w-20 h-24 flex-shrink-0 border rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-black
+                                                ${activeMainImage === thumb.src ? 'ring-2 ring-black border-black' : 'border-neutral-300'}`}
+                                >
+                                    <OptimizedImage src={thumb.src} alt={thumb.alt} containerClassName="w-full h-full" objectFitClass="object-cover" />
+                                </button>
+                            ))}
+                        </div>
+                        {/* Main Image */}
+                        <div className="flex-1 aspect-[4/5] bg-neutral-100 border border-neutral-300 rounded-md overflow-hidden relative">
+                            <OptimizedImage src={activeMainImage} alt={displayProductName} containerClassName="w-full h-full" objectFitClass="object-cover" />
+                            {/* <button className="absolute top-3 right-3 p-2 bg-white/70 rounded-full text-black hover:bg-white"><Maximize size={20}/></button> */}
+                        </div>
+                    </div>
 
-            {availableSizesForSelectedColor.length > 0 && (
-              <div className="mb-5">
-                <div className="flex justify-between items-center mb-1.5">
-                    <h4 className="text-sm font-medium text-gray-800">
-                        {t('product.size', 'Kích thước')}:
-                        <span className="ml-1 font-normal text-gray-600">{selectedSize?.size_name || ''}</span>
-                    </h4>
-                    {/* <a href="#" className="text-xs text-indigo-600 hover:underline">{t('product.sizeGuide', 'Size Guide')}</a> */}
+                    {/* Product Info Column */}
+                    <div className="w-full lg:w-2/5">
+                        <p className="text-xs uppercase text-neutral-500 mb-1">
+                            {product.category?.name || t('product.uncategorized', 'Uncategorized')}
+                        </p>
+                        <h1 className="text-2xl lg:text-3xl font-semibold text-black mb-2">{displayProductName}</h1>
+                        {product.is_new_arrival && (
+                             <span className="text-[10px] bg-black text-white px-2 py-0.5 font-semibold uppercase tracking-wider rounded-sm mb-2 inline-block mr-2">NEW</span>
+                        )}
+                        {isSelectionOutOfStock && (
+                            <span className="text-[10px] bg-red-600 text-white px-2 py-0.5 font-semibold uppercase tracking-wider rounded-sm mb-2 inline-block">{t('product.outOfStock')}</span>
+                        )}
+                        <p className="text-xl lg:text-2xl font-medium text-black mb-4">{formatPrice(product.product_price)}</p>
+
+                        {/* Color Selector */}
+                        {availableColors.length > 0 && (
+                            <div className="mb-5">
+                                <label className="block text-xs font-medium text-neutral-700 mb-1.5">
+                                    {t('product.color', 'MÀU SẮC')}: <span className="text-black">{availableColors.find(c => c.color_id === selectedColorId)?.name}</span>
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {availableColors.map(color => (
+                                        <button
+                                            key={color.color_id}
+                                            onClick={() => handleColorSelect(color)}
+                                            className={`w-8 h-8 rounded-full border-2 focus:outline-none transition-all duration-150
+                                                        ${selectedColorId === color.color_id ? 'ring-2 ring-offset-1 ring-black border-black' : 'border-neutral-300 hover:border-neutral-500'}`}
+                                            style={{ backgroundColor: color.color_hex }}
+                                            title={color.name}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Size Selector */}
+                        {availableSizes.length > 0 && (
+                             <div className="mb-5">
+                                <div className="flex justify-between items-center mb-1.5">
+                                     <label className="block text-xs font-medium text-neutral-700">
+                                        {t('product.size', 'KÍCH THƯỚC')}: <span className="text-black">{availableSizes.find(s => s.size_id === selectedSizeId)?.size_name}</span>
+                                    </label>
+                                    {/* <a href="#" className="text-xs text-black hover:underline">Size Guide</a> */}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {availableSizes.map(size => (
+                                        <button
+                                            key={size.size_id}
+                                            onClick={() => handleSizeSelect(size)}
+                                            disabled={!size.available}
+                                            className={`px-4 py-2 border rounded-md text-sm font-medium transition-colors
+                                                        ${selectedSizeId === size.size_id ? 'bg-black text-white border-black' : 'bg-white text-black border-neutral-300 hover:border-black'}
+                                                        ${!size.available ? 'opacity-50 cursor-not-allowed bg-neutral-100 line-through' : ''}`}
+                                        >
+                                            {size.size_name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {isSelectionOutOfStock && !queryLoading && (
+                             <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-sm mb-3 inline-block">{t('productDetail.outOfStock')}</span>
+                        )}
+
+
+                        {/* Quantity Selector */}
+                        <div className="mb-6">
+                            <label htmlFor="quantity" className="block text-xs font-medium text-neutral-700 mb-1.5">{t('productDetail.quantity', 'SỐ LƯỢNG')}</label>
+                            <div className="flex items-center border border-neutral-400 rounded w-max">
+                                <button onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1 || isSelectionOutOfStock} className="px-3 py-2 text-black disabled:opacity-50 focus:outline-none">
+                                    <Minus size={16}/>
+                                </button>
+                                <input
+                                    type="number"
+                                    id="quantity"
+                                    name="quantity"
+                                    value={quantity}
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value, 10);
+                                        if (!isNaN(val)) {
+                                            if (val >=1 && val <= stockForSelection) setQuantity(val);
+                                            else if (val < 1) setQuantity(1);
+                                            else if (val > stockForSelection && stockForSelection > 0) setQuantity(stockForSelection);
+                                        }
+                                    }}
+                                    readOnly={isSelectionOutOfStock && stockForSelection === 0}
+                                    className="w-12 text-center text-sm text-black border-x border-neutral-400 focus:outline-none py-2 bg-transparent"
+                                />
+                                <button onClick={() => handleQuantityChange(1)} disabled={quantity >= stockForSelection || isSelectionOutOfStock} className="px-3 py-2 text-black disabled:opacity-50 focus:outline-none">
+                                    <Plus size={16}/>
+                                </button>
+                            </div>
+                             {stockForSelection > 0 && stockForSelection < 10 && !isSelectionOutOfStock && (
+                                <p className="text-red-600 text-xs mt-1">{t('productDetail.lowStock', 'Chỉ còn {{count}} sản phẩm!', { count: stockForSelection })}</p>
+                            )}
+                        </div>
+
+                        {/* Add to Cart / Buy Now Buttons */}
+                        <div className="space-y-3 mb-6">
+                             <button
+                                onClick={handleAddToCartClick}
+                                disabled={cartLoadingContext || addToCartFeedback.loading || isSelectionOutOfStock || (availableSizes.length > 0 && !selectedSizeId) || quantity <=0}
+                                className="w-full bg-black text-white py-3 rounded-md font-semibold hover:bg-neutral-800 transition-colors text-sm uppercase disabled:opacity-60 flex items-center justify-center"
+                            >
+                                {addToCartFeedback.loading || cartLoadingContext ? (
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                ) : (
+                                    <ShoppingCart size={18} className="mr-2"/>
+                                )}
+                                {isSelectionOutOfStock ? t('product.outOfStock') : t('productDetail.addToCartButton')}
+                            </button>
+                            {/* <button className="w-full bg-neutral-700 text-white py-3 rounded-md font-semibold hover:bg-neutral-600 transition-colors text-sm uppercase">Buy with Express Pay</button> */}
+                        </div>
+                        {/* Feedback Message */}
+                        <div className="h-5 mb-4"> {/* Fixed height for feedback area */}
+                            {addToCartFeedback.success && (
+                                <div className="text-xs text-green-600 flex items-center">
+                                    <CheckCircle size={14} className="mr-1"/>{addToCartFeedback.success}
+                                </div>
+                            )}
+                            {addToCartFeedback.error && (
+                                <div className="text-xs text-red-600">
+                                    {addToCartFeedback.error}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Meta Actions */}
+                        {/* <div className="flex space-x-3">
+                            <button className="flex items-center text-xs text-black hover:underline"><Heart size={14} className="mr-1"/> Add to Wishlist</button>
+                            <button className="flex items-center text-xs text-black hover:underline"><Share2 size={14} className="mr-1"/> Share</button>
+                        </div> */}
+
+                        {/* Accordion for Details */}
+                        <div className="mt-8 pt-6 border-t border-neutral-200">
+                            <DetailAccordionItem eventKey="0" title={t('productDetail.descriptionTitle')} htmlContent={displayDescription} defaultOpen={true} />
+                            {/* Add more accordion items for details, composition, care if available */}
+                            {/* <DetailAccordionItem eventKey="1" title="Product Details" htmlContent="<ul><li>Detail 1</li><li>Detail 2</li></ul>" /> */}
+                        </div>
+                    </div>
                 </div>
-                <SizeSelector
-                  sizes={availableSizesForSelectedColor} // Pass available prop within each size object
-                  selectedSize={selectedSize}
-                  onSizeSelect={handleSizeSelect}
-                />
-              </div>
-            )}
-
-            <div className="flex items-center gap-x-4 mb-6">
-              <label htmlFor="quantity" className="text-sm font-medium text-gray-700 sr-only">{t('productDetail.quantity')}:</label>
-              <div className="flex items-center border border-gray-300 rounded-md">
-                <button onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1} className="p-2.5 text-gray-600 hover:text-gray-800 disabled:opacity-50"><FiMinus size={16}/></button>
-                <input type="text" readOnly value={quantity} className="w-10 text-center border-x border-gray-300 text-sm py-2 focus:outline-none" />
-                <button onClick={() => handleQuantityChange(1)} disabled={quantity >= stockForSelection || isSelectionOutOfStock} className="p-2.5 text-gray-600 hover:text-gray-800 disabled:opacity-50"><FiPlus size={16}/></button>
-              </div>
-            
-              <button
-                onClick={handleAddToCart}
-                disabled={cartLoading || isSelectionOutOfStock}
-                className={`flex-1 py-3 px-6 rounded-md font-semibold text-white transition-colors flex items-center justify-center text-base
-                            ${isSelectionOutOfStock ? 'bg-gray-400 cursor-not-allowed' : 'bg-black hover:bg-gray-800 focus:ring-2 focus:ring-offset-2 focus:ring-gray-700'}`}
-              >
-                {cartLoading ? <LoadingSpinner size="sm" /> : (isSelectionOutOfStock ? t('productDetail.outOfStock') : t('productDetail.addToCartButton'))}
-              </button>
-            </div>
-
-            {addToCartSuccess && (
-                <div className="mt-3 mb-3 flex items-center text-sm text-green-600 bg-green-50 p-3 rounded-md">
-                    <FiCheckCircle className="w-5 h-5 mr-2"/>
-                    {t('productDetail.addedToCartSuccess', 'Đã thêm vào giỏ hàng thành công!')}
-                </div>
-            )}
-            
-            <div className="mt-8 pt-5 border-t border-gray-200">
-                <DetailAccordionItem title={t('productDetail.descriptionTitle')} content={product.description} defaultOpen={true} />
-                {/* Add more AccordionItems for specs, shipping, etc. */}
-                {/* <DetailAccordionItem title="Thông số kỹ thuật" content={"<p>Chất liệu: Cotton 100%</p><p>Xuất xứ: Việt Nam</p>"} /> */}
-            </div>
-          </div>
+            </main>
         </div>
-        {/* Related Products, Reviews etc. can go below this grid */}
-      </div>
-    </div>
-  );
+    );
 };
 
 export default ProductDetailPage;

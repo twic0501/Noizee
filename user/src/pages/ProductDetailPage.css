@@ -1,0 +1,208 @@
+.product-detail-page {
+  /* Nền trắng và chữ đen đã được set ở body hoặc component cha */
+}
+
+.product-detail-page .go-back-link {
+  font-size: 0.875rem; /* small */
+  text-decoration: none;
+}
+.product-detail-page .go-back-link:hover {
+  text-decoration: underline;
+}
+.product-detail-page .category-link:hover {
+    color: var(--color-text-primary) !important;
+}
+
+.product-detail-page .product-title {
+  font-family: var(--font-primary); /* Archivo Black */
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.product-detail-page .product-price {
+  font-family: var(--font-monospace); /* Roboto Mono */
+  font-weight: 600; /* SemiBold */
+}
+
+/* Image Carousel Column */
+.product-gallery-col .sticky-top {
+  /* Đảm bảo sticky hoạt động đúng, top value có thể cần điều chỉnh dựa trên chiều cao header */
+}
+
+/* ImageCarousel component (nếu bạn dùng react-image-gallery) */
+/* Bạn sẽ cần style cho react-image-gallery để nó phù hợp với theme trắng đen */
+/* Ví dụ: */
+.product-detail-page .image-gallery-slide .image-gallery-image {
+  background-color: #f8f9fa; /* Nền xám nhạt cho ảnh */
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem; /* rounded-md */
+}
+.product-detail-page .image-gallery-thumbnail {
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease-in-out;
+  border-radius: 0.25rem;
+  overflow: hidden; /* Đảm bảo ảnh thumbnail không tràn */
+  width: 60px !important; /* Điều chỉnh kích thước thumbnail nếu cần */
+  height: 75px !important;
+}
+.product-detail-page .image-gallery-thumbnail.active,
+.product-detail-page .image-gallery-thumbnail:hover {
+  border-color: #000000; /* Border đen khi active/hover */
+}
+.product-detail-page .image-gallery-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.product-detail-page .image-gallery-icon { /* Nút prev/next/fullscreen */
+  color: #ffffff;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+}
+.product-detail-page .image-gallery-icon:hover {
+  color: #cccccc;
+}
+
+
+/* ColorSelector và SizeSelector (Cần CSS tùy chỉnh cho các component gốc của bạn) */
+/* Giả sử ColorSelector.jsx của bạn render các nút tròn */
+.product-detail-page .color-selector-container .color-swatch {
+  width: 2rem; /* ~w-8 */
+  height: 2rem; /* ~h-8 */
+  border-radius: 50%;
+  border: 2px solid #dee2e6;
+  cursor: pointer;
+  transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+.product-detail-page .color-selector-container .color-swatch.selected {
+  transform: scale(1.1);
+  border-color: #000000;
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px #000000; /* Ring trắng bên trong, đen bên ngoài */
+}
+
+/* Giả sử SizeSelector.jsx của bạn render các nút */
+.product-detail-page .size-selector-container .btn-size {
+  border: 1px solid #ced4da;
+  color: #212529;
+  background-color: #ffffff;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+.product-detail-page .size-selector-container .btn-size:hover:not(.active) {
+  border-color: #000000;
+  background-color: #f8f9fa;
+}
+.product-detail-page .size-selector-container .btn-size.active {
+  background-color: #000000;
+  color: #ffffff;
+  border-color: #000000;
+}
+.product-detail-page .size-selector-container .btn-size:disabled {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    color: #adb5bd;
+    text-decoration: line-through;
+    cursor: not-allowed;
+}
+.product-detail-page .out-of-stock-badge {
+    font-size: 0.75rem;
+    padding: 0.3em 0.6em;
+}
+
+
+/* Quantity Selector */
+.quantity-selector .quantity-btn {
+  padding: 0.5rem 0.75rem; /* Điều chỉnh padding */
+  border: none;
+  box-shadow: none !important;
+}
+.quantity-selector .quantity-input {
+  height: calc(1.5em + 1rem + 2px); /* Bằng chiều cao nút Bootstrap mặc định */
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.quantity-selector .quantity-input::-webkit-outer-spin-button,
+.quantity-selector .quantity-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+
+/* Add to Cart Button */
+.add-to-cart-btn.btn-dark {
+  background-color: #000000;
+  border-color: #000000;
+  font-weight: 600; /* SemiBold */
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+}
+.add-to-cart-btn.btn-dark:hover {
+  background-color: #232323;
+  border-color: #232323;
+}
+.add-to-cart-btn.btn-dark:disabled {
+  background-color: #6c757d; /* Màu xám khi disable */
+  border-color: #6c757d;
+}
+
+/* Express Buy Button (Nếu có) */
+.express-buy-btn.btn-primary {
+    /* Bootstrap primary đã được set là đen */
+    font-weight: 600;
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+}
+
+/* Details Accordion */
+.product-details-accordion .accordion-item {
+  border: none;
+  border-bottom: 1px solid #e9ecef; /* Đường kẻ nhẹ giữa các mục */
+}
+.product-details-accordion .accordion-item:last-child {
+  border-bottom: none;
+}
+.product-details-accordion .accordion-button {
+  font-family: var(--font-secondary); /* Oswald */
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  background-color: transparent;
+  padding: 1rem 0; /* Điều chỉnh padding */
+}
+.product-details-accordion .accordion-button:not(.collapsed) {
+  color: var(--color-text-primary);
+  background-color: transparent;
+  box-shadow: none;
+}
+.product-details-accordion .accordion-button:focus {
+  box-shadow: none;
+  border-color: transparent;
+}
+.product-details-accordion .accordion-button::after {
+  filter: invert(20%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(95%) contrast(80%); /* Mũi tên màu xám đậm */
+}
+.product-details-accordion .accordion-body {
+  padding: 0.5rem 0 1rem 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+.product-details-accordion .prose { /* Styling cho nội dung HTML từ dangerouslySetInnerHTML */
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+}
+.product-details-accordion .prose p { margin-bottom: 0.75em; }
+.product-details-accordion .prose ul, .product-details-accordion .prose ol { margin-left: 1.25em; margin-bottom: 0.75em; }
+.product-details-accordion .prose li { margin-bottom: 0.25em; }
+
+
+/* Product Actions Footer */
+.product-actions-footer {
+  border-top: 1px solid #e9ecef;
+}
+.product-actions-footer .action-btn {
+  font-size: 0.75rem; /* text-xs */
+  text-decoration: none;
+}
+.product-actions-footer .action-btn:hover {
+  text-decoration: underline;
+}

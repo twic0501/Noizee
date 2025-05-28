@@ -1,217 +1,245 @@
-// src/components/product/ProductFilter.jsx
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useQuery } from '@apollo/client';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
-import LoadingSpinner from '../common/LoadingSpinner';
-import useToggle from '../../hooks/useToggle';
+import { X, Plus, Check } from 'lucide-react'; // Using lucide-react icons
+import PropTypes from 'prop-types';
+// No need for ProductFilter.css if all styles are handled by Tailwind.
 
-const FilterSection = ({ title, children, defaultOpen = false }) => {
-  const [isOpen, toggleOpen] = useToggle(defaultOpen);
-  return (
-    <div className="py-4 border-b border-gray-200 last:border-b-0">
-      <button
-        onClick={toggleOpen}
-        className="flex items-center justify-between w-full text-left"
-        aria-expanded={isOpen}
-      >
-        <span className="text-sm font-medium text-gray-800">{title}</span>
-        {isOpen ? <FiChevronUp className="h-5 w-5 text-gray-400" /> : <FiChevronDown className="h-5 w-5 text-gray-400" />}
-      </button>
-      {isOpen && <div className="mt-3 space-y-2">{children}</div>}
-    </div>
-  );
+const ProductFilter = ({
+    isOpen,
+    onClose,
+    onApplyFilters,
+    onClearFilters,
+    initialFilters = {},
+    availableCategories = [],
+    availableColors = [],
+    availableSizes = [],
+    loadingOptions = false,
+}) => {
+    const { t } = useTranslation();
+
+    const [isInStock, setIsInStock] = useState(initialFilters?.inStock ?? true);
+    const [selectedCategories, setSelectedCategories] = useState(initialFilters?.categories ?? []);
+    const [selectedColors, setSelectedColors] = useState(initialFilters?.colors ?? []);
+    const [selectedSizes, setSelectedSizes] = useState(initialFilters?.sizes ?? []);
+
+    const initialCategoryShowCount = 5;
+    const initialColorShowCount = 5;
+    const [showAllCategories, setShowAllCategories] = useState(false);
+    const [showAllColors, setShowAllColors] = useState(false);
+
+    useEffect(() => {
+        setIsInStock(initialFilters?.inStock ?? true);
+        setSelectedCategories(initialFilters?.categories ?? []);
+        setSelectedColors(initialFilters?.colors ?? []);
+        setSelectedSizes(initialFilters?.sizes ?? []);
+    }, [initialFilters]);
+
+    const handleCategoryChange = (categoryId) => setSelectedCategories((prev) => prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]);
+    const handleColorChange = (colorId) => setSelectedColors((prev) => prev.includes(colorId) ? prev.filter((id) => id !== colorId) : [...prev, colorId]);
+    const handleSizeChange = (sizeId) => setSelectedSizes((prev) => prev.includes(sizeId) ? prev.filter((id) => id !== sizeId) : [...prev, sizeId]);
+
+    const handleApply = () => {
+        const filtersToApply = {
+            inStock: isInStock,
+            categories: selectedCategories,
+            colors: selectedColors,
+            sizes: selectedSizes,
+        };
+        if (onApplyFilters) onApplyFilters(filtersToApply);
+        if (onClose) onClose();
+    };
+
+    const handleClear = () => {
+        setIsInStock(true);
+        setSelectedCategories([]);
+        setSelectedColors([]);
+        setSelectedSizes([]);
+        if (onClearFilters) onClearFilters();
+    };
+
+    const visibleCategories = showAllCategories ? availableCategories : availableCategories.slice(0, initialCategoryShowCount);
+    const visibleColors = showAllColors ? availableColors : availableColors.slice(0, initialColorShowCount);
+
+    const renderLoading = () => <div className="text-neutral-400 text-xs py-2">{t('common.loading', 'Đang tải...')}</div>;
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex justify-end" aria-labelledby="filter-panel-title" role="dialog" aria-modal="true">
+            {/* Background overlay */}
+            <div className="fixed inset-0 bg-black/60 transition-opacity" onClick={onClose}></div>
+
+            {/* Filter Panel */}
+            <div className="relative flex flex-col w-4/5 max-w-xs sm:max-w-sm h-full bg-black text-neutral-100 shadow-2xl transform transition-transform duration-300 ease-in-out translate-x-0">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 border-b border-neutral-700">
+                    <h2 id="filter-panel-title" className="text-base sm:text-lg font-semibold uppercase text-white">
+                        {t('filter.title', 'Filter')}
+                    </h2>
+                    <button onClick={onClose} className="text-neutral-400 hover:text-white">
+                        <span className="sr-only">{t('common.close', 'Close')}</span>
+                        <X size={20} />
+                    </button>
+                </div>
+
+                {/* Body */}
+                <div className="flex-grow overflow-y-auto p-4 space-y-5 custom-scrollbar-dark"> {/* Added custom-scrollbar-dark */}
+                    {/* In Stock Filter */}
+                    <div>
+                        <label className="flex items-center justify-between cursor-pointer py-1">
+                            <span className="text-xs sm:text-sm uppercase tracking-wider text-neutral-200">
+                                {t('filter.allProducts', 'ALL PRODUCTS')}
+                            </span>
+                            <div className="flex items-center">
+                                <span className="mr-2 text-xs sm:text-sm text-neutral-400">
+                                    {t('filter.inStockOnly', 'IN STOCK')}
+                                </span>
+                                <input
+                                    type="checkbox"
+                                    checked={isInStock}
+                                    onChange={() => setIsInStock(!isInStock)}
+                                    className="h-4 w-4 sm:h-5 sm:w-5 rounded bg-neutral-700 border-neutral-600 text-white focus:ring-white focus:ring-offset-black accent-neutral-500 disabled:opacity-50"
+                                    disabled={loadingOptions}
+                                />
+                            </div>
+                        </label>
+                    </div>
+                    <hr className="border-neutral-700" />
+
+                    {/* Category Filter */}
+                    <div>
+                        <h3 className="text-xs sm:text-sm uppercase tracking-wider text-neutral-400 mb-2.5">
+                            {t('filter.categories', 'Category')}
+                        </h3>
+                        {loadingOptions ? renderLoading() : (
+                            <>
+                                <div className="space-y-1.5">
+                                    {visibleCategories.map((category) => (
+                                        <label key={category.category_id || category.id} className="flex items-center space-x-2.5 cursor-pointer group">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedCategories.includes(category.category_id || category.id)}
+                                                onChange={() => handleCategoryChange(category.category_id || category.id)}
+                                                className="hidden"
+                                            />
+                                            <span className={`w-3.5 h-3.5 sm:w-4 sm:h-4 border border-neutral-500 rounded-sm flex items-center justify-center group-hover:border-neutral-300 ${selectedCategories.includes(category.category_id || category.id) ? 'bg-white border-white' : ''}`}>
+                                                {selectedCategories.includes(category.category_id || category.id) && <Check size={10} className="text-black" />}
+                                            </span>
+                                            <span className="text-neutral-200 group-hover:text-white text-xs sm:text-sm">{category.name}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                {availableCategories.length > initialCategoryShowCount && (
+                                    <button onClick={() => setShowAllCategories(!showAllCategories)} className="mt-1.5 flex items-center text-neutral-400 hover:text-white text-xs sm:text-sm">
+                                        <Plus size={14} className="mr-1" /> {showAllCategories ? t('filter.viewLess', 'View Less') : t('filter.viewMore', 'View More')}
+                                    </button>
+                                )}
+                            </>
+                        )}
+                    </div>
+                    <hr className="border-neutral-700" />
+
+                    {/* Color Filter */}
+                    <div>
+                        <h3 className="text-xs sm:text-sm uppercase tracking-wider text-neutral-400 mb-2.5">
+                            {t('filter.color', 'Color')}
+                        </h3>
+                        {loadingOptions ? renderLoading() : (
+                           <>
+                            <div className="space-y-1.5">
+                                {visibleColors.map((color) => (
+                                    <label key={color.color_id || color.id} className="flex items-center space-x-2.5 cursor-pointer group">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedColors.includes(color.color_id || color.id)}
+                                            onChange={() => handleColorChange(color.color_id || color.id)}
+                                            className="hidden"
+                                        />
+                                        <span
+                                            className={`w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 ${selectedColors.includes(color.color_id || color.id) ? 'border-white ring-1 ring-white ring-offset-1 ring-offset-black' : 'border-neutral-600 group-hover:border-neutral-400'}`}
+                                            style={{ backgroundColor: color.color_hex || color.hex }}
+                                            title={color.name}
+                                        ></span>
+                                        <span className="text-neutral-200 group-hover:text-white text-xs sm:text-sm">{color.name}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            {availableColors.length > initialColorShowCount && (
+                                    <button onClick={() => setShowAllColors(!showAllColors)} className="mt-1.5 flex items-center text-neutral-400 hover:text-white text-xs sm:text-sm">
+                                        <Plus size={14} className="mr-1" /> {showAllColors ? t('filter.viewLess', 'View Less') : t('filter.viewMore', 'View More')}
+                                    </button>
+                                )}
+                           </>
+                        )}
+                    </div>
+                    <hr className="border-neutral-700" />
+
+                    {/* Size Filter */}
+                    <div>
+                        <h3 className="text-xs sm:text-sm uppercase tracking-wider text-neutral-400 mb-2.5">
+                            {t('filter.size', 'Size')}
+                        </h3>
+                        {loadingOptions ? renderLoading() : (
+                            <div className="flex flex-wrap gap-1.5">
+                                {availableSizes.map((size) => (
+                                    <button
+                                        key={size.size_id || size.id}
+                                        onClick={() => handleSizeChange(size.size_id || size.id)}
+                                        className={`px-2.5 py-1 border rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-1 focus:ring-opacity-50 ${selectedSizes.includes(size.size_id || size.id) ? 'bg-white text-black border-white focus:ring-white' : 'bg-neutral-700 text-neutral-300 border-neutral-600 hover:bg-neutral-600 hover:text-white focus:ring-neutral-500'}`}
+                                    >
+                                        {size.size_name || size.name}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="p-4 border-t border-neutral-700 space-y-2.5">
+                    <button
+                        onClick={handleApply}
+                        className="w-full bg-white text-black py-2.5 px-4 rounded-md font-semibold hover:bg-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-300 focus:ring-opacity-50 transition-colors duration-150 uppercase text-xs sm:text-sm tracking-wider"
+                    >
+                        {t('filter.viewItems', 'View Items')}
+                    </button>
+                    <button
+                        onClick={handleClear}
+                        className="w-full text-neutral-400 hover:text-white py-2 px-4 rounded-md font-medium focus:outline-none uppercase text-xs sm:text-sm tracking-wider"
+                    >
+                        {t('filter.clearAll', 'Clear')}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 };
 
-// Define ALL placeholder/default objects that might be dependencies and are defined in-component OUTSIDE or MEMOIZE them.
-const STABLE_PLACEHOLDER_PRICE_RANGE = { min: 0, max: 10000000 };
-
-// If you are using these as placeholders when Apollo query is loading/error or not yet run:
-const STABLE_CATEGORIES_DATA = { filterableCategories: [{id: 'cat1', name: 'Áo Thun', slug: 'ao-thun'}, {id: 'cat2', name: 'Quần Jeans', slug: 'quan-jeans'}] };
-const STABLE_COLLECTIONS_DATA = { filterableCollections: [{id: 'col1', name: 'Bộ Sưu Tập Hè', slug: 'bst-he'}, {id: 'col2', name: 'Đồ Công Sở', slug: 'do-cong-so'}] };
-const STABLE_COLORS_DATA = { filterableColors: [{id: 'color1', name: 'Đỏ', hexCode: '#FF0000'}, {id: 'color2', name: 'Xanh Dương', hexCode: '#0000FF'}] };
-const STABLE_SIZES_DATA = { filterableSizes: [{id: 'size1', name: 'S'}, {id: 'size2', name: 'M'}, {id: 'size3', name: 'L'}] };
-const STABLE_PRICE_RANGE_API_DATA = { productPriceRange: { min: 50000, max: 5000000 }};
-
-
-const ProductFilter = ({ currentFilters = {}, onFilterChange, onClearFilters }) => {
-  const { t } = useTranslation();
-  const [selectedCategories, setSelectedCategories] = useState(currentFilters.categories || []);
-  const [selectedCollections, setSelectedCollections] = useState(currentFilters.collections || []);
-  const [selectedColors, setSelectedColors] = useState(currentFilters.colors || []);
-  const [selectedSizes, setSelectedSizes] = useState(currentFilters.sizes || []);
-  
-  const placeholderPriceRange = STABLE_PLACEHOLDER_PRICE_RANGE; 
-  const [priceRange, setPriceRange] = useState(currentFilters.priceRange || placeholderPriceRange);
-  const initialPriceRangeFromApiSet = useRef(false);
-
-  // ---- API Calls cho Filter Options ----
-  // Assuming you'd replace placeholders with actual useQuery hooks when ready
-  // const { data: categoriesDataRaw, loading: categoriesLoading } = useQuery(GET_FILTER_CATEGORIES_QUERY);
-  // const { data: collectionsDataRaw, loading: collectionsLoading } = useQuery(GET_FILTER_COLLECTIONS_QUERY);
-  // const { data: colorsDataRaw, loading: colorsLoading } = useQuery(GET_FILTER_COLORS_QUERY);
-  // const { data: sizesDataRaw, loading: sizesLoading } = useQuery(GET_FILTER_SIZES_QUERY);
-  // const { data: priceRangeApiDataRaw, loading: priceRangeLoading } = useQuery(GET_PRICE_RANGE_QUERY);
-
-  // Use stable placeholders or data from Apollo (which should also be stable unless content changes)
-  const categoriesData = STABLE_CATEGORIES_DATA; // Replace with categoriesDataRaw when using useQuery
-  const collectionsData = STABLE_COLLECTIONS_DATA; // Replace with collectionsDataRaw
-  const colorsData = STABLE_COLORS_DATA; // Replace with colorsDataRaw
-  const sizesData = STABLE_SIZES_DATA; // Replace with sizesDataRaw
-  const priceRangeDataFromApi = STABLE_PRICE_RANGE_API_DATA; // Replace with priceRangeApiDataRaw
-  const categoriesLoading = false, collectionsLoading = false, colorsLoading = false, sizesLoading = false, priceRangeLoading = false; // Adjust with useQuery loading states
-
-
-  useEffect(() => {
-    if (priceRangeDataFromApi?.productPriceRange && !initialPriceRangeFromApiSet.current && !currentFilters.priceRange) {
-      setPriceRange(priceRangeDataFromApi.productPriceRange);
-      initialPriceRangeFromApiSet.current = true;
-    }
-  }, [priceRangeDataFromApi, currentFilters.priceRange]);
-
-  useEffect(() => {
-    setSelectedCategories(currentFilters.categories || []);
-    setSelectedCollections(currentFilters.collections || []);
-    setSelectedColors(currentFilters.colors || []);
-    setSelectedSizes(currentFilters.sizes || []);
-    
-    if (currentFilters.priceRange) {
-        setPriceRange(currentFilters.priceRange);
-        initialPriceRangeFromApiSet.current = true; 
-    } else if (priceRangeDataFromApi?.productPriceRange && !initialPriceRangeFromApiSet.current) {
-        // priceRangeDataFromApi is now stable or comes from Apollo (which is stable)
-        setPriceRange(priceRangeDataFromApi.productPriceRange);
-        initialPriceRangeFromApiSet.current = true;
-    } else if (!currentFilters.priceRange) {
-        // placeholderPriceRange is now stable
-        setPriceRange(placeholderPriceRange); 
-        initialPriceRangeFromApiSet.current = false; 
-    }
-  }, [currentFilters, priceRangeDataFromApi, placeholderPriceRange]);
-
-
-  const handleCheckboxChange = (setter, selectedValues, value) => {
-    const newSelectedValues = selectedValues.includes(value)
-      ? selectedValues.filter((v) => v !== value)
-      : [...selectedValues, value];
-    setter(newSelectedValues);
-  };
-
-  const handlePriceInputChange = (e, type) => {
-    const value = parseInt(e.target.value, 10);
-    const apiMin = priceRangeDataFromApi?.productPriceRange?.min ?? 0;
-    const apiMax = priceRangeDataFromApi?.productPriceRange?.max ?? 100000000;
-
-    setPriceRange((prev) => {
-        const newRange = {...prev};
-        if (type === 'min') {
-            newRange.min = isNaN(value) ? apiMin : Math.max(apiMin, Math.min(value, prev.max -1 || apiMax -1));
-        } else { 
-            newRange.max = isNaN(value) ? apiMax : Math.min(apiMax, Math.max(value, prev.min + 1 || apiMin + 1));
-        }
-        return newRange;
-    });
-  };
-
-  const applyFilters = () => {
-    const apiFullRange = priceRangeDataFromApi?.productPriceRange || placeholderPriceRange;
-    const priceRangeFilterApplied = 
-        (priceRange.min !== apiFullRange.min || priceRange.max !== apiFullRange.max)
-        ? priceRange 
-        : undefined;
-
-    onFilterChange({
-      categories: selectedCategories,
-      collections: selectedCollections,
-      colors: selectedColors,
-      sizes: selectedSizes,
-      priceRange: priceRangeFilterApplied,
-    });
-  };
-  
-  const clearAllFiltersLocal = () => {
-    setSelectedCategories([]);
-    setSelectedCollections([]);
-    setSelectedColors([]);
-    setSelectedSizes([]);
-    setPriceRange(priceRangeDataFromApi?.productPriceRange || placeholderPriceRange);
-    initialPriceRangeFromApiSet.current = true; 
-    if (onClearFilters) {
-        onClearFilters(); 
-    } else { 
-        onFilterChange({});
-    }
-  };
-
-  const renderLoading = () => <LoadingSpinner size="sm" className="my-2"/>;
-
-  return (
-    <aside className="w-full lg:w-64 xl:w-72 bg-white p-5 rounded-lg shadow-md lg:sticky lg:top-24 self-start">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">{t('filter.title', 'Bộ lọc')}</h3>
-        <button
-          onClick={clearAllFiltersLocal}
-          className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-        >
-          {t('filter.clearAll', 'Xóa tất cả')}
-        </button>
-      </div>
-
-      {categoriesLoading ? renderLoading() : categoriesData?.filterableCategories?.length > 0 && (
-        <FilterSection title={t('filter.categories', 'Danh mục')} defaultOpen={true}>
-          {categoriesData.filterableCategories.map((category) => (
-            <label key={category.id} className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                value={category.slug || category.id}
-                checked={selectedCategories.includes(category.slug || category.id)}
-                onChange={(e) => handleCheckboxChange(setSelectedCategories, selectedCategories, e.target.value)}
-              />
-              <span>{category.name}</span>
-            </label>
-          ))}
-        </FilterSection>
-      )}
-      
-      {priceRangeLoading ? renderLoading() : (priceRangeDataFromApi?.productPriceRange || currentFilters.priceRange) && (
-        <FilterSection title={t('filter.price', 'Giá')} defaultOpen={true}>
-          <div className="flex items-center space-x-2">
-            <input
-              type="number"
-              placeholder={t('filter.minPrice', 'Từ')}
-              value={priceRange.min}
-              min={priceRangeDataFromApi?.productPriceRange?.min ?? 0}
-              max={priceRange.max} 
-              onChange={(e) => handlePriceInputChange(e, 'min')}
-              className="w-1/2 px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-            <span>-</span>
-            <input
-              type="number"
-              placeholder={t('filter.maxPrice', 'Đến')}
-              value={priceRange.max}
-              min={priceRange.min} 
-              max={priceRangeDataFromApi?.productPriceRange?.max ?? 100000000}
-              onChange={(e) => handlePriceInputChange(e, 'max')}
-              className="w-1/2 px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-        </FilterSection>
-      )}
-      
-      {/* Add other filters (Collections, Colors, Sizes) similarly */}
-
-      <div className="mt-6 pt-4 border-t border-gray-200">
-        <button
-          onClick={applyFilters}
-          className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-indigo-700 transition-colors duration-150 text-sm"
-        >
-          {t('filter.applyButton', 'Áp dụng bộ lọc')}
-        </button>
-      </div>
-    </aside>
-  );
+ProductFilter.propTypes = {
+    isOpen: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
+    onApplyFilters: PropTypes.func.isRequired,
+    onClearFilters: PropTypes.func.isRequired,
+    initialFilters: PropTypes.object,
+    availableCategories: PropTypes.arrayOf(PropTypes.shape({
+        category_id: PropTypes.any.isRequired, // Or specific type if known e.g., string, number
+        id: PropTypes.any, // Fallback if category_id is not present
+        name: PropTypes.string.isRequired,
+    })),
+    availableColors: PropTypes.arrayOf(PropTypes.shape({
+        color_id: PropTypes.any.isRequired,
+        id: PropTypes.any,
+        name: PropTypes.string.isRequired,
+        color_hex: PropTypes.string, // color_hex or hex
+        hex: PropTypes.string,
+    })),
+    availableSizes: PropTypes.arrayOf(PropTypes.shape({
+        size_id: PropTypes.any.isRequired,
+        id: PropTypes.any,
+        size_name: PropTypes.string, // size_name or name
+        name: PropTypes.string,
+    })),
+    loadingOptions: PropTypes.bool,
 };
 
 export default ProductFilter;
