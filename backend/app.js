@@ -118,11 +118,14 @@ async function createApp() { //
     await server.start(); //
     logger.info('Apollo Server for backend has started.'); //
 
-    const graphqlPath = process.env.GRAPHQL_PATH || '/graphql'; //
+    const graphqlPath = process.env.GRAPHQL_PATH || '/graphql';
+    logger.info(`[APOLLO] GraphQL path set to: ${graphqlPath}`);
+    app.options(graphqlPath, cors(corsOptions)); //
     app.use(
         graphqlPath, //
         // cors(), // Đã được xử lý bởi middleware CORS toàn cục ở trên
         express.json(), //
+        cors(corsOptions),
         expressMiddleware(server, { //
             context: async ({ req }) => { //
                 let userForContext = null; //
