@@ -7,39 +7,39 @@ const logger = require('../utils/logger');
 const redisUrl = process.env.REDIS_URL;
 const redisHostFromEnv = process.env.REDIS_HOST;
 const redisPortFromEnv = process.env.REDIS_PORT;
+logger.info(`[Redis Init] ENV REDIS_URL: ${redisUrl}`);
+logger.info(`[Redis Init] ENV REDIS_HOST: ${redisHostFromEnv}`);
+logger.info(`[Redis Init] ENV REDIS_PORT: ${redisPortFromEnv}`);
 
 let connectionOptions;
-let shouldConnectRedis = false;
+let shouldConnectRedis = false; // Mặc định là không kết nối
 
 if (redisUrl) {
-    connectionOptions = redisUrl; // IORedis có thể nhận URL trực tiếp
+    connectionOptions = redisUrl;
     logger.info(`[Redis] Configuring connection using REDIS_URL.`);
     shouldConnectRedis = true;
-} else if (redisHostFromEnv) { // Chỉ kết nối nếu REDIS_HOST được cung cấp
+} else if (redisHostFromEnv) { // Chỉ khi REDIS_HOST được định nghĩa
     connectionOptions = {
         host: redisHostFromEnv,
         port: parseInt(redisPortFromEnv, 10) || 6379,
         password: process.env.REDIS_PASSWORD || undefined,
+        // Các options khác như retryStrategy, connectTimeout có thể giữ nguyên hoặc điều chỉnh
         retryStrategy(times) {
             const delay = Math.min(times * 100, 2000);
-            // Không log retry nếu chúng ta quyết định không kết nối ngay từ đầu
-            // logger.warn(`[Redis] Retrying connection to ${connectionOptions.host}:${connectionOptions.port} (attempt ${times}). Delaying for ${delay}ms.`);
-            if (times > 5) { // Giảm số lần thử lại để tránh treo lâu khi khởi động
-                logger.error(`[Redis] Max connection retries reached for ${connectionOptions.host}:${connectionOptions.port}. Giving up initial connect.`);
-                return undefined;
+            if (times > 5) { // Giảm số lần thử lại để tránh treo lâu khi khởi động nếu có vấn đề
+                logger.error(`[Redis] Max connection retries reached for ${connectionOptions.host || 'target'}. Giving up.`);
+                return undefined; // Ngừng thử lại
             }
+            logger.warn(`[Redis] Retrying connection (attempt ${times}). Delaying for ${delay}ms.`);
             return delay;
         },
-        maxRetriesPerRequest: 3,
-        showFriendlyErrorStack: process.env.NODE_ENV !== 'production',
-        // lazyConnect: true, // Có thể bỏ lazyConnect nếu bạn muốn nó thử kết nối ngay
-        connectTimeout: 5000, // Tăng thời gian chờ kết nối lên một chút
+        connectTimeout: 3000, // Giảm thời gian chờ kết nối một chút
     };
     logger.info(`[Redis] Configuring connection using REDIS_HOST: ${redisHostFromEnv}.`);
     shouldConnectRedis = true;
 } else {
-    logger.warn('[Redis] REDIS_URL or REDIS_HOST not defined in environment variables. Redis client will not attempt to connect. Caching will be disabled.');
-    // Không cần tạo client giả nếu không có ý định kết nối
+    // Log này nên xuất hiện trên Render nếu bạn không đặt REDIS_URL/REDIS_HOST
+    logger.warn('[Redis] REDIS_URL or REDIS_HOST not defined. Redis client will NOT attempt to connect. Caching will be disabled.');
 }
 
 let redisClient = null; // Khởi tạo là null
@@ -103,18 +103,21 @@ if (shouldConnectRedis) {
 
 // Nếu redisClient vẫn là null, tạo một client giả để các phần khác của ứng dụng không bị lỗi
 if (!redisClient) {
-    logger.warn('[Redis] Using mock Redis client as connection is not configured or failed. Caching will be disabled.');
+    logger.warn('[Redis] Using MOCK Redis client. Caching will be disabled.');
     redisClient = {
         get: async (key) => { logger.debug(`[Mock Redis] GET ${key} -> null`); return null; },
-        set: async (key, value, ...args) => { logger.debug(`[Mock Redis] SET ${key} ${value} ${args.join(' ')} -> OK`); return 'OK'; },
-        del: async (key) => { logger.debug(`[Mock Redis] DEL ${key} -> 1`); return 1; },
-        on: () => {}, // No-op
+        set: async (key, value, ...args) => { logger.debug(`[Mock Redis] SET ${key}`); return 'OK'; },
+        del: async (key) => { logger.debug(`[Mock Redis] DEL ${key}`); return 1; },
+        on: () => {},
         quit: async () => { logger.debug('[Mock Redis] QUIT'); },
-        status: 'mocked_due_to_no_config_or_init_error',
-        options: {},
-        // Thêm các hàm bạn hay dùng khác nếu cần
+        status: 'mocked',
+        isRedisConnected: false // Thêm trạng thái này cho mock client
     };
-    isRedisConnected = false; // Chắc chắn trạng thái là false
+    isRedisConnected = false;
+} else {
+    // Nếu redisClient được khởi tạo thực sự, isRedisConnected sẽ được cập nhật bởi event 'ready' hoặc 'error'/'close'
+    // nhưng giá trị ban đầu có thể là false.
+    // Để đơn giản, bạn có thể dựa vào event 'ready' để set isRedisConnected = true
 }
 
 
