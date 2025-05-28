@@ -11,7 +11,19 @@ for (const varName of requiredEnvVars) {
     process.exit(1);
   }
 }
+let sslOptions = null;
+if (process.env.DB_SSL === 'true') {
+  sslOptions = {
+    require: true,
+    rejectUnauthorized: true // Đây là cài đặt an toàn và nên được ưu tiên
+  };
+  logger.info('[DB Config] SSL for database is ENABLED based on DB_SSL env.');
+} else {
+  logger.warn('[DB Config] SSL for database is DISABLED. TiDB Cloud requires SSL!');
+}
 
+logger.info(`[DB Config] Current DB_SSL env value: "${process.env.DB_SSL}"`);
+logger.info(`[DB Config] SSL options object for Sequelize: ${JSON.stringify(sslOptions)}`);
 // Khởi tạo Sequelize instance
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -25,7 +37,7 @@ const sequelize = new Sequelize(
              ? (msg) => logger.debug(`[SEQUELIZE] ${msg}`) 
              : false,
     dialectOptions: {
-      // ssl: process.env.DB_SSL === 'true' ? { require: true, rejectUnauthorized: false } : false,
+      ssl: sslOptions // Quan trọng: truyền đối tượng sslOptions vào đây
     },
     pool: {
       max: parseInt(process.env.DB_POOL_MAX, 10) || 5,
