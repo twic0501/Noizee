@@ -1,175 +1,165 @@
+// src/api/graphql/productQueries.js (User Frontend)
 import { gql } from '@apollo/client';
 
-// Fragment này giúp định nghĩa các trường của ProductType một lần và tái sử dụng
-// Đảm bảo ProductType và các trường con (ImageSType, CategoryType, CollectionType, ProductVariantType)
-// được định nghĩa trong backend/graphql/typeDefs.js với tên tương ứng và các trường camelCase.
-export const PRODUCT_FIELDS_FRAGMENT = gql`
-  fragment ProductCFields on ProductType {
-    id
-    name
-    slug
-    description
-    price
-    salePrice
-    stockQuantity
-    sku
-    isFeatured
-    isActive
-    # averageRating # Nếu có
-    # reviewCount # Nếu có
-    createdAt
-    updatedAt
-    images { # Giả sử là mảng ImageType (hoặc tên bạn đặt, ví dụ ProductImageType)
-      id
-      imageUrl
-      altText
-      isPrimary
-    }
-    category { # Giả sử là CategoryType
-      id
-      name
-      slug
-    }
-    collections { # Giả sử là mảng CollectionType
-      id
-      name
-      slug
-    }
-    # variants { # Giả sử là mảng ProductVariantType
-    #   id
-    #   name # Ví dụ: "Red / Small"
-    #   price # Giá riêng của variant
-    #   stockQuantity # Tồn kho riêng của variant
-    #   sku
-    #   attributes { # Ví dụ: [{ name: "Color", value: "Red" }, { name: "Size", value: "Small" }]
-    #     name
-    #     value
-    #   }
-    #   image { imageUrl } # Ảnh riêng của variant nếu có
-    # }
-    # colors { id name hexCode } # Nếu bạn quản lý màu sắc riêng
-    # sizes { id name } # Nếu bạn quản lý kích thước riêng
+// Fragment for Color, specifically for product listings and details on user frontend
+export const USER_COLOR_FIELDS_FRAGMENT = gql`
+  fragment UserColorFields on Color {
+    color_id
+    name(lang: $lang) # Localized name
+    color_hex
   }
 `;
 
-// Query để lấy danh sách sản phẩm
-// Backend typeDefs: products(limit: Int, offset: Int, sortBy: String, sortOrder: String, filter: ProductFilterInput): ProductsPayload!
-// ProductsPayload { items: [ProductType!]!, totalCount: Int!, pageInfo: PageInfo } (Ví dụ)
+// Fragment for Size, for user frontend
+export const USER_SIZE_FIELDS_FRAGMENT = gql`
+  fragment UserSizeFields on Size {
+    size_id
+    size_name # Assuming size_name is not multilingual, or add name(lang: $lang) if it is
+  }
+`;
+
+// Fragment for ProductImage, including its specific color (if any)
+export const USER_PRODUCT_IMAGE_FIELDS_FRAGMENT = gql`
+  ${USER_COLOR_FIELDS_FRAGMENT}
+  fragment UserProductImageFields on ProductImage {
+    image_id
+    image_url
+    alt_text(lang: $lang) # Localized alt text
+    display_order
+    color { # The specific color this image might represent (e.g., a red shirt image)
+      ...UserColorFields
+    }
+  }
+`;
+
+// Fragment for Inventory details needed on user frontend
+export const USER_INVENTORY_FIELDS_FRAGMENT = gql`
+  ${USER_COLOR_FIELDS_FRAGMENT}
+  ${USER_SIZE_FIELDS_FRAGMENT}
+  fragment UserInventoryFields on Inventory {
+    inventory_id
+    quantity
+    sku
+    color { # The actual color of this inventory variant
+      ...UserColorFields
+    }
+    size { # The actual size of this inventory variant
+      ...UserSizeFields
+    }
+  }
+`;
+
+// Main Product Fragment for User Frontend
+// This fragment will be used in ProductCard and ProductDetailPage
+export const PRODUCT_FIELDS_FRAGMENT = gql`
+  ${USER_PRODUCT_IMAGE_FIELDS_FRAGMENT}
+  ${USER_INVENTORY_FIELDS_FRAGMENT}
+  # USER_COLOR_FIELDS_FRAGMENT and USER_SIZE_FIELDS_FRAGMENT are included via the above
+
+  fragment ProductFields on Product {
+    product_id
+    name(lang: $lang) # Localized product name
+    description(lang: $lang) # Localized product description
+    product_price
+    is_new_arrival
+    is_active # To ensure we only show active products, though backend query should handle this primarily
+    category {
+      category_id
+      name(lang: $lang) # Localized category name
+    }
+    collections { # If you need to display collection info on the card/detail page
+      collection_id
+      name(lang: $lang) # Localized collection name
+      slug
+    }
+    images { # List of all images for the product
+      ...UserProductImageFields
+    }
+    inventory { # List of all inventory variants (color/size combinations)
+      ...UserInventoryFields
+    }
+  }
+`;
+
+// Query to get a list of products for user frontend (ProductListingPage)
 export const GET_PRODUCTS_QUERY = gql`
   query GetProducts(
     $limit: Int
     $offset: Int
-    $sortBy: String
-    $sortOrder: String # ASC hoặc DESC
     $filter: ProductFilterInput
+    $lang: String # Language for localized fields
   ) {
-    products(
+    products( # Resolver 'products' from backend typeDefs
       limit: $limit
       offset: $offset
-      sortBy: $sortBy
-      sortOrder: $sortOrder
       filter: $filter
+      lang: $lang # Pass lang to the main resolver if it influences root-level fetching/sorting
     ) {
-      items {
-        ...ProductFields
+      products { # Assuming backend returns { products: [], count: X }
+        ...ProductFields # Fragment uses $lang defined in the operation
       }
-      totalCount
-      # pageInfo { # Nếu backend có trả về PageInfo theo Relay spec hoặc tương tự
-      #   hasNextPage
-      #   hasPreviousPage
-      #   startCursor
-      #   endCursor
-      # }
+      count # Total count for pagination
     }
   }
   ${PRODUCT_FIELDS_FRAGMENT}
 `;
 
-// Query để lấy chi tiết một sản phẩm bằng slug hoặc ID
-// Backend typeDefs: product(id: ID, slug: String): ProductType
+// Query to get details of a single product for user frontend (ProductDetailPage)
 export const GET_PRODUCT_DETAILS_QUERY = gql`
-  query GetProductDetails($id: ID, $slug: String) {
-    product(id: $id, slug: $slug) {
-      ...ProductFields
-      # Thêm các trường chi tiết hơn nếu cần và nếu backend có, ví dụ:
-      # relatedProducts { ...ProductFields }
-      # reviews { id user { firstName } rating comment createdAt }
+  query GetProductDetails($id: ID!, $lang: String) { # Assuming backend uses id for product query
+    product(id: $id, lang: $lang) { # Resolver 'product' from backend typeDefs
+      ...ProductFields # Fragment uses $lang defined in the operation
+      # Potentially add more detailed fields specific to the product detail page here
+      # if they are not already in ProductFields and not needed for ProductCard.
     }
   }
   ${PRODUCT_FIELDS_FRAGMENT}
 `;
 
-// Query để lấy danh mục
-// Backend typeDefs: categories: [CategoryType!]
+// Query to get categories for user frontend (e.g., for navigation or filters)
 export const GET_CATEGORIES_QUERY = gql`
-  query GetCategories {
-    categories {
-      id
-      name
-      slug
-      description
-      # imageUrl
-      # parentCategory { id name }
-      # productCount
+  query GetCategories($lang: String) {
+    categories(lang: $lang) { # Resolver 'categories' from backend typeDefs
+      category_id
+      name(lang: $lang) # Localized category name
     }
   }
 `;
 
-// Query để lấy collections
-// Backend typeDefs: collections: [CollectionType!]
+// Query to get collections for user frontend
 export const GET_COLLECTIONS_QUERY = gql`
-  query GetCollections {
-    collections {
-      id
-      name
+  query GetCollections($lang: String) {
+    collections(lang: $lang) { # Resolver 'collections' from backend typeDefs
+      collection_id
+      name(lang: $lang) # Localized collection name
       slug
-      description
-      # imageUrl
-      # productCount
+      description(lang: $lang) # Localized collection description
     }
   }
 `;
+
+// Query for featured products (example)
 export const GET_FEATURED_PRODUCTS_QUERY = gql`
-  query GetFeaturedProducts($limit: Int) { # Tên query có thể khác
-    # Nội dung GraphQL query của bạn ở đây
-    # Ví dụ:
-    products(filter: { is_new_arrival: false }, limit: $limit, sortBy: "createdAt", sortOrder: "DESC") { # Giả sử bạn có filter is_featured hoặc tương tự
-      items {
-        product_id
-        name(lang: "vi") # Hoặc product_name_vi tùy theo schema và resolver
-        slug
-        product_price
-        # ... các trường khác bạn cần cho ProductCard
-        images(limit: 2) { # Lấy 1-2 ảnh
-          image_url
-          alt_text(lang: "vi")
-        }
-        # colors { # Nếu cần hiển thị màu trên card
-        #   color_id
-        #   name(lang: "vi")
-        #   color_hex
-        # }
-        # stockQuantity # (Cân nhắc: có thể không cần thiết trên card, hoặc là tổng stock)
+  query GetFeaturedProducts($limit: Int, $lang: String) {
+    products(filter: { is_new_arrival: false }, limit: $limit, lang: $lang) { # Placeholder filter
+      products {
+        ...ProductFields # Using the comprehensive fragment
       }
+      count
     }
   }
+  ${PRODUCT_FIELDS_FRAGMENT}
 `;
+
+// Query for new arrival products (example)
 export const GET_NEW_ARRIVALS_QUERY = gql`
-  query GetNewArrivals($limit: Int) { 
-    # Nội dung GraphQL query của bạn cho sản phẩm mới
-    # Ví dụ:
-    products(filter: { is_new_arrival: true }, limit: $limit, sortBy: "createdAt", sortOrder: "DESC") {
-      items {
-        product_id
-        name(lang: "vi")
-        slug
-        product_price
-        # ... các trường khác bạn cần cho ProductCard
-        images(limit: 2) {
-          image_url
-          alt_text(lang: "vi")
-        }
+  query GetNewArrivals($limit: Int, $lang: String) {
+    products(filter: { is_new_arrival: true }, limit: $limit, lang: $lang) {
+      products {
+        ...ProductFields # Using the comprehensive fragment
       }
+      count
     }
   }
+  ${PRODUCT_FIELDS_FRAGMENT}
 `;

@@ -1,144 +1,170 @@
+// src/components/common/OptimizedImage.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { classNames } from '../../utils/helpers';
-import { PRODUCT_IMAGE_PLACEHOLDER } from '../../utils/constants'; // Đường dẫn placeholder
+import { PRODUCT_IMAGE_PLACEHOLDER, API_BASE_URL } from '../../utils/constants';
+// import logger from '../../utils/logger'; // Optional for debugging
 
 const OptimizedImage = ({
-  src,
+  src, // Expects a server-relative path like /uploads/products/image.jpg or null/undefined
   alt,
-  className = '', // Classes for the <img> tag
-  containerClassName = 'relative overflow-hidden', // Classes for the container div
-  placeholderSrc = PRODUCT_IMAGE_PLACEHOLDER, // Default placeholder
-  aspectRatio = 'aspect-square', // Tailwind aspect ratio class e.g., 'aspect-video', 'aspect-square', or null
-  objectFit = 'object-cover',   // Tailwind object-fit class e.g., 'object-contain'
+  className = '',
+  containerClassName = 'position-relative overflow-hidden',
+  placeholderSrc = PRODUCT_IMAGE_PLACEHOLDER, // This should be a direct public path like /images/placeholder.webp
+  aspectRatio = 'ratio-1x1', // Bootstrap ratio class
+  objectFit = 'object-fit-cover', // Bootstrap object-fit class
   onLoad,
   onError,
   lazyLoad = true,
-  threshold = 0.1, // Intersection Observer threshold
-  ...rest // Other img attributes like width, height (though aspect ratio is preferred)
+  threshold = 0.01, // Adjusted threshold slightly
+  ...rest
 }) => {
-  const [imageSrc, setImageSrc] = useState(lazyLoad ? placeholderSrc : src);
-  const [imageLoaded, setImageLoaded] = useState(!lazyLoad);
-  const [hasError, setHasError] = useState(false);
+  // currentImageToLoad will store the full URL (with API_BASE_URL) or the placeholder path
+  const [currentImageToLoad, setCurrentImageToLoad] = useState(() => {
+    if (!lazyLoad && src) return `${API_BASE_URL}${src}`;
+    return placeholderSrc;
+  });
+  const [imageActuallyLoaded, setImageActuallyLoaded] = useState(!lazyLoad && !!src);
+  const [loadError, setLoadError] = useState(false);
+
   const imgRef = useRef(null);
-  const containerRef = useRef(null); // Ref for the container for Intersection Observer
+  const containerRef = useRef(null); // For IntersectionObserver
 
-  const handleImageLoad = (e) => {
-    setImageLoaded(true);
+  const prevSrcProp = useRef(src);
+
+  const handleImageLoadSuccess = useCallback((event) => {
+    setImageActuallyLoaded(true);
+    setLoadError(false);
     if (onLoad) {
-      onLoad(e);
+      onLoad(event);
     }
-  };
+    // logger.debug(`OptimizedImage: Loaded ${currentImageToLoad}`);
+  }, [onLoad]); // Removed currentImageToLoad to prevent re-creation if it's complex
 
-  const handleImageError = useCallback((e) => {
-    console.warn(`Failed to load image: ${src}`);
-    setHasError(true);
-    setImageLoaded(true); // Consider it "loaded" to stop showing placeholder/spinner
-    setImageSrc(placeholderSrc); // Fallback to placeholder on error
+  const handleImageLoadError = useCallback(() => {
+    // logger.warn(`OptimizedImage: Error loading ${currentImageToLoad}. Falling back to placeholder.`);
+    setLoadError(true);
+    setImageActuallyLoaded(true); // Still "loaded" but with placeholder
+    setCurrentImageToLoad(placeholderSrc); // Set to placeholder
     if (onError) {
-      onError(e);
+      onError();
     }
-  }, [src, placeholderSrc, onError]);
+  }, [onError, placeholderSrc]); // Removed currentImageToLoad
 
+  // Effect to handle changes in the `src` prop
+  useEffect(() => {
+    if (prevSrcProp.current === src) {
+      // logger.debug("OptimizedImage: src prop hasn't changed, skipping direct src update effect.", src);
+      return; // src prop hasn't changed, no need to do anything here
+    }
+    // logger.debug(`OptimizedImage: src prop changed from "${prevSrcProp.current}" to "${src}".`);
+    prevSrcProp.current = src;
+    setImageActuallyLoaded(false); // Reset loaded state for the new image
+    setLoadError(false);           // Reset error state
+
+    if (!lazyLoad) {
+      setCurrentImageToLoad(src ? `${API_BASE_URL}${src}` : placeholderSrc);
+    } else {
+      // If lazy loading, set to placeholder initially.
+      // The IntersectionObserver effect will handle loading the new 'src' when visible.
+      setCurrentImageToLoad(placeholderSrc);
+      // The IntersectionObserver logic in the next useEffect will re-evaluate
+      // because 'src' is a dependency there.
+    }
+  }, [src, lazyLoad, placeholderSrc, API_BASE_URL]);
+
+
+  // Effect for IntersectionObserver (lazy loading)
   useEffect(() => {
     if (!lazyLoad) {
-      setImageSrc(src);
-      setImageLoaded(false); // Reset loaded state to allow onload to fire
-      setHasError(false);
+        // If not lazy loading, and src is already set (e.g. by above effect), just return
+        if (src && currentImageToLoad === `${API_BASE_URL}${src}` && imageActuallyLoaded && !loadError) return;
+        // If not lazy loading and src prop is set, ensure it's loaded
+        if (src && currentImageToLoad !== `${API_BASE_URL}${src}`) {
+            setCurrentImageToLoad(`${API_BASE_URL}${src}`);
+            setImageActuallyLoaded(false); // Trigger loading state
+            setLoadError(false);
+        }
+        return;
+    }
+
+    if (!containerRef.current) return;
+     // If already loaded the correct image or placeholder after error, no need to observe again
+    if (imageActuallyLoaded && ((!loadError && currentImageToLoad === `${API_BASE_URL}${src}`) || (loadError && currentImageToLoad === placeholderSrc))) {
       return;
     }
 
-    // Lazy loading logic
-    let observer;
-    const currentImgRef = containerRef.current; // Use container for observing
 
-    if (currentImgRef && typeof IntersectionObserver !== 'undefined') {
-      observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              // console.log('Image in view:', src);
-              setImageSrc(src); // Start loading the actual image
-              setImageLoaded(false); // Reset to trigger load animation
-              setHasError(false);
-              observer.unobserve(currentImgRef); // Stop observing once triggered
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // logger.debug(`OptimizedImage: Element is intersecting. Current src: ${src}, currentImageToLoad: ${currentImageToLoad}`);
+            // Check if we need to load (image not loaded yet, or error occurred, or src changed)
+            if (!imageActuallyLoaded || loadError || currentImageToLoad !== `${API_BASE_URL}${src}`) {
+              setImageActuallyLoaded(false); // Set to loading
+              setLoadError(false);
+              setCurrentImageToLoad(src ? `${API_BASE_URL}${src}` : placeholderSrc);
             }
-          });
-        },
-        { rootMargin: '0px', threshold: threshold }
-      );
-      observer.observe(currentImgRef);
-    } else {
-      // Fallback for browsers that don't support IntersectionObserver or if ref is not ready
-      // console.log('IntersectionObserver not supported or ref not ready, loading image directly:', src);
-      setImageSrc(src);
-      setImageLoaded(false);
-      setHasError(false);
-    }
+            if (containerRef.current) { // Double check ref before unobserving
+                 observer.unobserve(containerRef.current);
+            }
+          }
+        });
+      },
+      { threshold, rootMargin: '0px' } // Use threshold from props
+    );
+
+    observer.observe(containerRef.current);
 
     return () => {
-      if (observer && currentImgRef) {
-        observer.unobserve(currentImgRef);
+      if (containerRef.current) { // Double check ref before unobserving
+         observer.unobserve(containerRef.current);
       }
     };
-  }, [src, lazyLoad, threshold, placeholderSrc]); // Re-run if src or lazyLoad changes
+  }, [lazyLoad, src, threshold, API_BASE_URL, imageActuallyLoaded, loadError, currentImageToLoad, placeholderSrc]); // Added dependencies
 
-  // Reset error state if src changes
-  useEffect(() => {
-    setHasError(false);
-    if (!lazyLoad){ // If not lazy loading, set image directly and trigger load
-        setImageSrc(src);
-        setImageLoaded(false);
-    } else if (imageSrc !== placeholderSrc && imageSrc !== src) { // If src changed and was lazy loaded before
-        setImageSrc(placeholderSrc); // Revert to placeholder for new src if lazy
-        setImageLoaded(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src]);
+  const displayPlaceholder = !imageActuallyLoaded || loadError;
 
-  const showPlaceholder = !imageLoaded && !hasError && imageSrc === placeholderSrc;
-  const showActualImage = imageLoaded && !hasError && imageSrc !== placeholderSrc;
+  const finalContainerClasses = classNames(
+    containerClassName,
+    aspectRatio ? 'ratio' : '',
+    aspectRatio || '',
+    'bg-light' // Bootstrap class for light background
+  );
+
+  const imageElementClasses = classNames(
+    "position-absolute top-0 start-0 w-100 h-100",
+    objectFit,
+    // Opacity transition for smooth appearance
+    imageActuallyLoaded && !loadError ? 'opacity-100' : 'opacity-0',
+    'transition-opacity duration-300 ease-in-out', // Manual Tailwind-like classes
+    className
+  );
+
+  const placeholderElementClasses = classNames(
+    "position-absolute top-0 start-0 w-100 h-100",
+    objectFit, // Apply object-fit to placeholder too
+    "opacity-50" // Make placeholder slightly muted
+  );
 
   return (
-    <div
-      ref={containerRef}
-      className={classNames(
-        containerClassName,
-        aspectRatio,
-        'bg-gray-100' // Default background for placeholder area
-      )}
-    >
-      {/* Placeholder/Spinner while loading actual image or if error and using placeholder */}
-      {(showPlaceholder || (!imageLoaded && imageSrc !== placeholderSrc && !hasError)) && (
+    <div ref={containerRef} className={finalContainerClasses}>
+      {displayPlaceholder && (
         <img
           src={placeholderSrc}
-          alt={alt ? `${alt} placeholder` : "Loading image..."}
-          className={classNames(
-            "absolute inset-0 w-full h-full",
-            objectFit,
-            "opacity-50 blur-sm" // Example placeholder style
-          )}
+          alt={alt ? `${alt} (placeholder)` : "Loading image..."}
+          className={placeholderElementClasses}
         />
-        // Or a spinner:
-        // <div className="absolute inset-0 flex items-center justify-center">
-        //   <LoadingSpinner size="sm" />
-        // </div>
       )}
-
-      {/* Actual Image - Rendered on top or replaces placeholder */}
-      {/* We always render the img tag for src to load, but control its visibility/opacity */}
       <img
         ref={imgRef}
-        src={hasError ? placeholderSrc : imageSrc} // Use placeholder if error, otherwise current imageSrc
+        src={currentImageToLoad} // This will be the actual image URL or placeholder if error/not loaded
         alt={alt || ''}
-        onLoad={handleImageLoad}
-        onError={handleImageError}
-        className={classNames(
-          "absolute inset-0 w-full h-full transition-opacity duration-500 ease-in-out",
-          objectFit,
-          (showActualImage || hasError) ? "opacity-100" : "opacity-0", // Fade in
-          className
-        )}
-        loading={lazyLoad ? "lazy" : "eager"} // Native browser lazy loading as a fallback/enhancement
+        onLoad={handleImageLoadSuccess}
+        onError={handleImageLoadError}
+        className={imageElementClasses}
+        // Native lazy loading can be a fallback or primary if IntersectionObserver is not used
+        loading={lazyLoad && typeof IntersectionObserver === 'undefined' ? "lazy" : "eager"}
         {...rest}
       />
     </div>

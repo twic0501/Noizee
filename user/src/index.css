@@ -1,43 +1,397 @@
 /* src/index.css */
-@import "tailwindcss"; /* Hoặc @import "tailwindcss/theme" tùy theo cấu hình của bạn */ /* */
 
-@layer base {
-  body {
-    @apply font-sans; /* Áp dụng font-family 'Oswald' (đã định nghĩa trong tailwind.config.js) làm mặc định */
-    /* Bạn có thể thêm các style base khác cho body tại đây */
-    /* Ví dụ:
-       color: theme('colors.gray.800'); 
-       line-height: 1.6;
-    */
-  }
-  
-  /* Các style base khác của bạn */ /* */
-  /* Ví dụ:
-  h1 {
-    @apply text-2xl;
-  }
-  */
-}
-
-@layer components {
-  /* Các component class của bạn */ /* */
-}
-
-@layer utilities {
-  /* Các utility class tùy chỉnh của bạn (nếu có) */ /* */
-}
-
-/* Phần CSS variables này từ tệp gốc của bạn, có thể giữ lại nếu bạn dùng chúng */ /* */
-/*
-:root {
-  --color-primary: theme('colors.blue.600');
-  --font-body: theme('fontFamily.sans');
-}
-body {
-  font-family: var(--font-body);
-}
-.button-primary {
-  background-color: var(--color-primary);
-  color: white;
-}
+/* --- FONT DEFINITIONS --- */
+/* Ví dụ @font-face nếu bạn tự host.
+   Nếu dùng Google Fonts CDN trong index.html, bạn không cần phần @font-face này.
 */
+
+/* Archivo Black (Thường chỉ có 1 weight là Regular/900) */
+@font-face {
+  font-family: 'Archivo Black';
+  src: url('./assets/fonts/ArchivoBlack-Regular.woff2') format('woff2'), /* Thay bằng đường dẫn đúng */
+       url('./assets/fonts/ArchivoBlack-Regular.ttf') format('truetype');
+  font-weight: 900; /* Hoặc 400 tùy theo file font */
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Oswald */
+@font-face {
+  font-family: 'Oswald';
+  src: url('./assets/fonts/Oswald-Regular.woff2') format('woff2'),
+       url('./assets/fonts/Oswald-Regular.ttf') format('truetype');
+  font-weight: 400; /* Regular */
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Oswald';
+  src: url('./assets/fonts/Oswald-Medium.woff2') format('woff2'),
+       url('./assets/fonts/Oswald-Medium.ttf') format('truetype');
+  font-weight: 500; /* Medium */
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Oswald';
+  src: url('./assets/fonts/Oswald-SemiBold.woff2') format('woff2'),
+       url('./assets/fonts/Oswald-SemiBold.ttf') format('truetype');
+  font-weight: 600; /* SemiBold */
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Oswald';
+  src: url('./assets/fonts/Oswald-Bold.woff2') format('woff2'),
+       url('./assets/fonts/Oswald-Bold.ttf') format('truetype');
+  font-weight: 700; /* Bold */
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Cormorant Garamond */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('./assets/fonts/CormorantGaramond-Regular.woff2') format('woff2'),
+       url('./assets/fonts/CormorantGaramond-Regular.ttf') format('truetype');
+  font-weight: 400; /* Regular */
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('./assets/fonts/CormorantGaramond-Italic.woff2') format('woff2'),
+       url('./assets/fonts/CormorantGaramond-Italic.ttf') format('truetype');
+  font-weight: 400; /* Regular Italic */
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  src: url('./assets/fonts/CormorantGaramond-Bold.woff2') format('woff2'),
+       url('./assets/fonts/CormorantGaramond-Bold.ttf') format('truetype');
+  font-weight: 700; /* Bold */
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Roboto Mono */
+@font-face {
+  font-family: 'Roboto Mono';
+  src: url('./assets/fonts/RobotoMono-Regular.woff2') format('woff2'),
+       url('./assets/fonts/RobotoMono-Regular.ttf') format('truetype');
+  font-weight: 400; /* Regular */
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto Mono';
+  src: url('./assets/fonts/RobotoMono-Medium.woff2') format('woff2'),
+       url('./assets/fonts/RobotoMono-Medium.ttf') format('truetype');
+  font-weight: 500; /* Medium */
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto Mono';
+  src: url('./assets/fonts/RobotoMono-Bold.woff2') format('woff2'),
+       url('./assets/fonts/RobotoMono-Bold.ttf') format('truetype');
+  font-weight: 700; /* Bold */
+  font-style: normal;
+  font-display: swap;
+}
+
+
+/* --- CSS VARIABLES & BOOTSTRAP OVERRIDES --- */
+:root {
+  /* Custom Font Variables */
+  --font-primary: 'Archivo Black', sans-serif;
+  --font-secondary: 'Oswald', sans-serif;
+  --font-accent: 'Cormorant Garamond', serif;
+  --font-monospace: 'Roboto Mono', monospace;
+  --font-system: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  /* Bootstrap Font Overrides */
+  --bs-body-font-family: var(--font-monospace); /* Roboto Mono cho body */
+  --bs-body-font-weight: 400;
+  --bs-body-line-height: 1.6;
+  --bs-body-color: #212529; /* Màu chữ body mặc định */
+  --bs-body-bg: #f8f9fa;    /* Màu nền body mặc định */
+
+  --bs-font-sans-serif: var(--font-monospace); /* Theo yêu cầu, Roboto Mono là sans-serif dự phòng */
+  --bs-font-monospace: var(--font-monospace);
+
+  /* Bootstrap Heading Font (nếu muốn tất cả heading dùng Archivo Black) */
+  --bs-heading-font-family: var(--font-primary);
+  --bs-heading-font-weight: 900; /* Hoặc weight của Archivo Black */
+  --bs-heading-color: #1a202c; /* Màu heading đậm hơn một chút */
+
+  /* Primary color (ví dụ: màu indigo bạn dùng với Tailwind) */
+  /* --bs-primary: #4f46e5; */
+  /* --bs-primary-rgb: 79, 70, 229; */
+  /* --bs-link-hover-color: #3730a3; */
+}
+
+body {
+  font-family: var(--bs-body-font-family);
+  font-weight: var(--bs-body-font-weight);
+  line-height: var(--bs-body-line-height);
+  background-color: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- GLOBAL ELEMENT STYLING WITH CUSTOM FONTS --- */
+
+/* Headings: H1, H2, H3 sẽ dùng var(--bs-heading-font-family) là Archivo Black */
+h1, .h1, h2, .h2, h3, .h3 {
+  font-family: var(--bs-heading-font-family); /* Archivo Black */
+  font-weight: var(--bs-heading-font-weight); /* Đảm bảo weight đúng */
+  color: var(--bs-heading-color);
+}
+
+/* Sub-Headings, Buttons, Nav Links: Oswald */
+h4, .h4, h5, .h5, h6, .h6,
+button, .btn {
+  font-family: var(--font-secondary); /* Oswald */
+  font-weight: 500; /* Ví dụ: Medium weight cho Oswald */
+}
+.btn, button {
+  font-weight: 600; /* SemiBold cho nút nổi bật hơn */
+}
+
+/* Links (nếu không có class cụ thể, sẽ kế thừa từ body hoặc Bootstrap default) */
+a {
+  /* color: var(--bs-link-color); */
+  /* text-decoration: none; */ /* Bootstrap đã có text-decoration-none cho nhiều trường hợp */
+}
+/* a:hover {
+  color: var(--bs-link-hover-color);
+} */
+
+
+/* --- CUSTOM UTILITY & COMPONENT CLASSES --- */
+
+/* Header Styles */
+.navbar-transparent {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  transition: background-color 0.3s ease-in-out, padding-top 0.3s ease-in-out, padding-bottom 0.3s ease-in-out;
+}
+.navbar-light.bg-white.shadow-lg { /* Cho header khi không trong suốt */
+    transition: background-color 0.3s ease-in-out, padding-top 0.3s ease-in-out, padding-bottom 0.3s ease-in-out;
+}
+
+.hover-text-white-80:hover,
+.navbar-transparent .nav-link:hover,
+.navbar-transparent .nav-link:focus {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.hover-text-primary:hover {
+  color: var(--bs-primary) !important;
+}
+
+.navbar-transparent .nav-link.active-transparent {
+  font-weight: 600;
+  color: #f0f0f0 !important;
+  /* border-bottom: 2px solid #f0f0f0; */
+}
+.navbar-light .nav-link.active-opaque {
+  font-weight: 600;
+  color: var(--bs-primary) !important;
+  /* border-bottom: 2px solid var(--bs-primary); */
+}
+
+.navbar-transparent .dropdown-menu {
+  background-color: var(--bs-body-bg);
+}
+.navbar-transparent .dropdown-item { color: var(--bs-dropdown-link-color); }
+.navbar-transparent .dropdown-item:hover, .navbar-transparent .dropdown-item:focus {
+  color: var(--bs-dropdown-link-hover-color);
+  background-color: var(--bs-dropdown-link-hover-bg);
+}
+.navbar-transparent .dropdown-item.active, .navbar-transparent .dropdown-item:active {
+  color: var(--bs-dropdown-link-active-color);
+  background-color: var(--bs-dropdown-link-active-bg);
+}
+
+/* Header Toggler Icon Colors */
+.navbar-transparent .navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.25);
+}
+.navbar-transparent .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.75%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+.navbar-light .navbar-toggler-icon { /* Sẽ dùng icon mặc định của Bootstrap (thường là màu đen/xám) */
+    /* background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%280, 0, 0, 0.55%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e"); */
+}
+
+/* Header hide/show on scroll (cho non-homepage) */
+.navbar-hidden {
+  transform: translateY(-100%);
+  transition: transform 0.3s ease-in-out !important;
+}
+.navbar-visible {
+  transform: translateY(0);
+  transition: transform 0.3s ease-in-out !important;
+}
+
+
+/* Specific Font Classes */
+.logo-text, .auth-brand-title, .product-title, .section-title { /* Thêm .section-title nếu muốn Archivo */
+  font-family: var(--font-primary); /* Archivo Black */
+}
+.navbar-brand.logo-text {
+    font-weight: 900; /* Đảm bảo Archivo Black hiển thị đúng weight */
+}
+
+.main-menu-link, .mobile-menu-link, .auth-page-title, .account-nav-link, .filter-title {
+  font-family: var(--font-secondary); /* Oswald */
+  font-weight: 500; /* Medium cho Oswald */
+}
+
+blockquote, .hero-subtitle, .product-description p, .footer-text, .empty-cart-message .lead {
+  font-family: var(--font-accent); /* Cormorant Garamond */
+}
+.footer-text.text-white-50 { /* Cần target cụ thể hơn nếu text-white-50 ghi đè font */
+    font-family: var(--font-accent);
+}
+
+/* Monospace cho giá và các thành phần khác nếu cần ghi đè */
+.product-card-price, .product-price, .cart-item-price, .checkout-item-price, .order-totals-summary span, .profile-balance-box .h4, .main-footer {
+  font-family: var(--font-monospace); /* Roboto Mono */
+}
+.profile-balance-box .h4 { /* Ghi đè h4 (Oswald) cho trường hợp này */
+    font-family: var(--font-monospace);
+    font-weight: 700; /* Bold Roboto Mono */
+}
+.main-footer { /* Footer sẽ dùng Roboto Mono */
+    font-family: var(--font-monospace);
+}
+
+
+/* GSAP Layered Scrolling Panels & Hero Video */
+.gsap-layers-main {
+  overflow-x: hidden;
+  position: relative;
+}
+.panel {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.panel.light { background-color: #f8f9fa; color: #212529; }
+.panel.dark { background-color: #212529; color: #f8f9fa; }
+/* Thêm các màu panel khác nếu bạn định nghĩa (orange, purple, green) */
+
+.hero-video-panel { padding: 0 !important;
+position: relative; }
+
+.video-background-container {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  overflow: hidden; z-index: 1;
+  background-color: #000;
+}
+.video-background {
+  min-width: 100%; min-height: 100%;
+  width: auto; height: auto;
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  object-fit: cover;
+  opacity: 0; /* GSAP controlled */
+  visibility: hidden; /* GSAP controlled */
+}
+
+.hero-video-content-wrapper {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 2;
+  display: flex; flex-direction: column;
+  justify-content: flex-end; 
+  padding: 3rem;
+  pointer-events: none;
+}
+.hero-text-block {
+  position: relative;
+  align-self:flex-start;
+  opacity: 0; visibility: hidden; /* GSAP controlled */
+  color: #fff;
+  max-width: 550px;
+  margin-bottom: 1.5rem;
+  pointer-events: auto;
+}
+.hero-text-block h1 {
+  font-family: var(--font-primary); /* Archivo Black */
+  font-size: 3rem; margin-bottom: 0.75rem; line-height: 1.15;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+  font-weight: 900;
+}
+.hero-text-block p {
+  font-family: var(--font-accent); /* Cormorant Garamond */
+  font-size: 1.2rem; margin-bottom: 0; line-height: 1.6;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+}
+
+.hero-cta-button-container {
+  position: relative; align-self: center;
+  margin-bottom: 60px;
+  z-index: 3; opacity: 0; visibility: hidden; /* GSAP controlled */
+  pointer-events: auto;
+}
+
+.scroll-down {
+  position: absolute; bottom: 30px; left: 50%;
+  transform: translateX(-50%);
+  text-align: center; color: #fff; z-index: 3;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+}
+.scroll-down .arrow {
+  width: 10px; height: 10px; border: 2px solid #fff;
+  border-top: 0; border-left: 0;
+  transform: rotate(45deg); margin: 5px auto 0;
+  animation: bounce 2s infinite;
+}
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0) rotate(45deg); }
+  40% { transform: translateY(-10px) rotate(45deg); }
+  60% { transform: translateY(-5px) rotate(45deg); }
+}
+
+
+/* FuzzyText CSS (Nếu bạn giữ lại component này) */
+.fuzzy-text-container {
+  display: inline-block;
+  position: relative;
+  line-height: 1.2em;
+  min-width: 1ch;
+}
+.fuzzy-text-content {
+  display: inline-block;
+  white-space: pre;
+}
+
+
+/* Print Utility */
+.print-hidden {
+  @media print {
+    display: none !important;
+  }
+}
+
+/* Optional: Blur effect if you used it with OptimizedImage placeholder */
+.blur-sm-effect {
+  filter: blur(4px);
+}
+
+/* Z-index cho search bar (nếu cần) */
+.z-index-below-navbar {
+    z-index: 1029; /* Giá trị này phải thấp hơn z-index của navbar (thường là 1030 cho fixed-top) */
+}

@@ -1,246 +1,328 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+// src/components/layout/Header.jsx
+import React, { useEffect, useCallback, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FiUser, FiShoppingCart, FiSearch, FiMenu, FiX, FiLogOut, FiLogIn, FiSettings, FiShoppingBag } from 'react-icons/fi';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useCart } from '../../contexts/CartContext';
 import useScrollPosition from '../../hooks/useScrollPosition';
 import useToggle from '../../hooks/useToggle';
 import { classNames } from '../../utils/helpers';
-import { SUPPORTED_LANGUAGES } from '../../utils/constants';
+import { SUPPORTED_LANGUAGES, APP_NAME } from '../../utils/constants';
+// import gsap from 'gsap'; // GSAP không được sử dụng trong file này, có thể xóa
 
 const Header = () => {
   const { t, i18n } = useTranslation();
   const { authState, logout } = useAuth();
   const { cart } = useCart();
   const scrollPosition = useScrollPosition();
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [isMobileMenuOpen, toggleMobileMenu, setMobileMenuOpen] = useToggle(false);
   const [isSearchOpen, toggleSearch, setSearchOpen] = useToggle(false);
+  const [isGuestUserDropdownOpen, toggleGuestUserDropdown, setGuestUserDropdownOpen] = useToggle(false);
+
+  const headerRef = useRef(null);
+  const [isHidden, setIsHidden] = useState(false);
+  const lastScrollY = useRef(0);
 
   const itemCount = cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  const isHomePage = location.pathname === '/';
 
-  // BIẾN XÁC ĐỊNH HEADER CÓ TRONG SUỐT HAY KHÔNG
-  // Điều kiện: Ở đầu trang (scrollPosition < 50) VÀ đang ở trang chủ (location.pathname === '/')
-  // Bạn có thể mở rộng điều kiện này cho các trang khác nếu muốn header trong suốt
-  const isTransparent = scrollPosition < 50 && location.pathname === '/';
+  // Logic xác định header trong suốt
+  // Header chỉ trong suốt trên trang chủ, khi scroll ở đầu trang, và không có menu mobile hay search bar đang mở
+  const isHeaderTransparent = isHomePage && scrollPosition < 50 && !isMobileMenuOpen && !isSearchOpen;
+
+  // Logic ẩn/hiện header khi cuộn (cho các trang không phải homepage)
+  useEffect(() => {
+    if (isHomePage) {
+      if(headerRef.current) { // Đảm bảo headerRef.current tồn tại
+        headerRef.current.classList.remove('navbar-hidden');
+        headerRef.current.classList.add('navbar-visible');
+      }
+      setIsHidden(false);
+      lastScrollY.current = window.scrollY; // Sử dụng window.scrollY thay vì scrollPosition cho logic này
+      return;
+    }
+
+    const handleScroll = () => {
+      if (!headerRef.current) return;
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY.current && currentScrollY > headerRef.current.offsetHeight) {
+        setIsHidden(true);
+      } else if (currentScrollY < lastScrollY.current) {
+        setIsHidden(false);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isHomePage, location.pathname]); // Bỏ scrollPosition khỏi dependencies vì lastScrollY.current được dùng
+
 
   const handleLogout = useCallback(() => {
     logout();
-  }, [logout]);
+    setMobileMenuOpen(false);
+    setGuestUserDropdownOpen(false);
+  }, [logout, setMobileMenuOpen, setGuestUserDropdownOpen]);
 
   useEffect(() => {
     setMobileMenuOpen(false);
-    setSearchOpen(false);
-  }, [location.pathname, setMobileMenuOpen, setSearchOpen]);
+    setGuestUserDropdownOpen(false);
+  }, [location.pathname, setMobileMenuOpen, setGuestUserDropdownOpen]);
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
+    setMobileMenuOpen(false);
   };
 
-  // --- Định nghĩa các lớp CSS động dựa trên trạng thái trong suốt/cuộn ---
-  const headerClasses = classNames(
-    "sticky top-0 z-50 w-full transition-all duration-300 ease-in-out",
-    isTransparent ? "bg-transparent py-4" : "bg-white shadow-lg py-3"
+  const headerBaseClasses = "navbar navbar-expand-lg fixed-top";
+  let headerDynamicStyles;
+
+  if (isHomePage) {
+    headerDynamicStyles = isHeaderTransparent
+      ? "navbar-transparent py-3"
+      : "navbar-light bg-white shadow-lg py-2 navbar-visible";
+  } else {
+    headerDynamicStyles = classNames(
+      "navbar-light bg-white shadow-lg py-2",
+      isHidden ? "navbar-hidden" : "navbar-visible"
+    );
+  }
+
+  const textColorClass = (isHeaderTransparent && isHomePage) ? "text-white hover-text-white-80" : "text-dark hover-text-primary";
+  const activeTextColorClass = (isHeaderTransparent && isHomePage) ? "active-transparent fw-semibold" : "active-opaque fw-semibold text-primary";
+
+  const logoTextClasses = classNames(
+    "navbar-brand logo-text fs-4 fw-bold",
+    (isHeaderTransparent && isHomePage) ? "text-white" : "text-primary"
   );
 
-  const logoColorClass = isTransparent ? "text-white" : "text-indigo-600";
-  const langButtonBaseClasses = "flex items-center transition-colors duration-300";
-  const langButtonTextColorClass = isTransparent ? "text-white hover:text-gray-200" : "text-gray-600 hover:text-indigo-600";
+  const navLinkBaseClasses = "nav-link main-menu-link";
+  const navLinkDynamicClasses = (isActiveRoute) => classNames(
+    textColorClass,
+    isActiveRoute && activeTextColorClass
+  );
   
-  const navLinkBaseClasses = "transition-opacity duration-500 ease-in-out";
-  // Hiển thị menu items từ từ khi header không còn trong suốt
-  const navLinkVisibilityClass = !isTransparent ? "opacity-100" : "opacity-0 invisible";
-  const navLinkColorClass = isTransparent ? "text-white hover:text-gray-300" : "text-gray-600 hover:text-indigo-600";
-  const activeNavLinkColorClass = isTransparent ? "text-gray-100 font-semibold" : "text-indigo-600 font-semibold";
+  const iconNavLinkClasses = classNames("nav-link d-flex align-items-center justify-content-center px-2", textColorClass);
+  const iconButtonClasses = classNames("btn btn-link p-0 d-flex align-items-center justify-content-center px-2", textColorClass);
 
-  const iconColorClass = isTransparent ? "text-white hover:text-gray-200" : "text-gray-600 hover:text-indigo-600";
 
-  const getNavLinkClass = (path) => {
-    const isActive = location.pathname === path;
-    return classNames(
-      navLinkBaseClasses,
-      navLinkColorClass, // Màu cơ bản khi trong suốt/không trong suốt
-      isActive && activeNavLinkColorClass, // Màu khi active
-      navLinkVisibilityClass // Ẩn/hiện menu items
-    );
-  };
-  
-  const SearchBarComponent = () => {
-    if (!isSearchOpen) return null;
-    // Search bar sẽ luôn có nền trắng để dễ đọc
-    return (
-        <div className="absolute top-full left-0 right-0 bg-white shadow-lg p-4 z-40">
-            <input type="text" placeholder={t('header.searchPlaceholder')} className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500" />
-        </div>
-    );
-  };
+  const langButtonClasses = classNames(
+    "nav-link dropdown-toggle d-flex align-items-center p-0",
+    textColorClass
+  );
 
-  // Danh sách menu items mới
   const menuItems = [
-    { to: "/", labelKey: "header.newArrivals" }, // Cần thêm route /new-arrivals hoặc chỉnh thành /products?filter=new
-    { to: "/products", labelKey: "header.collections" },
+    { to: "/", labelKey: "header.home", exact: true },
+    { to: "/products", labelKey: "header.products" },
     { to: "/blog", labelKey: "header.blog" },
-    { to: "/about", labelKey: "header.theNoizee" } // Đảm bảo có route /about và component AboutPage
+    { to: "/about", labelKey: "header.about" }
   ];
+  const bsIconBaseClass = "bi";
+  const togglerIconColor = (isHeaderTransparent && isHomePage && !isMobileMenuOpen) ? 'text-white' : 'text-dark';
+
+  // Style cho menu chính trên desktop để đảm bảo nó hiển thị
+  const desktopMenuNavStyle = (isHomePage && isHeaderTransparent)
+    ? { opacity: 0, visibility: 'hidden', transition: 'opacity 0.3s ease-in-out, visibility 0.3s ease-in-out' }
+    : { opacity: 1, visibility: 'visible', transition: 'opacity 0.3s ease-in-out, visibility 0.3s ease-in-out' };
+
 
   return (
-    <header className={headerClasses}>
-      <div className="container mx-auto px-4 flex items-center justify-between h-16"> {/* Đặt chiều cao cố định cho header */}
-        {/* Left Section: Logo and Language Selector */}
-        <div className="flex items-center space-x-4">
-          <Link to="/" className={`text-2xl font-bold transition-colors duration-300 ${logoColorClass}`}>
-            {t('appName', 'Noizee')}
+    <nav ref={headerRef} className={`${headerBaseClasses} ${headerDynamicStyles}`}>
+      <div className="container d-flex align-items-center"> {/* Container chính cho nội dung navbar */}
+        
+        {/* === LEFT GROUP (Logo + Language for Desktop) === */}
+        <div className="d-flex align-items-center"> {/* Bỏ 'me-auto' */}
+          <Link to="/" className={logoTextClasses}>
+            {t('appName', APP_NAME)}
           </Link>
-          
-          {/* Language Selector (Desktop) */}
-          <div className="hidden md:block relative group">
-            <button className={classNames(langButtonBaseClasses, langButtonTextColorClass)}>
-              <span>{SUPPORTED_LANGUAGES.find(lang => lang.code === i18n.language)?.name || i18n.language.toUpperCase()}</span>
+          <div className="dropdown d-none d-lg-block ms-3">
+            <button
+              className={langButtonClasses}
+              type="button"
+              id="languageDropdownMenuButtonDesktop"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              {(i18n.language === 'vi' ? 'VI' : 'EN')}
             </button>
-            <div className="absolute left-0 mt-1 w-32 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-in-out z-50">
+            <ul className="dropdown-menu shadow" aria-labelledby="languageDropdownMenuButtonDesktop">
+              {SUPPORTED_LANGUAGES.map(lang => (
+                <li key={lang.code}>
+                  <button
+                    onClick={() => changeLanguage(lang.code)}
+                    className={classNames("dropdown-item", { 'active': i18n.language === lang.code })}
+                  >
+                    {lang.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* === MOBILE TOGGLER (Sẽ được đẩy sang phải bởi menu hoặc nhóm icon nếu không có điều chỉnh đặc biệt) === */}
+        {/* Để đảm bảo toggler ở đúng vị trí, nó thường nằm ngay sau brand hoặc trước collapse */}
+        <button
+          className="navbar-toggler d-lg-none ms-auto" // Thêm ms-auto để đẩy về phải trên mobile nếu cần
+          type="button"
+          onClick={toggleMobileMenu}
+          aria-controls="mainNavbarNav"
+          aria-expanded={isMobileMenuOpen}
+          aria-label="Toggle navigation"
+        >
+          {isMobileMenuOpen
+            ? <i className={`${bsIconBaseClass} bi-x-lg fs-4 ${togglerIconColor}`}></i>
+            : <i className={`${bsIconBaseClass} bi-list fs-4 ${togglerIconColor}`}></i>
+          }
+        </button>
+
+        {/* === COLLAPSIBLE CONTENT (Centered Menu for Desktop + All Mobile Menu items) === */}
+        {/* class "flex-grow-1" giúp navbar-collapse chiếm không gian ở giữa cho menu desktop */}
+        <div className={classNames("collapse navbar-collapse flex-grow-1", { 'show': isMobileMenuOpen })} id="mainNavbarNav">
+          {/* Desktop Centered Navigation Links */}
+          <ul
+            className="navbar-nav mx-auto mb-2 mb-lg-0 d-none d-lg-flex"
+            style={desktopMenuNavStyle} // Áp dụng style ẩn/hiện
+          >
+            {menuItems.map(item => (
+              <li key={item.to} className="nav-item">
+                <Link
+                  to={item.to}
+                  className={`${navLinkBaseClasses} ${navLinkDynamicClasses(location.pathname === item.to || (item.exact && location.pathname === '/'))}`}
+                >
+                  {t(item.labelKey)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          {/* --- MOBILE ONLY ITEMS (Stacked inside collapsible area) --- */}
+          <div className="d-lg-none mt-3 border-top pt-3">
+            {/* ... (giữ nguyên code mobile menu) ... */}
+            <ul className="navbar-nav flex-column">
+              {menuItems.map(item => (
+                <li key={`mobile-${item.to}`} className="nav-item">
+                  <Link
+                    to={item.to}
+                    className={`nav-link mobile-menu-link py-2 text-dark ${ (location.pathname === item.to || (item.exact && location.pathname === '/')) ? 'active text-primary fw-semibold' : ''}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {t(item.labelKey)}
+                  </Link>
+                </li>
+              ))}
+              <li className="nav-item mt-2">
+                <button onClick={() => { toggleSearch(); setMobileMenuOpen(false); }} className="nav-link mobile-menu-link py-2 text-dark d-flex align-items-center w-100 text-start">
+                  <i className={`${bsIconBaseClass} bi-search me-2`}></i> {t('header.search')}
+                </button>
+              </li>
+            </ul>
+            <hr />
+            <div className="mt-3">
+              <p className="small text-muted mb-2">{t('header.language')}</p>
               {SUPPORTED_LANGUAGES.map(lang => (
                 <button
-                  key={lang.code}
+                  key={`mobile-lang-${lang.code}`}
                   onClick={() => changeLanguage(lang.code)}
-                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
+                  className={classNames(
+                    "btn btn-sm w-100 text-start mb-1",
+                    i18n.language === lang.code ? "btn-primary" : "btn-outline-secondary"
+                  )}
                 >
                   {lang.name}
                 </button>
               ))}
             </div>
-          </div>
-        </div>
-
-        {/* Center Section: Desktop Navigation (xuất hiện khi không trong suốt) */}
-        <nav className={`hidden md:flex items-center space-x-6 ${isTransparent ? 'opacity-0 invisible' : 'opacity-100 visible'} transition-opacity duration-500`}>
-          {menuItems.map(item => (
-            <Link key={item.to} to={item.to} className={getNavLinkClass(item.to)}>
-              {t(item.labelKey)}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Right Section: Actions (Search, User, Cart, Mobile Toggle) */}
-        <div className="flex items-center space-x-3 md:space-x-4">
-          <button onClick={toggleSearch} aria-label={t('header.search')} className={`hidden md:block ${iconColorClass}`}>
-            <FiSearch size={22} />
-          </button>
-          
-          {authState.isAuthenticated ? (
-            <div className="relative group">
-               <Link to="/account/profile" aria-label={t('header.account')} className={`flex items-center ${iconColorClass}`}>
-                <FiUser size={22} />
-                {/* Tên user ẩn khi header trong suốt hoặc trên mobile để tiết kiệm không gian */}
-                <span className={`hidden lg:inline ml-1 ${isTransparent ? 'hidden' : ''}`}>{authState.user?.firstName || authState.user?.email?.split('@')[0]}</span>
-              </Link>
-              <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 ease-in-out z-50 py-1">
-                {/* Dropdown items luôn có màu text bình thường */}
-                <Link to="/account/profile" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600">
-                  <FiSettings size={16} className="mr-2"/> {t('header.myProfile')}
-                </Link>
-                <Link to="/account/orders" className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600">
-                  <FiShoppingBag size={16} className="mr-2"/> {t('header.myOrders')}
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600"
-                >
-                  <FiLogOut size={16} className="mr-2"/> {t('header.logout')}
-                </button>
-              </div>
+            <hr />
+            <div className="mt-3">
+              {authState.isAuthenticated ? (
+                <>
+                  <Link to="/account/profile" className="nav-link mobile-menu-link py-2 text-dark d-flex align-items-center" onClick={() => setMobileMenuOpen(false)}>
+                    <i className={`${bsIconBaseClass} bi-person me-2`}></i>{authState.user?.firstName || authState.user?.customer_name || t('header.myProfile')}
+                  </Link>
+                  <button onClick={handleLogout} className="nav-link mobile-menu-link py-2 text-danger d-flex align-items-center w-100 text-start">
+                    <i className={`${bsIconBaseClass} bi-box-arrow-right me-2`}></i> {t('header.logout')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" className="nav-link mobile-menu-link py-2 text-dark d-flex align-items-center" onClick={() => setMobileMenuOpen(false)}>
+                    <i className={`${bsIconBaseClass} bi-box-arrow-in-right me-2`}></i>{t('header.login')}
+                  </Link>
+                  <Link to="/register" className="nav-link mobile-menu-link py-2 text-dark d-flex align-items-center" onClick={() => setMobileMenuOpen(false)}>
+                    <i className={`${bsIconBaseClass} bi-person-plus me-2`}></i>{t('header.register')}
+                  </Link>
+                </>
+              )}
             </div>
-          ) : (
-            <Link to="/login" aria-label={t('header.login')} className={`flex items-center ${iconColorClass}`}>
-              <FiLogIn size={22} />
-               {/* Chữ login ẩn khi header trong suốt hoặc trên mobile */}
-              <span className={`hidden lg:inline ml-1 ${isTransparent ? 'hidden' : ''}`}>{t('header.login')}</span>
+          </div>
+        </div> {/* End navbar-collapse */}
+
+        {/* === RIGHT ACTIONS (Desktop Only - Search, User, Cart) === */}
+        {/* Phải có 'ms-auto' để đẩy về bên phải */}
+        <div className="d-none d-lg-flex align-items-center ms-auto">
+          <button onClick={toggleSearch} aria-label={t('header.search')} className={iconButtonClasses}>
+            <i className={`${bsIconBaseClass} bi-search fs-5`}></i>
+          </button>
+
+          {authState.isAuthenticated ? (
+            <Link
+              to="/account/profile"
+              aria-label={t('header.myProfile')}
+              className={`${iconNavLinkClasses} text-decoration-none`}
+            >
+              <i className={`${bsIconBaseClass} bi-person fs-5`}></i>
+              <span className={classNames("d-none d-xl-inline ms-1", { 'd-none': (isHeaderTransparent && isHomePage) && !isMobileMenuOpen })}>
+                {authState.user?.firstName || authState.user?.customer_name || authState.user?.email?.split('@')[0]}
+              </span>
             </Link>
+          ) : (
+            <div className="dropdown">
+              <button
+                className={`${iconButtonClasses} dropdown-toggle`}
+                type="button"
+                id="guestUserDropdownMenuButtonDesktop"
+                onClick={toggleGuestUserDropdown}
+                aria-expanded={isGuestUserDropdownOpen}
+              >
+                <i className={`${bsIconBaseClass} bi-person fs-5`}></i>
+              </button>
+              <ul className={classNames("dropdown-menu dropdown-menu-end shadow", { 'show': isGuestUserDropdownOpen })} aria-labelledby="guestUserDropdownMenuButtonDesktop">
+                <li><Link className="dropdown-item d-flex align-items-center" to="/login" onClick={() => setGuestUserDropdownOpen(false)}><i className={`${bsIconBaseClass} bi-box-arrow-in-right me-2`}></i>{t('header.login')}</Link></li>
+                <li><Link className="dropdown-item d-flex align-items-center" to="/register" onClick={() => setGuestUserDropdownOpen(false)}><i className={`${bsIconBaseClass} bi-person-plus me-2`}></i>{t('header.register')}</Link></li>
+              </ul>
+            </div>
           )}
 
-          <Link to="/cart" aria-label={t('header.cart')} className={`relative ${iconColorClass}`}>
-            <FiShoppingCart size={24} />
+          <Link to="/cart" aria-label={t('header.cart')} className={`${iconNavLinkClasses} position-relative`}>
+            <i className={`${bsIconBaseClass} bi-bag fs-5`}></i>
             {itemCount > 0 && (
-              // Badge giỏ hàng nên có màu nổi bật riêng, không phụ thuộc header trong suốt
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                 {itemCount}
+                <span className="visually-hidden">items in cart</span>
               </span>
             )}
           </Link>
-
-          <div className="md:hidden">
-            <button onClick={toggleMobileMenu} aria-label={t('header.menu')} className={iconColorClass}>
-              {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-            </button>
-          </div>
         </div>
-      </div>
+      </div> 
+
       
-      <div className="relative">
-          <SearchBarComponent />
-      </div>
-
-      {/* Mobile Menu - Giữ nguyên cấu trúc, chỉ cần đảm bảo màu sắc các item bên trong phù hợp */}
-      <div
-        className={classNames(
-          "md:hidden fixed inset-0 z-30 transform transition-transform duration-300 ease-in-out bg-white", // z-index thấp hơn header chính
-          isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
-        )}
-      >
-        <div className="p-5">
-          <div className="flex justify-between items-center mb-6">
-            <Link to="/" className="text-xl font-bold text-indigo-600" onClick={toggleMobileMenu}>
-                {t('appName', 'Noizee')}
-            </Link>
-            <button onClick={toggleMobileMenu} aria-label={t('header.closeMenu')} className="text-gray-600"> {/* Nút close luôn màu tối */}
-              <FiX size={24} />
-            </button>
-          </div>
-          {/* Mobile Navigation Links */}
-          <nav className="flex flex-col space-y-4">
-            {menuItems.map(item => (
-              <Link 
-                key={`mobile-${item.to}`} 
-                to={item.to} 
-                // Class cho mobile links, không phụ thuộc isTransparent của header chính
-                className={({ isActive }) => 
-                    classNames(
-                        "py-2 text-gray-600 hover:text-indigo-600",
-                        isActive ? "text-indigo-600 font-semibold" : ""
-                    )
-                }
-                onClick={toggleMobileMenu}
-              >
-                {t(item.labelKey)}
-              </Link>
-            ))}
-            
-            <button onClick={() => { toggleSearch(); toggleMobileMenu(); }} aria-label={t('header.search')} className="flex items-center py-2 text-gray-600 hover:text-indigo-600">
-                <FiSearch size={20} className="mr-2" /> {t('header.search')}
-            </button>
-
-            <div className="pt-2 border-t border-gray-200">
-                <p className="text-sm text-gray-500 mb-2">{t('header.language')}</p>
-                {SUPPORTED_LANGUAGES.map(lang => (
-                    <button
-                    key={lang.code}
-                    onClick={() => { changeLanguage(lang.code); toggleMobileMenu(); }}
-                    className={classNames(
-                        "block w-full text-left py-2 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600",
-                        i18n.language === lang.code && "text-indigo-600 font-semibold"
-                    )}
-                    >
-                    {lang.name}
-                    </button>
-                ))}
-            </div>
-          </nav>
+      {isSearchOpen && (
+        <div className="position-absolute top-100 start-0 end-0 bg-white shadow-lg p-3 z-index-below-navbar">
+          <input
+            type="text"
+            placeholder={t('header.searchPlaceholder')}
+            className="form-control"
+            autoFocus
+            onBlur={() => setSearchOpen(false)}
+          />
         </div>
-      </div>
-    </header>
+      )}
+    </nav>
   );
 };
 

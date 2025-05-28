@@ -39,12 +39,13 @@ const ProductGrid = ({
   }
 
   return (
-    <div className={className}>
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} className={cardClassName} />
-      ))}
-    </div>
-  );
+  <div className={className}>
+    {products.map((product) => (
+      // Đảm bảo product.product_id luôn tồn tại và là duy nhất
+      <ProductCard key={product.product_id} product={product} className={cardClassName} />
+    ))}
+  </div>
+);
 };
 
 export default ProductGrid;

@@ -52,8 +52,8 @@ export const formatDate = (dateInput, fallback = 'N/A') => {
 };
 export const getLocalizedField = (item, fieldPrefix, lang = 'vi', fallbackLang = 'vi') => {
     if (!item) return '';
-    const langField = `<span class="math-inline">\{fieldPrefix\}\_</span>{lang}`;
-    const fallbackField = `<span class="math-inline">\{fieldPrefix\}\_</span>{fallbackLang}`;
+    const langField = `<span class="math-inline">{fieldPrefix}_</span>{lang}`;
+    const fallbackField = `<span class="math-inline">{fieldPrefix}_</span>{fallbackLang}`;
 
     if (item[langField] !== null && item[langField] !== undefined && item[langField] !== '') {
         return item[langField];

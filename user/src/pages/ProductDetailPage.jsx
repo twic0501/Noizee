@@ -1,295 +1,307 @@
-// user/src/pages/ProductDetailPage.jsx
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+// src/pages/ProductDetailPage.jsx
+import React, { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { useTranslation } from 'react-i18next';
-import { FiShoppingCart, FiHeart, FiMinus, FiPlus, FiShare2, FiCheckCircle } from 'react-icons/fi'; // Thêm icon
+import { FiShoppingCart, FiMinus, FiPlus, FiCheckCircle, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 
-import { GET_PRODUCT_DETAILS_QUERY } from '../../api/graphql/productQueries';
-import { useCart } from '../../contexts/CartContext';
-import { useAuth } from '../../contexts/AuthContext'; // Nếu có wishlist
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import AlertMessage from '../../components/common/AlertMessage';
-import ImageCarousel from '../../components/product/ImageCarousel'; // Đã tạo/đề xuất
-import ColorSelector from '../../components/product/ColorSelector'; // Đã tạo/đề xuất
-import SizeSelector from '../../components/product/SizeSelector';   // Đã tạo/đề xuất
-// import Breadcrumbs from '../../components/common/Breadcrumbs'; // Nếu có
-// import ProductReviews from '../../components/product/ProductReviews'; // Nếu có
-// import RelatedProducts from '../../components/product/RelatedProducts'; // Nếu có
-import { formatPrice } from '../../utils/formatters';
-import { classNames } from '../../utils/helpers';
-import OptimizedImage from '../../components/common/OptimizedImage'; // Cho ảnh variant (nếu có)
+import { GET_PRODUCT_DETAILS_QUERY } from '../api/graphql/productQueries';
+import { useCart } from '../contexts/CartContext';
+// import { useAuth } from '../../contexts/AuthContext'; // If wishlist or other auth features needed
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import AlertMessage from '../components/common/AlertMessage';
+import ImageCarousel from '../components/product/ImageCarousel';
+import ColorSelector from '../components/product/ColorSelector';
+import SizeSelector from '../components/product/SizeSelector';
+import { formatPrice } from '../utils/formatters';
+import { API_BASE_URL, PRODUCT_IMAGE_PLACEHOLDER } from '../utils/constants';
+import useToggle from '../hooks/useToggle'; // For accordion-like details
+
+const DetailAccordionItem = ({ title, content, defaultOpen = false }) => {
+    const [isOpen, toggleOpen] = useToggle(defaultOpen);
+    if (!content) return null;
+    return (
+        <div className="border-b border-gray-200 py-5">
+            <button
+                onClick={toggleOpen}
+                className="flex justify-between items-center w-full text-left text-gray-700 hover:text-gray-900"
+            >
+                <span className="font-medium">{title}</span>
+                {isOpen ? <FiChevronUp className="h-5 w-5" /> : <FiChevronDown className="h-5 w-5" />}
+            </button>
+            {isOpen && (
+                <div className="mt-3 text-sm text-gray-600 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: content }} />
+            )}
+        </div>
+    );
+};
+
 
 const ProductDetailPage = () => {
-  const { t } = useTranslation();
-  const { productSlug } = useParams();
-  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const { productSlug } = useParams(); // Assuming productSlug is used, adjust if it's product_id
   const { addToCart, isLoading: cartLoading } = useCart();
-  const { authState } = useAuth(); // Ví dụ cho wishlist
+  const currentLang = i18n.language;
 
   const [selectedColor, setSelectedColor] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [currentImageSet, setCurrentImageSet] = useState([]); // Mảng ảnh cho màu/variant được chọn
   const [addToCartSuccess, setAddToCartSuccess] = useState(false);
-
+  const [activeGalleryImages, setActiveGalleryImages] = useState([]);
 
   const { data, loading, error } = useQuery(GET_PRODUCT_DETAILS_QUERY, {
-    variables: { slug: productSlug }, // Hoặc id nếu dùng ID
+    variables: { id: productSlug, lang: currentLang }, // Query uses 'id', ensure productSlug is the ID or change query var name
     fetchPolicy: 'cache-and-network',
-    onCompleted: (queryData) => {
-      if (queryData && queryData.product) {
-        const product = queryData.product;
-        // Set màu mặc định (nếu có)
-        if (product.colors && product.colors.length > 0) {
-          setSelectedColor(product.colors[0]);
-          setCurrentImageSet(product.colors[0].images || product.images || []);
-        } else {
-          setCurrentImageSet(product.images || []);
-        }
-        // Set size mặc định (nếu có và available)
-        if (product.sizes && product.sizes.length > 0) {
-          const availableSize = product.sizes.find(s => s.available !== false); // Ưu tiên size available
-          if (availableSize) setSelectedSize(availableSize);
-          else setSelectedSize(product.sizes[0]); // Hoặc size đầu tiên nếu không có available
-        }
-      }
-    }
   });
-
   const product = data?.product;
 
-  // Cập nhật bộ ảnh khi màu thay đổi
+  const availableColors = useMemo(() => {
+    if (!product?.inventory) return [];
+    const colorsMap = new Map();
+    product.inventory.forEach(inv => {
+      if (inv.color && inv.color.color_id && !colorsMap.has(inv.color.color_id)) {
+        colorsMap.set(inv.color.color_id, inv.color);
+      }
+    });
+    return Array.from(colorsMap.values());
+  }, [product]);
+
   useEffect(() => {
-    if (selectedColor && selectedColor.images && selectedColor.images.length > 0) {
-      setCurrentImageSet(selectedColor.images);
-    } else if (product && product.images && product.images.length > 0) {
-      // Fallback về ảnh chính của sản phẩm nếu màu không có ảnh riêng hoặc không chọn màu
-      setCurrentImageSet(product.images);
-    } else {
-        setCurrentImageSet([]);
+    if (availableColors.length > 0 && !selectedColor) {
+      setSelectedColor(availableColors[0]);
+    } else if (availableColors.length === 0 && selectedColor) {
+        setSelectedColor(null);
     }
-  }, [selectedColor, product]);
+  }, [availableColors, selectedColor]);
+
+  const availableSizesForSelectedColor = useMemo(() => {
+    if (!product?.inventory) return [];
+    const sizesMap = new Map();
+    let inventoryToCheck = product.inventory;
+    if (selectedColor) {
+        inventoryToCheck = product.inventory.filter(inv => inv.color?.color_id === selectedColor.color_id);
+    } else {
+        inventoryToCheck = product.inventory.filter(inv => !inv.color_id); // Sizes for products with no color variants
+    }
+    inventoryToCheck.forEach(inv => {
+      if (inv.size && inv.size.size_id && inv.quantity > 0) {
+        if (!sizesMap.has(inv.size.size_id)) {
+          sizesMap.set(inv.size.size_id, { ...inv.size, available: true }); // Mark as available
+        }
+      }
+    });
+    // Also add sizes that might exist but have 0 quantity for this color, marking them as unavailable
+     if (selectedColor) { // Only do this if a color is selected
+        product.inventory.forEach(inv => {
+            if (inv.color?.color_id === selectedColor.color_id && inv.size && inv.size.size_id && inv.quantity <= 0) {
+                if (!sizesMap.has(inv.size.size_id)) { // Add if not already added as available
+                    sizesMap.set(inv.size.size_id, { ...inv.size, available: false });
+                }
+            }
+        });
+    }
+
+    return Array.from(sizesMap.values());
+  }, [product, selectedColor]);
+
+  useEffect(() => {
+    const targetSizes = availableSizesForSelectedColor.filter(s => s.available); // Only consider available sizes for default
+    if (targetSizes.length > 0) {
+      const currentSizeStillAvailable = targetSizes.find(s => s.size_id === selectedSize?.size_id);
+      if (!currentSizeStillAvailable) {
+        setSelectedSize(targetSizes[0]);
+      } else {
+         setSelectedSize(currentSizeStillAvailable);
+      }
+    } else {
+      setSelectedSize(null);
+    }
+  }, [selectedColor, availableSizesForSelectedColor, selectedSize]); // product removed
+
+  useEffect(() => {
+    if (!product || !product.images) {
+      setActiveGalleryImages([]); return;
+    }
+    let imagesToDisplay = [];
+    const generalImages = product.images.filter(img => !img.color || !img.color.color_id);
+
+    if (selectedColor) {
+      imagesToDisplay = product.images.filter(img => img.color?.color_id === selectedColor.color_id);
+    }
+    
+    // Smartly combine: if color selected and has specific images, use them. Then append general if not already present.
+    // If no color selected, or selected color has no images, use general images.
+    let finalImageSet = [];
+    if (selectedColor && imagesToDisplay.length > 0) {
+        finalImageSet = [...imagesToDisplay];
+        // Add general images that are not already part of the color-specific set (by image_url perhaps, or rely on display_order)
+        // This logic might need refinement based on how you want to merge.
+        // For now, let's assume variant images take precedence.
+    } else {
+        finalImageSet = [...generalImages];
+    }
+     if (finalImageSet.length === 0 && product.images.length > 0) { // Ultimate fallback
+        finalImageSet = product.images;
+    }
 
 
-  const handleColorSelect = (color) => {
-    setSelectedColor(color);
-    // Reset size nếu logic variant phụ thuộc vào màu
-    // setSelectedSize(null); 
-    // Reset quantity về 1
-    setQuantity(1);
-  };
+    setActiveGalleryImages(
+      finalImageSet
+        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+        .map(img => ({
+          original: `${API_BASE_URL}${img.image_url}`,
+          thumbnail: `${API_BASE_URL}${img.image_url}`,
+          originalAlt: img.alt_text || product.name,
+          id: img.image_id,
+      }))
+    );
+  }, [product, selectedColor, currentLang, API_BASE_URL]);
 
-  const handleSizeSelect = (size) => {
-    setSelectedSize(size);
-    setQuantity(1);
-  };
+  const handleColorSelect = (color) => { setSelectedColor(color); setQuantity(1); setAddToCartSuccess(false); };
+  const handleSizeSelect = (size) => { setSelectedSize(size); setQuantity(1); setAddToCartSuccess(false);};
+
+  let currentInventoryItem = null;
+  if (product?.inventory) {
+      if (selectedColor && selectedSize) {
+          currentInventoryItem = product.inventory.find(inv => inv.color?.color_id === selectedColor.color_id && inv.size?.size_id === selectedSize.size_id);
+      } else if (selectedColor && availableSizesForSelectedColor.length === 0) {
+           currentInventoryItem = product.inventory.find(inv => inv.color?.color_id === selectedColor.color_id && !inv.size_id);
+      } else if (!selectedColor && selectedSize) {
+          currentInventoryItem = product.inventory.find(inv => !inv.color_id && inv.size?.size_id === selectedSize.size_id);
+      } else if (!selectedColor && !selectedSize && product.inventory?.length === 1 && !product.inventory[0].color_id && !product.inventory[0].size_id) {
+          currentInventoryItem = product.inventory[0];
+      } else if (!selectedColor && !selectedSize && product.inventory?.length > 0 && !availableColors.length && availableSizesForSelectedColor.length === 0) {
+          currentInventoryItem = product.inventory.find(inv => inv.quantity > 0);
+      }
+  }
+  const stockForSelection = currentInventoryItem?.quantity || 0;
 
   const handleQuantityChange = (amount) => {
     setQuantity((prev) => {
       const newQuantity = prev + amount;
-      // Logic kiểm tra stock của variant cụ thể nếu có
-      // const currentVariantStock = product.variants?.find(v => v.colorId === selectedColor?.id && v.sizeId === selectedSize?.id)?.stockQuantity || product.stockQuantity || 99;
-      const maxStock = product?.stockQuantity || 99; // Tạm dùng stock chung
-      if (newQuantity >= 1 && newQuantity <= maxStock) {
-        return newQuantity;
-      }
+      if (newQuantity >= 1 && newQuantity <= stockForSelection) return newQuantity;
+      if (newQuantity < 1) return 1;
+      if (newQuantity > stockForSelection) return stockForSelection; // Cap at stock
       return prev;
     });
   };
 
   const handleAddToCart = async () => {
     if (!product) return;
-    // Kiểm tra xem đã chọn đủ các tùy chọn bắt buộc chưa (ví dụ size)
-    if (product.sizes?.length > 0 && !selectedSize) {
-        alert(t('productDetail.selectSizePrompt', 'Vui lòng chọn kích thước.'));
-        return;
+    const requiresVariantSelection = availableColors.length > 0 || availableSizesForSelectedColor.length > 0;
+
+    if (availableColors.length > 0 && !selectedColor) {
+      alert(t('productDetail.selectColorPrompt')); return;
     }
-    if (product.colors?.length > 0 && !selectedColor) {
-        alert(t('productDetail.selectColorPrompt', 'Vui lòng chọn màu sắc.'));
-        return;
+    if (availableSizesForSelectedColor.length > 0 && !selectedSize) {
+      alert(t('productDetail.selectSizePrompt')); return;
+    }
+    if (requiresVariantSelection && !currentInventoryItem) {
+        alert(t('product.variantNotAvailable', 'Sản phẩm với lựa chọn này hiện không có sẵn.')); return;
+    }
+    if (stockForSelection <= 0) {
+        alert(t('product.outOfStock', 'Sản phẩm này đã hết hàng.')); return;
     }
 
     setAddToCartSuccess(false);
     const itemToAdd = {
-      productId: product.id,
+      productId: product.product_id,
       quantity: quantity,
-      // productVariantId: selectedVariant?.id, // Nếu bạn có hệ thống variant hoàn chỉnh
-      // Gửi thêm selectedColor.id, selectedSize.id nếu backend cần để xác định variant
+      productVariantId: currentInventoryItem ? currentInventoryItem.inventory_id : null,
     };
     try {
       await addToCart(itemToAdd);
       setAddToCartSuccess(true);
-      setTimeout(() => setAddToCartSuccess(false), 3000); // Ẩn thông báo sau 3s
-    } catch (err) {
-      console.error("Failed to add to cart from detail page:", err);
-      // Hiển thị lỗi cho người dùng
-    }
+      setTimeout(() => setAddToCartSuccess(false), 3000);
+    } catch (err) { /* console.error */ }
   };
-  
-  // const handleWishlistToggle = () => { /* ... logic wishlist ... */ };
 
   if (loading) return <div className="flex justify-center items-center min-h-[calc(100vh-200px)]"><LoadingSpinner size="xl" /></div>;
   if (error) return <div className="container mx-auto px-4 py-8"><AlertMessage type="error" title={t('productDetail.errorLoadingTitle')} message={error.message} /></div>;
   if (!product) return <div className="container mx-auto px-4 py-8"><AlertMessage type="info" message={t('productDetail.notFound')} /></div>;
 
-  const displayPrice = product.salePrice || product.price;
-  const originalPrice = product.price;
-  const hasSale = product.salePrice && product.salePrice < product.price;
-  const stockAvailable = (product.stockQuantity !== undefined && product.stockQuantity > 0) || product.variants?.some(v => v.stockQuantity > 0);
-
-
-  // const breadcrumbItems = [
-  //   { name: t('header.home'), path: '/' },
-  //   { name: t('header.products'), path: '/products' },
-  //   product.category ? { name: product.category.name, path: `/categories/${product.category.slug}` } : null,
-  //   { name: product.name, path: `/product/${product.slug}` }
-  // ].filter(Boolean);
+  const isSelectionOutOfStock = stockForSelection <= 0;
 
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* <Breadcrumbs items={breadcrumbItems} className="mb-6" /> */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-        {/* Image Carousel */}
-        <div className="product-gallery md:sticky md:top-24 self-start"> {/* Sticky gallery */}
-          <ImageCarousel images={currentImageSet.length > 0 ? currentImageSet : product.images} productName={product.name} />
-        </div>
+    <div className="bg-white"> {/* Changed background to white for product page */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+        {/* Optional Breadcrumbs */}
+        {/* <Breadcrumbs items={[...]} className="mb-6"/> */}
 
-        {/* Product Info, Options, Actions */}
-        <div className="product-details">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
-          {/* SKU, Brand, Availability (optional) */}
-          {/* <div className="text-sm text-gray-500 mb-3">
-            <span>SKU: {product.sku || 'N/A'}</span> | <span>{t('productDetail.brand', 'Thương hiệu')}: <Link to={`/brand/${product.brand?.slug}`} className="text-indigo-600">{product.brand?.name || 'N/A'}</Link></span>
-          </div> */}
-
-          {/* Price */}
-          <div className="mb-4">
-            <span className="text-3xl font-bold text-indigo-600">{formatPrice(displayPrice)}</span>
-            {hasSale && originalPrice && (
-              <span className="ml-3 text-lg text-gray-400 line-through">{formatPrice(originalPrice)}</span>
-            )}
-            {hasSale && (
-              <span className="ml-3 bg-red-100 text-red-600 text-xs font-semibold px-2 py-0.5 rounded">
-                -{Math.round(((originalPrice - displayPrice) / originalPrice) * 100)}%
-              </span>
-            )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 lg:gap-x-12">
+          {/* Left: Image Carousel */}
+          <div className="product-gallery-container lg:sticky lg:top-24 self-start"> {/* Sticky for desktop */}
+            <ImageCarousel images={activeGalleryImages} productName={product.name} />
           </div>
-          
-          {/* Short Description (excerpt) */}
-          {/* {product.excerpt && <p className="text-gray-600 mb-4 text-sm">{product.excerpt}</p>} */}
 
-          {/* Color Selector */}
-          {product.colors && product.colors.length > 0 && (
-            <ColorSelector
-              colors={product.colors}
-              selectedColor={selectedColor}
-              onColorSelect={handleColorSelect}
-              className="mb-5"
-            />
-          )}
+          {/* Right: Product Details & Actions */}
+          <div className="product-info-container mt-8 lg:mt-0">
+            {/* <p className="text-sm text-gray-500 mb-1">{product.category?.name || 'Uncategorized'}</p> */}
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2 leading-tight">{product.name}</h1>
+            {/* SKU/Brand can go here if needed */}
+            <p className="text-2xl lg:text-3xl font-semibold text-gray-800 mb-5">{formatPrice(product.product_price)}</p>
 
-          {/* Size Selector */}
-          {product.sizes && product.sizes.length > 0 && (
-            <SizeSelector
-              sizes={product.sizes} // Cần có thông tin `available` cho từng size
-              selectedSize={selectedSize}
-              onSizeSelect={handleSizeSelect}
-              className="mb-5"
-            />
-          )}
-
-          {/* Quantity Selector & Add to Cart */}
-          <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex items-center border border-gray-300 rounded-md w-max">
-              <button
-                onClick={() => handleQuantityChange(-1)}
-                disabled={quantity <= 1}
-                className="p-2.5 text-gray-500 hover:text-indigo-600 disabled:opacity-50"
-                aria-label={t('productDetail.decreaseQuantity', "Giảm số lượng")}
-              >
-                <FiMinus size={16} />
-              </button>
-              <input
-                type="number"
-                value={quantity}
-                readOnly // Hoặc onChange={(e) => setQuantity(Number(e.target.value))} với validation
-                className="w-12 text-center border-l border-r border-gray-300 text-sm focus:outline-none"
-                aria-label={t('productDetail.quantity', "Số lượng")}
+            {availableColors.length > 0 && (
+              <ColorSelector
+                colors={availableColors}
+                selectedColor={selectedColor}
+                onColorSelect={handleColorSelect}
+                className="mb-5"
               />
+            )}
+
+            {availableSizesForSelectedColor.length > 0 && (
+              <div className="mb-5">
+                <div className="flex justify-between items-center mb-1.5">
+                    <h4 className="text-sm font-medium text-gray-800">
+                        {t('product.size', 'Kích thước')}:
+                        <span className="ml-1 font-normal text-gray-600">{selectedSize?.size_name || ''}</span>
+                    </h4>
+                    {/* <a href="#" className="text-xs text-indigo-600 hover:underline">{t('product.sizeGuide', 'Size Guide')}</a> */}
+                </div>
+                <SizeSelector
+                  sizes={availableSizesForSelectedColor} // Pass available prop within each size object
+                  selectedSize={selectedSize}
+                  onSizeSelect={handleSizeSelect}
+                />
+              </div>
+            )}
+
+            <div className="flex items-center gap-x-4 mb-6">
+              <label htmlFor="quantity" className="text-sm font-medium text-gray-700 sr-only">{t('productDetail.quantity')}:</label>
+              <div className="flex items-center border border-gray-300 rounded-md">
+                <button onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1} className="p-2.5 text-gray-600 hover:text-gray-800 disabled:opacity-50"><FiMinus size={16}/></button>
+                <input type="text" readOnly value={quantity} className="w-10 text-center border-x border-gray-300 text-sm py-2 focus:outline-none" />
+                <button onClick={() => handleQuantityChange(1)} disabled={quantity >= stockForSelection || isSelectionOutOfStock} className="p-2.5 text-gray-600 hover:text-gray-800 disabled:opacity-50"><FiPlus size={16}/></button>
+              </div>
+            
               <button
-                onClick={() => handleQuantityChange(1)}
-                // disabled={quantity >= (selectedVariantStock || product.stockQuantity || 99)}
-                className="p-2.5 text-gray-500 hover:text-indigo-600 disabled:opacity-50"
-                aria-label={t('productDetail.increaseQuantity', "Tăng số lượng")}
+                onClick={handleAddToCart}
+                disabled={cartLoading || isSelectionOutOfStock}
+                className={`flex-1 py-3 px-6 rounded-md font-semibold text-white transition-colors flex items-center justify-center text-base
+                            ${isSelectionOutOfStock ? 'bg-gray-400 cursor-not-allowed' : 'bg-black hover:bg-gray-800 focus:ring-2 focus:ring-offset-2 focus:ring-gray-700'}`}
               >
-                <FiPlus size={16} />
+                {cartLoading ? <LoadingSpinner size="sm" /> : (isSelectionOutOfStock ? t('productDetail.outOfStock') : t('productDetail.addToCartButton'))}
               </button>
             </div>
 
-            <button
-              onClick={handleAddToCart}
-              disabled={cartLoading || !stockAvailable}
-              className={classNames(
-                "flex-grow sm:flex-none py-3 px-8 border border-transparent rounded-md shadow-sm text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-60 flex items-center justify-center",
-                !stockAvailable ? "bg-gray-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700"
-              )}
-            >
-              {cartLoading ? (
-                <LoadingSpinner size="sm" color="text-white" className="mr-2"/>
-              ) : (
-                <FiShoppingCart className="mr-2 h-5 w-5" />
-              )}
-              {!stockAvailable ? t('productDetail.outOfStock', 'Hết hàng') : t('productDetail.addToCartButton', 'Thêm vào giỏ hàng')}
-            </button>
+            {addToCartSuccess && (
+                <div className="mt-3 mb-3 flex items-center text-sm text-green-600 bg-green-50 p-3 rounded-md">
+                    <FiCheckCircle className="w-5 h-5 mr-2"/>
+                    {t('productDetail.addedToCartSuccess', 'Đã thêm vào giỏ hàng thành công!')}
+                </div>
+            )}
+            
+            <div className="mt-8 pt-5 border-t border-gray-200">
+                <DetailAccordionItem title={t('productDetail.descriptionTitle')} content={product.description} defaultOpen={true} />
+                {/* Add more AccordionItems for specs, shipping, etc. */}
+                {/* <DetailAccordionItem title="Thông số kỹ thuật" content={"<p>Chất liệu: Cotton 100%</p><p>Xuất xứ: Việt Nam</p>"} /> */}
+            </div>
           </div>
-          {addToCartSuccess && (
-            <div className="mt-3 flex items-center text-sm text-green-600">
-                <FiCheckCircle className="w-5 h-5 mr-1.5"/>
-                {t('productDetail.addedToCartSuccess', 'Đã thêm vào giỏ hàng thành công!')}
-            </div>
-          )}
-
-
-          {/* Wishlist & Share (optional) */}
-          {/* <div className="mt-6 flex items-center space-x-4">
-            <button
-              onClick={handleWishlistToggle}
-              className="flex items-center text-sm text-gray-600 hover:text-indigo-600"
-            >
-              <FiHeart className={`mr-1.5 h-5 w-5 ${isInWishlist(product.id) ? 'text-red-500 fill-red-500' : ''}`} />
-              {isInWishlist(product.id) ? t('productDetail.removeFromWishlist', 'Bỏ yêu thích') : t('productDetail.addToWishlist', 'Thêm vào yêu thích')}
-            </button>
-            <button className="flex items-center text-sm text-gray-600 hover:text-indigo-600">
-              <FiShare2 className="mr-1.5 h-5 w-5" />
-              {t('productDetail.share', 'Chia sẻ')}
-            </button>
-          </div> */}
-
-          {/* Product Description (Full) */}
-          {product.description && (
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <h4 className="text-md font-semibold text-gray-800 mb-3">
-                {t('productDetail.descriptionTitle', 'Mô tả sản phẩm')}
-              </h4>
-              <div
-                className="prose prose-sm max-w-none text-gray-600"
-                dangerouslySetInnerHTML={{ __html: product.description }} // CẨN THẬN XSS
-              />
-            </div>
-          )}
-
-          {/* Additional Info / Specifications (Optional) */}
-          {/* <div className="mt-8 pt-6 border-t border-gray-200"> ... </div> */}
         </div>
+        {/* Related Products, Reviews etc. can go below this grid */}
       </div>
-
-      {/* Related Products (Optional) */}
-      {/* <RelatedProducts productId={product.id} categoryId={product.category?.id} /> */}
-
-      {/* Product Reviews (Optional) */}
-      {/* <ProductReviews productId={product.id} reviews={product.reviews || []} averageRating={product.averageRating} /> */}
     </div>
   );
 };

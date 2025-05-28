@@ -1,3 +1,4 @@
+// src/hooks/useScrollPosition.js
 import { useState, useEffect, useCallback } from 'react';
 
 // Hàm throttle để hạn chế số lần gọi hàm
@@ -28,25 +29,24 @@ const throttle = (func, limit) => {
  * @returns {number} Vị trí cuộn hiện tại (pageYOffset).
  */
 const useScrollPosition = (throttleMilliseconds = 100) => {
-  const [scrollPosition, setScrollPosition] = useState(0);
+  const [scrollPosition, setScrollPosition] = useState(window.pageYOffset); // Lấy giá trị ban đầu trực tiếp
 
   const updatePosition = useCallback(() => {
     setScrollPosition(window.pageYOffset);
-  }, []);
+  }, []); // Mảng phụ thuộc rỗng vì window và pageYOffset là global
 
   useEffect(() => {
     const throttledUpdatePosition = throttle(updatePosition, throttleMilliseconds);
 
     window.addEventListener('scroll', throttledUpdatePosition, { passive: true });
-    // Gọi một lần để lấy vị trí ban đầu
-    throttledUpdatePosition(); 
+    // Không cần gọi throttledUpdatePosition() ở đây nữa vì giá trị scroll ban đầu đã được set
 
     return () => {
       window.removeEventListener('scroll', throttledUpdatePosition);
-      // Quan trọng: clear timeout nếu có khi component unmount
-      // Tuy nhiên, logic throttle hiện tại tự xử lý việc này khi không có event mới.
+      // Nếu hàm throttle của bạn có cơ chế clear (ví dụ trả về hàm clear),
+      // bạn có thể cần gọi nó ở đây, nhưng với triển khai hiện tại thì không cần thiết.
     };
-  }, [updatePosition, throttleMilliseconds]);
+  }, [updatePosition, throttleMilliseconds]); // updatePosition ổn định do useCallback
 
   return scrollPosition;
 };

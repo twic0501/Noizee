@@ -1,8 +1,10 @@
+// src/components/layout/Footer.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FaFacebookF, FaInstagram, FaTwitter, FaYoutube, FaTiktok } from 'react-icons/fa'; // Hoặc FiFacebook, etc.
+import { FaFacebookF, FaInstagram, FaTwitter, FaYoutube, FaTiktok } from 'react-icons/fa';
 import { APP_NAME } from '../../utils/constants'; // Import APP_NAME
+import { classNames } from '../../utils/helpers'; // classNames vẫn có thể hữu ích
 
 // Nếu bạn có logo dạng ảnh cho footer
 // import footerLogo from '../../assets/images/footer-logo.png'; // Ví dụ đường dẫn
@@ -49,19 +51,30 @@ const Footer = () => {
     { Icon: FaTiktok, href: 'https://tiktok.com/@yourprofile', label: 'TikTok' },
   ];
 
+  // Class cho link footer, sử dụng text-muted của Bootstrap và hiệu ứng hover tùy chỉnh nếu cần
+  const footerLinkClass = "text-decoration-none text-muted hover-text-primary small";
+  // Class cho tiêu đề section footer, fs-5 (font-size) và fw-semibold (font-weight)
+  // Font family sẽ được kế thừa từ h5 (Oswald) nếu bạn đã định nghĩa trong index.css
+  const footerSectionTitleClass = "fs-5 fw-semibold text-body mb-3"; // mb-3 thay cho mb-4
+
   return (
-    <footer className="bg-gray-100 text-gray-700 pt-16 pb-8">
-      <div className="container mx-auto px-4">
-        {/* Top Section: Links and Newsletter (Optional) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+    // bg-light (tương tự bg-gray-100), text-dark (màu chữ chính) hoặc text-muted
+    // pt-5, pb-4 (padding top/bottom của Bootstrap, tương đương pt-16, pb-8 Tailwind tùy theo scale)
+    <footer className="bg-light text-dark pt-5 pb-4 main-footer"> {/* Thêm class main-footer để nhận font Roboto Mono nếu cần */}
+      <div className="container px-4"> {/* container và padding ngang của Bootstrap */}
+        {/* row và g-md-4 (gap cho medium screen trở lên) */}
+        <div className="row g-4 mb-5"> {/* mb-5 tương đương mb-12 */}
           {/* Footer Sections */}
           {footerSections.map((section) => (
-            <div key={section.titleKey}>
-              <h5 className="text-lg font-semibold text-gray-800 mb-4">{t(section.titleKey)}</h5>
-              <ul className="space-y-2">
+            // col-12 (mặc định), col-md-6 (2 cột trên medium), col-lg-3 (4 cột trên large)
+            <div key={section.titleKey} className="col-12 col-md-6 col-lg-3">
+              <h5 className={footerSectionTitleClass}>{t(section.titleKey)}</h5>
+              {/* list-unstyled để loại bỏ bullet points và padding mặc định của ul */}
+              <ul className="list-unstyled">
                 {section.links.map((link) => (
-                  <li key={link.textKey}>
-                    <Link to={link.path} className="hover:text-indigo-600 transition-colors duration-200 text-sm">
+                  // mb-1 hoặc mb-2 cho khoảng cách giữa các link (thay cho space-y-2)
+                  <li key={link.textKey} className="mb-2">
+                    <Link to={link.path} className={footerLinkClass}>
                       {t(link.textKey)}
                     </Link>
                   </li>
@@ -70,28 +83,36 @@ const Footer = () => {
             </div>
           ))}
 
-          {/* Newsletter/Contact Section (Optional) */}
-          <div>
-            <h5 className="text-lg font-semibold text-gray-800 mb-4">{t('footer.stayConnected.title')}</h5>
-            <p className="text-sm mb-3">{t('footer.stayConnected.subscribePrompt')}</p>
-            <form onSubmit={(e) => e.preventDefault()} className="flex flex-col sm:flex-row gap-2">
+          {/* Newsletter/Contact Section */}
+          <div className="col-12 col-md-6 col-lg-3">
+            <h5 className={footerSectionTitleClass}>{t('footer.stayConnected.title')}</h5>
+            {/* small class cho text nhỏ hơn (thay cho text-sm) */}
+            <p className="small mb-3 footer-text"> {/* Thêm footer-text để nhận font Cormorant Garamond nếu cần */}
+              {t('footer.stayConnected.subscribePrompt')}
+            </p>
+            {/* input-group của Bootstrap cho form inline */}
+            <form onSubmit={(e) => e.preventDefault()} className="input-group mb-3">
               <input
                 type="email"
                 placeholder={t('footer.stayConnected.emailPlaceholder')}
-                className="w-full sm:flex-grow px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                // form-control và form-control-sm (kích thước nhỏ)
+                className="form-control form-control-sm"
                 aria-label={t('footer.stayConnected.emailPlaceholder')}
               />
+              {/* btn, btn-primary, btn-sm */}
               <button
                 type="submit"
-                className="bg-indigo-600 text-white px-4 py-2 text-sm rounded-md hover:bg-indigo-700 transition-colors duration-200"
+                className="btn btn-primary btn-sm"
               >
                 {t('footer.stayConnected.subscribeButton')}
               </button>
             </form>
             {/* Social Media Links */}
-            <div className="mt-6">
-              <h6 className="text-md font-semibold text-gray-800 mb-3">{t('footer.followUs')}</h6>
-              <div className="flex space-x-4">
+            <div className="mt-4">
+              {/* text-body (màu chữ mặc định), mb-3 */}
+              <h6 className="fw-semibold text-body mb-3">{t('footer.followUs')}</h6>
+              {/* d-flex và gap-3 (khoảng cách giữa các icon) */}
+              <div className="d-flex gap-3">
                 {socialLinks.map(({ Icon, href, label }) => (
                   <a
                     key={label}
@@ -99,9 +120,10 @@ const Footer = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={label}
-                    className="text-gray-500 hover:text-indigo-600 transition-colors duration-200"
+                    // text-muted và hiệu ứng hover tùy chỉnh
+                    className="text-muted hover-text-primary"
                   >
-                    <Icon size={20} />
+                    <Icon size={20} /> {/* Kích thước icon giữ nguyên */}
                   </a>
                 ))}
               </div>
@@ -109,16 +131,19 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Bottom Section: Copyright and Payment Methods (Optional) */}
-        <div className="border-t border-gray-300 pt-8 text-center md:flex md:justify-between md:items-center">
-          <p className="text-sm mb-4 md:mb-0">
-            &copy; {currentYear} {t('appName', APP_NAME)}. {t('footer.allRightsReserved')}.
+        {/* Bottom Section: Copyright */}
+        {/* border-top, pt-4 (padding top) */}
+        {/* text-center, d-md-flex, justify-content-md-between, align-items-md-center cho layout responsive */}
+        <div className="border-top pt-4 text-center d-md-flex justify-content-md-between align-items-md-center">
+          {/* small class, mb-3 cho mobile, mb-md-0 cho desktop */}
+          <p className="small mb-3 mb-md-0 footer-text"> {/* Thêm footer-text */}
+            © {currentYear} {t('appName', APP_NAME)}. {t('footer.allRightsReserved')}.
           </p>
           {/* Payment methods (optional) */}
-          {/* <div className="flex justify-center space-x-2">
-            <img src="/path/to/visa.png" alt="Visa" className="h-6" />
-            <img src="/path/to/mastercard.png" alt="Mastercard" className="h-6" />
-            <img src="/path/to/paypal.png" alt="Paypal" className="h-6" />
+          {/* <div className="d-flex justify-content-center gap-2">
+            <img src="/path/to/visa.png" alt="Visa" style={{ height: '24px' }} />
+            <img src="/path/to/mastercard.png" alt="Mastercard" style={{ height: '24px' }} />
+            <img src="/path/to/paypal.png" alt="Paypal" style={{ height: '24px' }} />
           </div> */}
         </div>
       </div>

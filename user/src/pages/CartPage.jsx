@@ -4,11 +4,11 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FiShoppingCart, FiTrash2 } from 'react-icons/fi'; // Thêm FiTrash2 nếu có nút xóa tất cả
 
-import { useCart } from '../../contexts/CartContext'; // Hook useCart
-import CartItem from '../../components/cart/CartItem';     // Component CartItem đã tạo
-import CartSummary from '../../components/cart/CartSummary';   // Component CartSummary đã tạo
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import AlertMessage from '../../components/common/AlertMessage';
+import { useCart } from '../contexts/CartContext'; // Hook useCart
+import CartItem from '../components/cart/CartItem';     // Component CartItem đã tạo
+import CartSummary from '../components/cart/CartSummary';   // Component CartSummary đã tạo
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import AlertMessage from '../components/common/AlertMessage';
 
 const CartPage = () => {
   const { t } = useTranslation();

@@ -1,21 +1,22 @@
+// src/components/common/Pagination.jsx
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { FiChevronLeft, FiChevronRight, FiMoreHorizontal } from 'react-icons/fi';
-import { classNames } from '../../utils/helpers'; // Đảm bảo bạn đã tạo file này
+// Không cần FiChevronLeft, FiChevronRight, FiMoreHorizontal nữa vì Bootstrap Pagination có thể xử lý hoặc dùng text
+import { classNames } from '../../utils/helpers'; // Vẫn có thể hữu ích cho className prop
 
 const Pagination = ({
   currentPage,
   totalItems,
   itemsPerPage,
   onPageChange,
-  siblings = 1, // Number of page links to show on each side of the current page
+  siblings = 1,
   className = '',
 }) => {
   const { t } = useTranslation();
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   if (totalPages <= 1 || totalItems === 0) {
-    return null; // Don't render pagination if not needed
+    return null;
   }
 
   const DOTS = '...';
@@ -25,9 +26,8 @@ const Pagination = ({
     return Array.from({ length }, (_, idx) => idx + start);
   };
 
-  // Core pagination logic to determine page numbers to display
   const paginationRange = () => {
-    const totalPageNumbersDisplayed = siblings * 2 + 3 + 2; // siblings + firstPage + lastPage + currentPage + 2*DOTS
+    const totalPageNumbersDisplayed = siblings * 2 + 3 + 2;
 
     if (totalPageNumbersDisplayed >= totalPages) {
       return range(1, totalPages);
@@ -37,28 +37,41 @@ const Pagination = ({
     const rightSiblingIndex = Math.min(currentPage + siblings, totalPages);
 
     const shouldShowLeftDots = leftSiblingIndex > 2;
-    const shouldShowRightDots = rightSiblingIndex < totalPages - 2; // Adjusted for lastPage
+    const shouldShowRightDots = rightSiblingIndex < totalPages - 2;
 
     const firstPageIndex = 1;
     const lastPageIndex = totalPages;
 
     if (!shouldShowLeftDots && shouldShowRightDots) {
-      const leftItemCount = 3 + 2 * siblings;
+      const leftItemCount = 3 + 2 * siblings; // firstPage + currentPage + rightSiblings + 1*DOTS + lastPage
+      if (leftItemCount >= totalPages -1) return range(1, totalPages); // Nếu quá gần, hiển thị hết
       const leftRange = range(1, leftItemCount);
       return [...leftRange, DOTS, lastPageIndex];
     }
 
     if (shouldShowLeftDots && !shouldShowRightDots) {
-      const rightItemCount = 3 + 2 * siblings;
-      const rightRange = range(totalPages - rightItemCount + 1, totalPages);
-      return [firstPageIndex, DOTS, ...rightRange];
+        const rightItemCount = 3 + 2 * siblings; // lastPage + currentPage + leftSiblings + 1*DOTS + firstPage
+        if (rightItemCount >= totalPages -1) return range(1, totalPages);
+        const rightRange = range(totalPages - rightItemCount + 1, totalPages);
+        return [firstPageIndex, DOTS, ...rightRange];
     }
 
     if (shouldShowLeftDots && shouldShowRightDots) {
       const middleRange = range(leftSiblingIndex, rightSiblingIndex);
-      return [firstPageIndex, DOTS, ...middleRange, DOTS, lastPageIndex];
+      // Kiểm tra nếu DOTS và middleRange quá gần first/last page
+      let finalRange = [firstPageIndex];
+      if (leftSiblingIndex > 2) finalRange.push(DOTS); else if (leftSiblingIndex === 2) finalRange.push(2);
+
+      finalRange = finalRange.concat(middleRange);
+
+      if (rightSiblingIndex < totalPages - 1) finalRange.push(DOTS); else if (rightSiblingIndex === totalPages -1 ) finalRange.push(totalPages-1);
+
+      if (!finalRange.includes(lastPageIndex)) finalRange.push(lastPageIndex);
+
+      // Loại bỏ các số trùng lặp do logic gộp, ví dụ nếu firstPage/lastPage có trong middleRange
+      return [...new Set(finalRange)];
     }
-    return []; // Should ideally not be reached if logic is correct
+    return range(1, totalPages); // Fallback, nên được xử lý bởi các điều kiện trên
   };
 
   const pageNumbers = paginationRange();
@@ -67,85 +80,64 @@ const Pagination = ({
     if (typeof pageNumberOrDots === 'number') {
       onPageChange(pageNumberOrDots);
     }
-    // Do nothing if DOTS is clicked
   };
 
-  const baseButtonClasses = "min-w-[38px] h-9 px-3 py-1.5 inline-flex items-center justify-center text-sm font-medium border transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1";
-  const defaultButtonClasses = "bg-white border-gray-300 text-gray-500 hover:bg-gray-100";
-  const activeButtonClasses = "bg-indigo-50 border-indigo-500 text-indigo-600 z-10";
-  const disabledButtonClasses = "opacity-50 cursor-not-allowed hover:bg-white";
-  const dotsClasses = "min-w-[38px] h-9 px-3 py-1.5 inline-flex items-center justify-center text-sm font-medium border border-gray-300 text-gray-500 bg-white cursor-default";
-
-
+  // Font chữ sẽ được kế thừa từ body hoặc các class text của Bootstrap
   return (
-    <nav className={classNames("flex items-center justify-between sm:px-0 print:hidden", className)} aria-label={t('pagination.ariaLabel', "Pagination")}>
-      <div className="hidden sm:block">
-        <p className="text-sm text-gray-700">
+    <nav className={classNames("d-flex flex-column flex-sm-row align-items-center justify-content-between print-hidden", className)} aria-label={t('pagination.ariaLabel', "Pagination")}>
+      <div className="mb-3 mb-sm-0"> {/* Thêm margin bottom cho mobile */}
+        <p className="small text-muted mb-0"> {/* small và text-muted của Bootstrap */}
           {t('pagination.showing', 'Showing')}
-          <span className="font-medium mx-1">{(currentPage - 1) * itemsPerPage + 1}</span>
+          <span className="fw-semibold mx-1">{(currentPage - 1) * itemsPerPage + 1}</span>
           {t('pagination.to', 'to')}
-          <span className="font-medium mx-1">{Math.min(currentPage * itemsPerPage, totalItems)}</span>
+          <span className="fw-semibold mx-1">{Math.min(currentPage * itemsPerPage, totalItems)}</span>
           {t('pagination.of', 'of')}
-          <span className="font-medium mx-1">{totalItems}</span>
+          <span className="fw-semibold mx-1">{totalItems}</span>
           {t('pagination.results', 'results')}
         </p>
       </div>
-      <div className="flex-1 flex justify-between sm:justify-end">
-        <button
-          onClick={() => handlePageClick(currentPage - 1)}
-          disabled={currentPage === 1}
-          className={classNames(
-            baseButtonClasses,
-            "rounded-l-md",
-            defaultButtonClasses,
-            currentPage === 1 && disabledButtonClasses
-          )}
-          aria-label={t('pagination.previous', "Previous page")}
-        >
-          <FiChevronLeft className="h-5 w-5" aria-hidden="true" />
-          <span className="hidden sm:inline ml-1">{t('pagination.prevWord', "Previous")}</span>
-        </button>
+      {/* Sử dụng ul.pagination của Bootstrap */}
+      <ul className="pagination mb-0"> {/* mb-0 để loại bỏ margin bottom mặc định */}
+        <li className={classNames("page-item", { 'disabled': currentPage === 1 })}>
+          <button
+            className="page-link"
+            onClick={() => handlePageClick(currentPage - 1)}
+            aria-label={t('pagination.previous', "Previous page")}
+            disabled={currentPage === 1} // Thêm disabled prop cho button
+          >
+            {t('pagination.prevWord', "Previous")}
+          </button>
+        </li>
 
-        <div className="hidden sm:flex -space-x-px">
-          {pageNumbers.map((page, index) =>
-            page === DOTS ? (
-              <span
-                key={`${page}-${index}`} // Unique key for DOTS
-                className={dotsClasses}
-              >
-                <FiMoreHorizontal className="h-5 w-5" aria-hidden="true" />
-              </span>
-            ) : (
+        {pageNumbers.map((page, index) =>
+          page === DOTS ? (
+            <li key={`<span class="math-inline">\{page\}\-</span>{index}`} className="page-item disabled">
+              <span className="page-link">...</span>
+            </li>
+          ) : (
+            <li key={page} className={classNames("page-item", { 'active': page === currentPage })}>
               <button
-                key={page}
+                className="page-link"
                 onClick={() => handlePageClick(page)}
-                className={classNames(
-                  baseButtonClasses,
-                  page === currentPage ? activeButtonClasses : defaultButtonClasses
-                )}
                 aria-current={page === currentPage ? 'page' : undefined}
               >
                 {page}
               </button>
-            )
-          )}
-        </div>
+            </li>
+          )
+        )}
 
-        <button
-          onClick={() => handlePageClick(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className={classNames(
-            baseButtonClasses,
-            "rounded-r-md",
-            defaultButtonClasses,
-            currentPage === totalPages && disabledButtonClasses
-          )}
-          aria-label={t('pagination.next', "Next page")}
-        >
-          <span className="hidden sm:inline mr-1">{t('pagination.nextWord', "Next")}</span>
-          <FiChevronRight className="h-5 w-5" aria-hidden="true" />
-        </button>
-      </div>
+        <li className={classNames("page-item", { 'disabled': currentPage === totalPages })}>
+          <button
+            className="page-link"
+            onClick={() => handlePageClick(currentPage + 1)}
+            aria-label={t('pagination.next', "Next page")}
+            disabled={currentPage === totalPages} // Thêm disabled prop cho button
+          >
+            {t('pagination.nextWord', "Next")}
+          </button>
+        </li>
+      </ul>
     </nav>
   );
 };

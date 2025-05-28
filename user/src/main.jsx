@@ -1,14 +1,18 @@
+// src/main.jsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ApolloProvider } from '@apollo/client';
 import { I18nextProvider } from 'react-i18next';
 
-import client from './services/apolloClient'; // Apollo Client đã cấu hình
-import i18n from '../i18n';                   // Cấu hình i18next
-import MainRouter from './routes';           // MainRouter từ ./routes/index.jsx
 
-import './index.css'; // Tailwind base và global styles
-// import "react-image-gallery/styles/css/image-gallery.css"; // Import CSS cho react-image-gallery nếu dùng
+// import 'bootstrap/dist/js/bootstrap.bundle.min.js'; // Bootstrap JS (nếu cần)
+import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
+import client from './services/apolloClient';
+import i18n from '../i18n'; // Đường dẫn tới file i18n của bạn
+import MainRouter from './routes';
+
+import './index.css'; // Nơi bạn định nghĩa @font-face, CSS variables và áp dụng font
 
 const rootElement = document.getElementById('root');
 
@@ -24,6 +28,4 @@ if (rootElement) {
   );
 } else {
   console.error("Root element not found. App cannot be mounted.");
-  // Hoặc bạn có thể hiển thị một thông báo lỗi trên trang
-  // document.body.innerHTML = '<div style="text-align: center; padding-top: 50px;"><h1>Application Error</h1><p>Root HTML element not found.</p></div>';
 }
