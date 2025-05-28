@@ -5,15 +5,15 @@ import { useQuery, useMutation } from '@apollo/client';
 import { useTranslation } from 'react-i18next';
 import { FiMapPin, FiTruck, FiCreditCard, FiList, FiUser, FiPhone, FiMail, FiCheckCircle } from 'react-icons/fi';
 
-import { useAuth } from '../../contexts/AuthContext';
-import { useCart } from '../../contexts/CartContext';
-import { GET_ME_QUERY } from '../../api/graphql/userQueries';
-import { CREATE_ORDER_MUTATION } from '../../api/graphql/orderMutations'; // Hoặc saleMutations.js
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import AlertMessage from '../../components/common/AlertMessage';
-import { formatPrice } from '../../utils/formatters';
-import OptimizedImage from '../../components/common/OptimizedImage';
-import { PRODUCT_IMAGE_PLACEHOLDER } from '../../utils/constants';
+import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
+import { GET_ME_QUERY } from '../api/graphql/userQueries';
+import { CREATE_ORDER_MUTATION } from '../api/graphql/orderMutations'; // Hoặc saleMutations.js
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import AlertMessage from '../components/common/AlertMessage';
+import { formatPrice } from '../utils/formatters';
+import OptimizedImage from '../components/common/OptimizedImage';
+import { PRODUCT_IMAGE_PLACEHOLDER } from '../utils/constants';
 
 // Component con cho từng bước (ví dụ)
 const ShippingAddressForm = ({ address, onChange, errors, disabled }) => {

@@ -2,7 +2,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import ProductListingPageLayout from './ProductListingPageLayout'; // Nếu bạn tạo layout này
+//import ProductListingPageLayout from './ProductListingPageLayout'; // Nếu bạn tạo layout này
 // import ProductListingPage from './ProductListingPage'; // Hoặc dùng trực tiếp
 
 // Giả sử bạn sẽ có query để lấy collection details (bao gồm ID) từ slug
