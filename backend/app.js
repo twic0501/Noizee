@@ -61,22 +61,34 @@ async function createApp() { //
 
 
     // Log các origin được phép để kiểm tra khi server khởi động
-    const finalAllowedOrigins = allowedOrigins.filter(Boolean);
-    logger.info(`[CORS Setup] Final Allowed Origins for check: [${finalAllowedOrigins.join(', ')}]`);
+    const finalAllowedOrigins = allowedOrigins.filter(Boolean).map(url => {
+    let normalizedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+    return normalizedUrl.toLowerCase(); // Chuyển sang chữ thường
+});
 
-    const corsOptions = {
-        origin: function (origin, callback) {
-            if (!origin || finalAllowedOrigins.indexOf(origin) !== -1) {
-                callback(null, true);
-            } else {
-                logger.warn(`[CORS Check] Origin '${origin}' NOT ALLOWED. Allowed list: [${finalAllowedOrigins.join(', ')}]`);
-                callback(new Error(`Origin ${origin} not allowed by CORS`));
-            }
-        },
-        credentials: true,
-        methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS", // Đảm bảo OPTIONS được phép
-        allowedHeaders: "Content-Type,Authorization,X-Client-Lang,X-apollo-operation-name,apollographql-client-name,apollographql-client-version" // Thêm các header Apollo có thể dùng
-    };
+logger.info(`[CORS Setup] Normalized (lowercase, no-trailing-slash) Final Allowed Origins for check: [${finalAllowedOrigins.join(', ')}]`);
+
+const corsOptions = {
+    origin: function (origin, callback) {
+        if (!origin) { // Cho phép nếu không có origin (Postman, curl trong một số trường hợp)
+            return callback(null, true);
+        }
+
+        // Chuẩn hóa origin từ request: bỏ trailing slash và chuyển sang chữ thường
+        let normalizedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+        normalizedOrigin = normalizedOrigin.toLowerCase(); // Chuyển sang chữ thường
+
+        if (finalAllowedOrigins.includes(normalizedOrigin)) { // Sử dụng includes cho mảng đã chuẩn hóa
+            callback(null, true);
+        } else {
+            logger.warn(`[CORS Check] Normalized Origin '<span class="math-inline">\{normalizedOrigin\}' \(from original '</span>{origin}') NOT ALLOWED. Normalized allowed list: [${finalAllowedOrigins.join(', ')}]`);
+            callback(new Error(`Origin ${normalizedOrigin} not allowed by CORS`));
+        }
+    },
+    credentials: true,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+    allowedHeaders: "Content-Type,Authorization,X-Client-Lang,X-apollo-operation-name,apollographql-client-name,apollographql-client-version"
+};
 
     // ÁP DỤNG CORS TOÀN CỤC TRƯỚC TIÊN
     // Điều này quan trọng để xử lý preflight OPTIONS requests cho tất cả các route
