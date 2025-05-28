@@ -43,29 +43,53 @@ async function createApp() { //
     const app = express();
 
     // --- BẮT ĐẦU CẤU HÌNH CORS ---
-    const primaryFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'; //
-    const allowedOrigins = [
-        primaryFrontendUrl,
-        'http://localhost:5174' // Thêm origin cho cổng register của bạn
-        // Bạn có thể thêm các origin khác vào đây nếu cần
-        // ví dụ: 'https://your-production-frontend.com'
-    ];
+    const userFrontendUrlLocal = 'http://localhost:5173'; // FE User khi chạy local
+const adminFrontendUrlLocal = 'http://localhost:5174'; // FE Admin khi chạy local
 
-    const corsOptions = {
-        origin: function (origin, callback) {
-            // Cho phép các yêu cầu không có origin (ví dụ: mobile apps, curl, postman)
-            // hoặc nếu origin nằm trong danh sách allowedOrigins
-            if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-                callback(null, true);
-            } else {
-                logger.warn(`CORS: Origin '${origin}' not allowed.`);
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
-        credentials: true
-    };
+const userFrontendUrlProd = process.env.USER_FRONTEND_URL; // Sẽ đặt trên Render
+const adminFrontendUrlProd = process.env.ADMIN_FRONTEND_URL; // Sẽ đặt trên Render
 
-    app.use(cors(corsOptions));
+const allowedOrigins = [
+    userFrontendUrlLocal,
+    adminFrontendUrlLocal
+];
+
+if (userFrontendUrlProd) {
+    allowedOrigins.push(userFrontendUrlProd);
+    logger.info(`[CORS] Added USER_FRONTEND_URL to allowed origins: ${userFrontendUrlProd}`);
+}
+if (adminFrontendUrlProd) {
+    allowedOrigins.push(adminFrontendUrlProd);
+    logger.info(`[CORS] Added ADMIN_FRONTEND_URL to allowed origins: ${adminFrontendUrlProd}`);
+}
+
+// Nếu bạn vẫn muốn giữ biến FRONTEND_URL chung chung cho một FE chính hoặc mục đích khác
+const legacyPrimaryFrontendUrl = process.env.FRONTEND_URL;
+if (legacyPrimaryFrontendUrl && allowedOrigins.indexOf(legacyPrimaryFrontendUrl) === -1) {
+    allowedOrigins.push(legacyPrimaryFrontendUrl);
+    logger.info(`[CORS] Added legacy FRONTEND_URL to allowed origins: ${legacyPrimaryFrontendUrl}`);
+}
+
+
+logger.info(`[CORS] Final Allowed Origins: ${allowedOrigins.filter(Boolean).join(', ')}`);
+
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Lọc bỏ các giá trị null/undefined khỏi allowedOrigins trước khi kiểm tra
+        const currentAllowedOrigins = allowedOrigins.filter(Boolean);
+        if (!origin || currentAllowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            logger.warn(`[CORS] Origin '<span class="math-inline">\{origin\}' not allowed\. Allowed list\: \[</span>{currentAllowedOrigins.join(', ')}]`);
+            callback(new Error(`Origin ${origin} not allowed by CORS`));
+        }
+    },
+    credentials: true,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Thêm các method bạn dùng
+    allowedHeaders: "Content-Type,Authorization,X-Client-Lang" // Thêm các header bạn dùng
+};
+
+app.use(cors(corsOptions));
     // --- KẾT THÚC CẤU HÌNH CORS ---
 
     app.use(express.json()); //
