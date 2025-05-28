@@ -43,53 +43,44 @@ async function createApp() { //
     const app = express();
 
     // --- BẮT ĐẦU CẤU HÌNH CORS ---
-    const userFrontendUrlLocal = 'http://localhost:5173'; // FE User khi chạy local
-const adminFrontendUrlLocal = 'http://localhost:5174'; // FE Admin khi chạy local
+    const userFrontendUrlLocal = 'http://localhost:5173';
+    const adminFrontendUrlLocal = 'http://localhost:5174';
+    const userFrontendUrlProd = process.env.USER_FRONTEND_URL;
+    const adminFrontendUrlProd = process.env.ADMIN_FRONTEND_URL; // VD: https://adminnoizee.netlify.app
 
-const userFrontendUrlProd = process.env.USER_FRONTEND_URL; // Sẽ đặt trên Render
-const adminFrontendUrlProd = process.env.ADMIN_FRONTEND_URL; // Sẽ đặt trên Render
-
-const allowedOrigins = [
-    userFrontendUrlLocal,
-    adminFrontendUrlLocal
-];
-
-if (userFrontendUrlProd) {
-    allowedOrigins.push(userFrontendUrlProd);
-    logger.info(`[CORS] Added USER_FRONTEND_URL to allowed origins: ${userFrontendUrlProd}`);
-}
-if (adminFrontendUrlProd) {
-    allowedOrigins.push(adminFrontendUrlProd);
-    logger.info(`[CORS] Added ADMIN_FRONTEND_URL to allowed origins: ${adminFrontendUrlProd}`);
-}
-
-// Nếu bạn vẫn muốn giữ biến FRONTEND_URL chung chung cho một FE chính hoặc mục đích khác
-const legacyPrimaryFrontendUrl = process.env.FRONTEND_URL;
-if (legacyPrimaryFrontendUrl && allowedOrigins.indexOf(legacyPrimaryFrontendUrl) === -1) {
-    allowedOrigins.push(legacyPrimaryFrontendUrl);
-    logger.info(`[CORS] Added legacy FRONTEND_URL to allowed origins: ${legacyPrimaryFrontendUrl}`);
-}
+    const allowedOrigins = [
+        userFrontendUrlLocal,
+        adminFrontendUrlLocal
+    ];
+    if (userFrontendUrlProd) allowedOrigins.push(userFrontendUrlProd);
+    if (adminFrontendUrlProd) allowedOrigins.push(adminFrontendUrlProd);
+    // Thêm URL của trang user production nếu có (ví dụ: process.env.USER_PROD_FRONTEND_URL)
+    if (process.env.NOIZEE_FRONTEND_URL) { // Giả sử bạn có biến này cho trang noizee.netlify.app
+        allowedOrigins.push(process.env.NOIZEE_FRONTEND_URL);
+    }
 
 
-logger.info(`[CORS] Final Allowed Origins: ${allowedOrigins.filter(Boolean).join(', ')}`);
+    // Log các origin được phép để kiểm tra khi server khởi động
+    const finalAllowedOrigins = allowedOrigins.filter(Boolean);
+    logger.info(`[CORS Setup] Final Allowed Origins for check: [${finalAllowedOrigins.join(', ')}]`);
 
-const corsOptions = {
-    origin: function (origin, callback) {
-        // Lọc bỏ các giá trị null/undefined khỏi allowedOrigins trước khi kiểm tra
-        const currentAllowedOrigins = allowedOrigins.filter(Boolean);
-        if (!origin || currentAllowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            logger.warn(`[CORS] Origin '<span class="math-inline">\{origin\}' not allowed\. Allowed list\: \[</span>{currentAllowedOrigins.join(', ')}]`);
-            callback(new Error(`Origin ${origin} not allowed by CORS`));
-        }
-    },
-    credentials: true,
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Thêm các method bạn dùng
-    allowedHeaders: "Content-Type,Authorization,X-Client-Lang" // Thêm các header bạn dùng
-};
+    const corsOptions = {
+        origin: function (origin, callback) {
+            if (!origin || finalAllowedOrigins.indexOf(origin) !== -1) {
+                callback(null, true);
+            } else {
+                logger.warn(`[CORS Check] Origin '${origin}' NOT ALLOWED. Allowed list: [${finalAllowedOrigins.join(', ')}]`);
+                callback(new Error(`Origin ${origin} not allowed by CORS`));
+            }
+        },
+        credentials: true,
+        methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS", // Đảm bảo OPTIONS được phép
+        allowedHeaders: "Content-Type,Authorization,X-Client-Lang,X-apollo-operation-name,apollographql-client-name,apollographql-client-version" // Thêm các header Apollo có thể dùng
+    };
 
-app.use(cors(corsOptions));
+    // ÁP DỤNG CORS TOÀN CỤC TRƯỚC TIÊN
+    // Điều này quan trọng để xử lý preflight OPTIONS requests cho tất cả các route
+    app.use(cors(corsOptions));
     // --- KẾT THÚC CẤU HÌNH CORS ---
 
     app.use(express.json()); //
