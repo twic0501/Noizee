@@ -1,25 +1,28 @@
-// user/src/pages/Account/OrderDetailPage.jsx
+// src/pages/Account/OrderDetailPage.jsx
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { useTranslation } from 'react-i18next';
-import { FiArrowLeft, FiCalendar, FiUser, FiMapPin, FiTruck, FiCreditCard, FiClipboard, FiHash } from 'react-icons/fi';
+// Sử dụng icon từ react-bootstrap-icons hoặc lucide-react tùy theo thiết kế của bạn
+import { ArrowLeft, BoxSeam, CalendarEvent, Person, GeoAlt, CreditCard, ClipboardList, Hash } from 'react-bootstrap-icons';
+// import { FiArrowLeft, FiClipboard, FiUser, FiMapPin, FiTruck, FiCreditCard, FiHash, FiCalendar } from 'lucide-react'; // Nếu dùng Lucide
 
-import { GET_ORDER_DETAILS_QUERY } from '../../api/graphql/orderQueries'; // Đã tạo
+import { GET_ORDER_DETAILS_QUERY } from '../../api/graphql/orderQueries';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import AlertMessage from '../../components/common/AlertMessage';
-import OrderStatusBadge from '../../components/orders/OrderStatusBadge'; // Đã tạo
+import OrderStatusBadge from '../../components/orders/OrderStatusBadge';
 import { formatPrice, formatDate } from '../../utils/formatters';
 import OptimizedImage from '../../components/common/OptimizedImage';
-import { PRODUCT_IMAGE_PLACEHOLDER } from '../../utils/constants';
+import { API_BASE_URL, PRODUCT_IMAGE_PLACEHOLDER } from '../../utils/constants';
 
-const DetailSection = ({ title, icon, children }) => (
-  <div className="mb-6">
-    <h3 className="text-md font-semibold text-gray-700 mb-2 flex items-center">
-      {React.cloneElement(icon, { className: "h-5 w-5 mr-2 text-indigo-600" })}
+// Component con cho từng section chi tiết (sử dụng Bootstrap classes)
+const DetailSection = ({ title, icon, children, className = "" }) => (
+  <div className={`mb-4 ${className}`}>
+    <h3 className="h6 fw-semibold text-dark mb-2 d-flex align-items-center">
+      {React.cloneElement(icon, { size: 18, className: "me-2 text-primary" })} {/* Điều chỉnh size và class icon */}
       {title}
     </h3>
-    <div className="text-sm text-gray-600 bg-gray-50 p-4 rounded-md space-y-1">
+    <div className="small text-muted bg-light p-3 rounded border"> {/* Thêm border và bg-light */}
         {children}
     </div>
   </div>
@@ -27,144 +30,164 @@ const DetailSection = ({ title, icon, children }) => (
 
 const OrderDetailPage = () => {
   const { t } = useTranslation();
-  const { orderId } = useParams(); // Lấy orderId từ URL
+  const { orderId } = useParams();
+  const navigate = useNavigate();
 
   const { data, loading, error } = useQuery(GET_ORDER_DETAILS_QUERY, {
-    variables: { orderId },
+    variables: { orderId }, // Backend query có thể dùng 'id' hoặc 'orderId'
     fetchPolicy: 'cache-and-network',
   });
 
-  if (loading) return <div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>;
-  if (error) return <AlertMessage type="error" message={t('orderDetail.errorLoading')} details={error.message} />;
-  
-  const order = data?.myOrder; // Hoặc data?.order tùy theo tên query ở backend
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: 'calc(100vh - 200px)' }}>
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+  if (error) {
+    return <AlertMessage type="error" title={t('orderDetail.errorLoading')} message={error.message} />;
+  }
 
-  if (!order) return <AlertMessage type="info" message={t('orderDetail.notFound')} />;
+  const order = data?.myOrder; // Hoặc data?.order tùy theo schema của bạn
 
-  // Giả định customer, shippingAddress, items là các object/array trong order
-  // const customerName = `${order.customer?.firstName || ''} ${order.customer?.lastName || ''}`.trim();
-  // const shipping = order.shippingAddress;
+  if (!order) {
+    return <AlertMessage type="info" message={t('orderDetail.notFound')} />;
+  }
 
-  // Placeholder data nếu query chưa có
-  const placeholderOrder = {
-    id: '1', order_number: 'NOZ-001', sale_date: new Date().toISOString(), 
-    status: 'DELIVERED', total_amount: 250000, 
-    customer: { firstName: 'Văn', lastName: 'A', email: 'vana@example.com'},
-    shipping_address: { street: '123 Đường ABC', city: 'Quận 1', postalCode: '700000', country: 'Việt Nam', phoneNumber: '0901234567'},
-    payment_method: 'Thanh toán khi nhận hàng (COD)',
-    shipping_method: 'Giao hàng tiêu chuẩn',
-    items: [
-      { id: 'item1', product_name: 'Áo Thun Cao Cấp Noizee Màu Đen', quantity: 1, price_per_unit: 250000, total_price: 250000, product_image_url: 'https://via.placeholder.com/80' },
-    ],
-    subtotal_amount: 250000,
-    discount_amount: 0,
-    tax_amount: 0,
+  // Giả định cấu trúc dữ liệu trả về từ backend
+  const customerName = `${order.customer?.firstName || order.customer?.customer_name || t('common.unknownUser', 'Khách hàng không xác định')}`;
+  const shipping = order.shipping_address || order.shippingAddress; // Kiểm tra cả hai kiểu đặt tên
+  const paymentMethodDisplay = order.payment_method || order.paymentMethod || t('common.notAvailable', 'Không có');
+  const shippingMethodDisplay = order.shipping_method || order.shippingMethod || t('common.notAvailable', 'Không có');
+
+  const getFullImageUrl = (relativePath) => {
+    if (!relativePath) return PRODUCT_IMAGE_PLACEHOLDER;
+    if (relativePath.startsWith('http://') || relativePath.startsWith('https://') || relativePath.startsWith('data:')) {
+        return relativePath;
+    }
+    return `${API_BASE_URL}${relativePath.startsWith('/') ? '' : '/'}${relativePath}`;
   };
-  const currentOrder = order || placeholderOrder;
 
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-4 d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center">
         <div>
-            <Link to="/account/orders" className="text-sm text-indigo-600 hover:text-indigo-800 flex items-center mb-2">
-                <FiArrowLeft className="mr-1 h-4 w-4" />
-                {t('orderDetail.backToOrders', 'Quay lại danh sách đơn hàng')}
+            <Link to="/account/orders" className="btn btn-link text-dark text-decoration-none ps-0 mb-2 d-inline-flex align-items-center small">
+                <ArrowLeft size={16} className="me-1" />
+                {t('orderDetail.backToOrders')}
             </Link>
-            <h2 className="text-xl md:text-2xl font-semibold text-gray-800">
-            {t('orderDetail.title', 'Chi tiết đơn hàng')} #{currentOrder.order_number || currentOrder.id}
+            <h2 className="h5 fw-bold text-dark mb-0">
+              {t('orderDetail.title')} #{order.order_number || order.id}
             </h2>
         </div>
-        <OrderStatusBadge status={currentOrder.status} />
+        <div className="mt-2 mt-sm-0">
+            <OrderStatusBadge status={order.status} />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="row g-4">
         {/* Left Column: Order Info, Customer, Shipping */}
-        <div className="md:col-span-2 space-y-6">
-            <div className="bg-white p-6 rounded-lg shadow">
-                <DetailSection title={t('orderDetail.orderInfo', 'Thông tin đơn hàng')} icon={<FiClipboard />}>
-                    <p><strong>{t('orders.orderId', 'Mã ĐH')}:</strong> {currentOrder.order_number || currentOrder.id}</p>
-                    <p><strong>{t('orders.date', 'Ngày đặt')}:</strong> {formatDate(currentOrder.sale_date)}</p>
-                    <p><strong>{t('orders.status', 'Trạng thái')}:</strong> <span className="font-medium">{t(`orderStatus.${currentOrder.status?.toLowerCase()}`, currentOrder.status)}</span></p>
-                    <p><strong>{t('orderDetail.paymentMethod', 'Phương thức thanh toán')}:</strong> {currentOrder.payment_method || 'N/A'}</p>
-                    <p><strong>{t('orderDetail.shippingMethod', 'Phương thức vận chuyển')}:</strong> {currentOrder.shipping_method || 'N/A'}</p>
-                </DetailSection>
-
-                {currentOrder.customer && (
-                    <DetailSection title={t('orderDetail.customerInfo', 'Thông tin khách hàng')} icon={<FiUser />}>
-                        <p>{currentOrder.customer.firstName} {currentOrder.customer.lastName}</p>
-                        <p>{currentOrder.customer.email}</p>
-                        {currentOrder.shipping_address?.phoneNumber && <p>{currentOrder.shipping_address.phoneNumber}</p>}
+        <div className="col-lg-7">
+            <div className="card shadow-sm border-0">
+                <div className="card-body p-3 p-md-4">
+                    <DetailSection title={t('orderDetail.orderInfo')} icon={<ClipboardList />}>
+                        <p className="mb-1"><strong>{t('orders.orderId')}:</strong> {order.order_number || order.id}</p>
+                        <p className="mb-1"><strong>{t('orders.date')}:</strong> {formatDate(order.sale_date || order.createdAt)}</p>
+                        <p className="mb-1"><strong>{t('orders.status')}:</strong> <span className="fw-medium">{t(`orderStatus.${order.status?.toLowerCase()}`, order.status)}</span></p>
+                        <p className="mb-1"><strong>{t('orderDetail.paymentMethod')}:</strong> {paymentMethodDisplay}</p>
+                        <p className="mb-0"><strong>{t('orderDetail.shippingMethod')}:</strong> {shippingMethodDisplay}</p>
                     </DetailSection>
-                )}
 
-                {currentOrder.shipping_address && (
-                    <DetailSection title={t('orderDetail.shippingAddress', 'Địa chỉ giao hàng')} icon={<FiMapPin />}>
-                        <p>{currentOrder.shipping_address.street}</p>
-                        <p>{currentOrder.shipping_address.city}{currentOrder.shipping_address.district ? `, ${currentOrder.shipping_address.district}` : ''}{currentOrder.shipping_address.ward ? `, ${currentOrder.shipping_address.ward}` : ''}</p>
-                        <p>{currentOrder.shipping_address.postalCode ? `${currentOrder.shipping_address.postalCode}, ` : ''}{currentOrder.shipping_address.country}</p>
-                    </DetailSection>
-                )}
+                    {order.customer && (
+                        <DetailSection title={t('orderDetail.customerInfo')} icon={<Person />}>
+                            <p className="mb-1">{customerName}</p>
+                            <p className="mb-0">{order.customer.email || order.customer.customer_email}</p>
+                            {(shipping?.phoneNumber || order.customer?.customer_tel) && <p className="mb-0">{shipping?.phoneNumber || order.customer?.customer_tel}</p>}
+                        </DetailSection>
+                    )}
+
+                    {shipping && (
+                        <DetailSection title={t('orderDetail.shippingAddress')} icon={<GeoAlt />} className="mb-0">
+                            <p className="mb-1">{shipping.street}</p>
+                            <p className="mb-1">
+                                {shipping.ward && `${shipping.ward}, `}
+                                {shipping.district && `${shipping.district}, `}
+                                {shipping.city}
+                            </p>
+                            {shipping.postalCode && <p className="mb-1">{shipping.postalCode}</p>}
+                            <p className="mb-0">{shipping.country || "Việt Nam"}</p>
+                        </DetailSection>
+                    )}
+                </div>
             </div>
         </div>
 
         {/* Right Column: Order Summary (Items & Totals) */}
-        <div className="md:col-span-1 space-y-6">
-            <div className="bg-white p-6 rounded-lg shadow">
-                <h3 className="text-md font-semibold text-gray-700 mb-4 pb-2 border-b">
-                    {t('orderDetail.itemsInOrder', 'Các sản phẩm trong đơn')} ({currentOrder.items?.length || 0})
-                </h3>
-                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                    {currentOrder.items?.map(item => (
-                    <div key={item.id} className="flex items-start space-x-3 py-2 border-b border-gray-100 last:border-b-0">
-                        <OptimizedImage
-                        src={item.product_image_url || PRODUCT_IMAGE_PLACEHOLDER}
-                        alt={item.product_name}
-                        containerClassName="w-14 h-14 rounded overflow-hidden flex-shrink-0 bg-gray-100"
-                        objectFit="object-contain"
-                        className="w-full h-full"
-                        />
-                        <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-800 line-clamp-2">{item.product_name}</p>
-                        <p className="text-xs text-gray-500">
-                            {t('orderDetail.quantity', 'SL')}: {item.quantity} x {formatPrice(item.price_per_unit)}
-                        </p>
-                        </div>
-                        <p className="text-sm font-semibold text-gray-700 whitespace-nowrap">
-                            {formatPrice(item.total_price)}
-                        </p>
-                    </div>
-                    ))}
+        <div className="col-lg-5">
+            <div className="card shadow-sm border-0">
+                <div className="card-header bg-light border-bottom-0 p-3">
+                    <h3 className="h6 fw-semibold text-dark mb-0 d-flex align-items-center">
+                        <BoxSeam size={18} className="me-2 text-primary"/>
+                        {t('orderDetail.itemsInOrder')} ({order.items?.length || 0})
+                    </h3>
                 </div>
+                <div className="card-body p-3 p-md-4">
+                    <div className="list-group list-group-flush mb-3" style={{maxHeight: '300px', overflowY: 'auto'}}>
+                        {order.items?.map(item => (
+                        <div key={item.id || item.product_id} className="list-group-item px-0 py-2 d-flex align-items-start">
+                            <OptimizedImage
+                                src={getFullImageUrl(item.product_image_url || item.product?.images?.[0]?.image_url)}
+                                alt={item.product_name || item.product?.name}
+                                containerClassName="flex-shrink-0 me-3 border rounded overflow-hidden"
+                                style={{ width: '60px', height: '75px' }} // Kích thước ảnh
+                                objectFitClass="object-fit-cover"
+                            />
+                            <div className="flex-grow-1">
+                                <p className="small fw-medium text-dark mb-0 lh-sm">{item.product_name || item.product?.name}</p>
+                                <p className="small text-muted mb-1" style={{fontSize: '0.75rem'}}>
+                                    {t('orderDetail.quantity')}: {item.quantity} x {formatPrice(item.price_per_unit || item.price)}
+                                </p>
+                            </div>
+                            <p className="small fw-semibold text-dark ms-2 mb-0">{formatPrice(item.total_price || (item.price * item.quantity))}</p>
+                        </div>
+                        ))}
+                    </div>
 
-                <div className="mt-6 pt-4 border-t border-gray-200 space-y-2 text-sm">
-                    <div className="flex justify-between text-gray-600">
-                        <span>{t('orderDetail.subtotal', 'Tạm tính')}:</span>
-                        <span>{formatPrice(currentOrder.subtotal_amount)}</span>
-                    </div>
-                    {currentOrder.discount_amount > 0 && (
-                        <div className="flex justify-between text-green-600">
-                        <span>{t('orderDetail.discount', 'Giảm giá')}:</span>
-                        <span>-{formatPrice(currentOrder.discount_amount)}</span>
+                    <div className="border-top pt-3 small">
+                        <div className="d-flex justify-content-between text-muted mb-1">
+                            <span>{t('orderDetail.subtotal')}:</span>
+                            <span>{formatPrice(order.subtotal_amount || order.subtotal || 0)}</span>
                         </div>
-                    )}
-                    {/* Shipping and Tax can be added here if available in 'currentOrder' */}
-                     <div className="flex justify-between text-gray-600">
-                        <span>{t('orderDetail.shippingFee', 'Phí vận chuyển')}:</span>
-                        <span>{formatPrice(currentOrder.shipping_fee || 0)}</span>
-                    </div>
-                    {currentOrder.tax_amount > 0 && (
-                        <div className="flex justify-between text-gray-600">
-                        <span>{t('orderDetail.tax', 'Thuế')}:</span>
-                        <span>{formatPrice(currentOrder.tax_amount)}</span>
+                        { (order.discount_amount > 0 || order.discount > 0) && (
+                            <div className="d-flex justify-content-between text-success mb-1">
+                                <span>{t('orderDetail.discount')}:</span>
+                                <span>-{formatPrice(order.discount_amount || order.discount || 0)}</span>
+                            </div>
+                        )}
+                         <div className="d-flex justify-content-between text-muted mb-1">
+                            <span>{t('orderDetail.shippingFee')}:</span>
+                            <span>{formatPrice(order.shipping_fee || order.shippingCost || 0)}</span>
                         </div>
-                    )}
-                    <div className="flex justify-between text-lg font-semibold text-gray-900 pt-2 border-t mt-2">
-                        <span>{t('orderDetail.total', 'Tổng cộng')}:</span>
-                        <span>{formatPrice(currentOrder.total_amount)}</span>
+                        {(order.tax_amount > 0 || order.tax > 0) && (
+                            <div className="d-flex justify-content-between text-muted mb-1">
+                                <span>{t('orderDetail.tax')}:</span>
+                                <span>{formatPrice(order.tax_amount || order.tax || 0)}</span>
+                            </div>
+                        )}
+                        <hr className="my-2"/>
+                        <div className="d-flex justify-content-between h6 fw-bold text-dark pt-1 mb-0">
+                            <span>{t('orderDetail.total')}:</span>
+                            <span>{formatPrice(order.total_amount || order.total)}</span>
+                        </div>
                     </div>
+                    {/* TODO: Track order button, re-order button, print invoice */}
+                    {/* <div className="mt-4 d-grid gap-2">
+                        <button className="btn btn-primary btn-sm">Theo dõi đơn hàng</button>
+                        <button className="btn btn-outline-secondary btn-sm">Đặt lại</button>
+                    </div> */}
                 </div>
-                 {/* TODO: Track order button, re-order button, print invoice */}
             </div>
         </div>
       </div>

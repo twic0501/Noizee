@@ -22,7 +22,7 @@ import {
 // Import Components
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import AlertMessage from '../components/common/AlertMessage';
-import ProductGrid from '../components/product/ProductGrid';
+//import ProductGrid from '../components/product/ProductGrid';
 import BlogPostCard from '../components/blog/BlogPostCard';
 import OptimizedImage from '../components/common/OptimizedImage';
 

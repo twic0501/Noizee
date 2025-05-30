@@ -1,0 +1,43 @@
+{
+  "siteName": "Noizee",
+  "nav": {
+    "newArrivals": "Hàng Mới Về",
+    "collections": "Bộ Sưu Tập",
+    "blog": "Bài Viết",
+    "theNoizee": "Về Noizee",
+    "login": "Đăng Nhập",
+    "logout": "Đăng Xuất",
+    "myAccount": "Tài Khoản Của Tôi"
+  },
+  "hero": {
+    "title": "NOIZEE THU ĐÔNG 25",
+    "subtitle": "KHÁM PHÁ BỘ SƯU TẬP MỚI",
+    "button": "XEM BỘ SƯU TẬP"
+  },
+  "productListing": {
+    "productsFound": "TÌM THẤY {{count}} SẢN PHẨM",
+    "filter": "Bộ Lọc",
+    "sortBy": "Sắp xếp theo"
+  },
+  "cart": {
+    "title": "Giỏ Hàng",
+    "empty": "Giỏ hàng của bạn đang trống.",
+    "itemsCount": "{{count}} Sản phẩm",
+    "subtotal": "Tổng phụ",
+    "total": "Tổng cộng",
+    "viewCart": "Xem Giỏ Hàng",
+    "checkout": "Thanh Toán"
+  },
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Đã có lỗi xảy ra.",
+    "confirm": "Xác nhận",
+    "cancel": "Hủy",
+    "save": "Lưu",
+    "edit": "Sửa",
+    "delete": "Xóa",
+    "close": "Đóng",
+    "vietnamese": "Tiếng Việt",
+    "english": "Tiếng Anh"
+  }
+}

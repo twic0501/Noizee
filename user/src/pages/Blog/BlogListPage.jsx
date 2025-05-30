@@ -1,33 +1,50 @@
-// user/src/pages/Blog/BlogListPage.jsx
+// src/pages/Blog/BlogListPage.jsx
 import React from 'react';
 import { useQuery } from '@apollo/client';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router-dom'; // useSearchParams cho filter/phân trang
+import { Link, useSearchParams } from 'react-router-dom';
 
-import { GET_BLOG_POSTS_QUERY } from '../../api/graphql/blogQueries'; // API đã đề xuất
-import BlogPostCard from '../../components/blog/BlogPostCard';     // Component đã đề xuất
-import BlogSidebar from '../../components/blog/BlogSidebar';       // Component đã đề xuất
-import Pagination from '../../components/common/Pagination';         // Component đã đề xuất
+import { GET_BLOG_POSTS_QUERY } from '../../api/graphql/blogQueries';
+import BlogPostCard from '../../components/blog/BlogPostCard';
+import BlogSidebar from '../../components/blog/BlogSidebar'; // Giả sử BlogSidebar cũng sẽ được Bootstrap hóa
+import Pagination from '../../components/common/Pagination';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import AlertMessage from '../../components/common/AlertMessage';
 import { ITEMS_PER_PAGE_DEFAULT } from '../../utils/constants';
 
 const BlogListPage = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const currentLang = i18n.language || 'vi';
 
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
   const itemsPerPage = ITEMS_PER_PAGE_DEFAULT; // Hoặc một hằng số khác cho blog
+
   // Lấy các filter khác từ searchParams nếu có (ví dụ: category, tag)
-  // const categoryFilter = searchParams.get('category');
-  // const tagFilter = searchParams.get('tag');
+  const categorySlugFilter = searchParams.get('category'); // Ví dụ
+  const tagSlugFilter = searchParams.get('tag'); // Ví dụ
+
+
+  // Xây dựng biến filter cho GraphQL query
+  const gqlFilter = {};
+  if (categorySlugFilter) {
+    // Giả sử backend filter theo category slug, nếu theo ID thì cần lấy ID từ slug trước
+    // gqlFilter.categorySlug = categorySlugFilter; // Hoặc category_id nếu backend yêu cầu
+    // Tạm thời comment out vì GET_BLOG_POSTS_QUERY hiện tại không có filter theo slug
+  }
+  if (tagSlugFilter) {
+    // gqlFilter.tagSlug = tagSlugFilter; // Hoặc tag_id
+  }
+
 
   const { data, loading, error } = useQuery(GET_BLOG_POSTS_QUERY, {
     variables: {
       limit: itemsPerPage,
       offset: (currentPage - 1) * itemsPerPage,
-      // categoryId: categoryFilter, // Hoặc categorySlug tùy backend
-      // tagId: tagFilter,           // Hoặc tagSlug tùy backend
+      lang: currentLang, // Truyền ngôn ngữ nếu query hỗ trợ
+      // filter: gqlFilter, // Truyền filter nếu có và query hỗ trợ
+      // sortBy: 'publishedAt', // Ví dụ: Sắp xếp theo ngày xuất bản
+      // sortOrder: 'DESC',     // Mới nhất lên trước
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -38,39 +55,27 @@ const BlogListPage = () => {
     setSearchParams(newParams);
     window.scrollTo(0, 0);
   };
-  
-  // Dữ liệu từ API (sử dụng placeholder nếu chưa có)
-  // const posts = data?.blogPosts?.posts || data?.blogPosts || [];
-  // const totalPosts = data?.blogPosts?.totalCount || 0;
-  const placeholderPosts = Array.from({ length: 5 }).map((_, i) => ({
-    id: `post${i+1}`,
-    title: `Tiêu đề bài viết mẫu ${i+1}`,
-    slug: `tieu-de-bai-viet-mau-${i+1}`,
-    excerpt: 'Đây là một đoạn tóm tắt ngắn cho bài viết blog mẫu để minh họa giao diện người dùng. Nội dung chi tiết sẽ có khi bạn nhấp vào để xem đầy đủ.',
-    featuredImageUrl: `https://picsum.photos/seed/blog${i+1}/600/400`,
-    publishedAt: new Date(Date.now() - i * 86400000 * 3).toISOString(),
-    author: { firstName: 'Người Viết', lastName: 'Ẩn Danh' },
-    tags: [{id: `tag${i}`, name: `Tag ${i+1}`, slug: `tag-${i+1}`}]
-  }));
-  const posts = data?.blogPosts || placeholderPosts;
-  const totalPosts = data?.blogPostsTotalCount || placeholderPosts.length * 2; // Giả sử có nhiều hơn
+
+  const posts = data?.blogPosts || []; // Giả sử query trả về mảng blogPosts trực tiếp
+                                        // Hoặc data?.blogPosts?.posts nếu có cấu trúc lồng nhau
+  const totalPosts = data?.blogPostsTotalCount || data?.blogPosts?.length || 0; // Cần totalCount từ backend để phân trang chính xác
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <header className="mb-8 text-center">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
+    <div className="container py-4 py-md-5"> {/* Sử dụng container của Bootstrap */}
+      <header className="mb-4 mb-md-5 text-center">
+        <h1 className="h2 fw-bold text-dark">
           {t('blog.pageTitle', 'Bài viết & Tin tức')}
         </h1>
-        <p className="mt-2 text-md text-gray-600">
+        <p className="lead text-muted small">
           {t('blog.pageSubtitle', 'Khám phá những chia sẻ, kiến thức và cập nhật mới nhất từ chúng tôi.')}
         </p>
       </header>
 
-      <div className="lg:flex lg:space-x-8">
+      <div className="row g-4 g-lg-5">
         {/* Main Content: Blog Post Grid */}
-        <div className="lg:w-3/4 xl:w-4/5">
-          {loading && !data && (
-            <div className="flex justify-center items-center py-20">
+        <div className="col-lg-8 col-xl-9">
+          {loading && !data && ( // Chỉ hiển thị loading ban đầu
+            <div className="d-flex justify-content-center align-items-center py-5">
               <LoadingSpinner size="lg" />
             </div>
           )}
@@ -82,28 +87,31 @@ const BlogListPage = () => {
           )}
 
           {posts.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+            <div className="row row-cols-1 row-cols-md-2 g-4"> {/* Grid của Bootstrap */}
               {posts.map(post => (
-                <BlogPostCard key={post.id} post={post} />
+                <div key={post.id} className="col d-flex align-items-stretch"> {/* d-flex và align-items-stretch để các card bằng chiều cao */}
+                  <BlogPostCard post={post} /> {/* BlogPostCard cần được Bootstrap hóa */}
+                </div>
               ))}
             </div>
           )}
 
-          {totalPosts > itemsPerPage && (
-            <div className="mt-12">
+          {totalPosts > itemsPerPage && !loading && posts.length > 0 && (
+            <div className="mt-4 pt-4 border-top">
               <Pagination
                 currentPage={currentPage}
                 totalItems={totalPosts}
                 itemsPerPage={itemsPerPage}
                 onPageChange={handlePageChange}
+                className="justify-content-center" // Căn giữa pagination
               />
             </div>
           )}
         </div>
 
         {/* Sidebar */}
-        <div className="mt-12 lg:mt-0 lg:w-1/4 xl:w-1/5">
-          <BlogSidebar />
+        <div className="col-lg-4 col-xl-3">
+          <BlogSidebar /> {/* BlogSidebar cũng cần được Bootstrap hóa */}
         </div>
       </div>
     </div>

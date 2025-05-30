@@ -1,0 +1,43 @@
+{
+  "siteName": "Noizee",
+  "nav": {
+    "newArrivals": "New Arrivals",
+    "collections": "Collections",
+    "blog": "Blog",
+    "theNoizee": "The Noizee",
+    "login": "Login",
+    "logout": "Logout",
+    "myAccount": "My Account"
+  },
+  "hero": {
+    "title": "NOIZEE AW25",
+    "subtitle": "DISCOVER THE NEW COLLECTION",
+    "button": "VIEW COLLECTIONS"
+  },
+  "productListing": {
+    "productsFound": "{{count}} PRODUCTS FOUND",
+    "filter": "Filter",
+    "sortBy": "Sort by"
+  },
+  "cart": {
+    "title": "Cart",
+    "empty": "Your cart is empty.",
+    "itemsCount": "{{count}} Item(s)",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "viewCart": "View Cart",
+    "checkout": "Check Out"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred.",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "close": "Close",
+    "vietnamese": "Vietnamese",
+    "english": "English"
+  }
+}

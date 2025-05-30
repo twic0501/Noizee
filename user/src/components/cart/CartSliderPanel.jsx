@@ -1,185 +1,215 @@
 // src/components/cart/CartSliderPanel.jsx
-import React from 'react';
-import { Offcanvas, Button, Image, ListGroup, Badge, CloseButton as BootstrapCloseButton } from 'react-bootstrap';
-import { useTranslation } from 'react-i18next';
-import { FiX, FiMinus, FiPlus, FiShoppingCart, FiTrash2 } from 'react-icons/fi';
-import { Link, useNavigate } from 'react-router-dom';
-import PropTypes from 'prop-types';
+import React, { useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom'; // Giữ lại useNavigate nếu bạn dùng nó trực tiếp trong component này
+// import { X, ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react'; // Hoặc dùng icon từ thư viện khác
+import { XLg, Cart3, PlusLg, DashLg, Trash } from 'react-bootstrap-icons'; // Ví dụ dùng react-bootstrap-icons
+
+// GSAP (đảm bảo đã import và đăng ký plugin ở file chính)
+// import { gsap } from 'gsap'; // Nếu import trực tiếp
+// Hoặc truy cập qua window.gsap nếu đã load global
 
 import { formatPrice } from '../../utils/formatters';
-import { API_BASE_URL, PRODUCT_IMAGE_PLACEHOLDER } from '../../utils/constants';
-// import logger from '../../utils/logger';
+import { PRODUCT_IMAGE_PLACEHOLDER } from '../../utils/constants'; // Giả sử bạn có hằng số này
+// OptimizedImage có thể không cần thiết ở đây nếu ảnh đã nhỏ hoặc bạn xử lý src trực tiếp
+// import OptimizedImage from '../common/OptimizedImage';
 
 const CartSliderPanel = ({
     isOpen,
     onClose,
-    cartItems = [], // Mong đợi [{ product, quantity, selectedColor, selectedSize, totalPriceForItem }, ...]
-                    // product nên chứa: id, name, images, price
-                    // selectedColor nên chứa: name
-                    // selectedSize nên chứa: name
-    onUpdateQuantity, // (itemId, newQuantity) => void
-    onRemoveItem,     // (itemId) => void
-    // onCheckout,    // Sẽ dùng navigate trực tiếp
-    // onViewCart,    // Sẽ dùng navigate trực tiếp
-    subtotal = 0,
-    totalItems = 0,
-    cartLoading = false // Thêm prop này để biết khi nào giỏ hàng đang được cập nhật
+    cartItems = [],
+    onUpdateQuantity,
+    onRemoveItem,
+    onCheckout, // Hàm điều hướng đến trang checkout
+    onViewCart, // Hàm điều hướng đến trang giỏ hàng đầy đủ
+    // subtotal và totalItems sẽ được tính toán bên trong component này
 }) => {
-    const { t } = useTranslation();
-    const navigate = useNavigate();
+    const cartPanelRef = useRef(null);
 
-    const handleCheckout = () => {
-        onClose(); // Đóng panel trước khi điều hướng
-        navigate('/checkout');
-    };
+    const subtotal = cartItems.reduce((sum, item) => sum + (item.product?.product_price || 0) * item.quantity, 0);
+    const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-    const handleViewCart = () => {
-        onClose(); // Đóng panel trước khi điều hướng
-        navigate('/cart');
-    };
+    useEffect(() => {
+        if (!cartPanelRef.current || typeof window.gsap === 'undefined') return;
+        const panel = cartPanelRef.current;
 
-    const getItemImage = (item) => {
-        if (item.product?.images && item.product.images.length > 0) {
-            // Ưu tiên ảnh của màu đã chọn, hoặc ảnh chung đầu tiên
-            const colorImage = item.selectedColorId && item.product.images.find(
-                img => img.color?.color_id === item.selectedColorId && img.display_order === 0
-            );
-            if (colorImage) return `${API_BASE_URL}${colorImage.image_url}`;
-
-            const generalImage = item.product.images.find(img => !img.color && img.display_order === 0);
-            if (generalImage) return `${API_BASE_URL}${generalImage.image_url}`;
-
-            return `${API_BASE_URL}${item.product.images[0].image_url}`; // Ảnh đầu tiên bất kỳ
+        if (isOpen) {
+            // Khi mở, panel sẽ trượt vào từ bên phải
+            document.body.style.overflow = 'hidden'; // Ngăn scroll body khi panel mở
+            window.gsap.to(panel, { x: 0, duration: 0.35, ease: "power2.out" });
+        } else {
+            // Khi đóng, panel trượt ra
+            document.body.style.overflow = ''; // Cho phép scroll body lại
+            // Chỉ animate khi panel thực sự đã mở và đang được đóng
+            if (panel.style.transform === 'translateX(0px)' || panel.style.transform === '') {
+                 window.gsap.to(panel, { x: "100%", duration: 0.3, ease: "power2.in" });
+            } else if (!isOpen && panel.style.transform === '') { // Trạng thái ẩn ban đầu
+                 window.gsap.set(panel, { x: "100%" });
+            }
         }
-        return PRODUCT_IMAGE_PLACEHOLDER;
-    };
+    }, [isOpen]);
 
+    // Điều kiện render: chỉ render nếu isOpen là true hoặc panel đã từng được mở (để animation đóng chạy)
+    // Hoặc đơn giản là luôn render và để GSAP xử lý visibility/transform
+    // if (!isOpen && (!cartPanelRef.current || cartPanelRef.current.style.transform === 'translateX(100%)')) {
+    //     return null;
+    // }
+
+    const handleItemImageError = (e) => {
+        e.target.onerror = null;
+        e.target.src = PRODUCT_IMAGE_PLACEHOLDER;
+    };
 
     return (
-        <Offcanvas show={isOpen} onHide={onClose} placement="end" className="cart-slider-panel bg-white text-dark shadow-lg">
-            <Offcanvas.Header className="border-bottom p-3 cart-slider-header">
-                <Offcanvas.Title as="h5" className="text-uppercase small fw-bold d-flex align-items-center">
-                    <FiShoppingCart size={18} className="me-2"/>
-                    {t('cart.panelTitle', 'Giỏ hàng của bạn')}
-                </Offcanvas.Title>
-                <BootstrapCloseButton onClick={onClose} aria-label="Close" />
-            </Offcanvas.Header>
+        <>
+            {/* Backdrop của Bootstrap Offcanvas */}
+            {isOpen && <div className="offcanvas-backdrop fade show" onClick={onClose} style={{zIndex: 1040}}></div>}
 
-            <Offcanvas.Body className="p-0 d-flex flex-column">
-                {cartLoading && cartItems.length === 0 && (
-                    <div className="flex-grow-1 d-flex align-items-center justify-content-center">
-                        <p className="text-muted small">{t('cart.loadingCart', 'Đang tải giỏ hàng...')}</p>
-                    </div>
-                )}
-                {!cartLoading && cartItems.length === 0 ? (
-                    <div className="flex-grow-1 d-flex flex-column align-items-center justify-content-center p-4 text-center">
-                        <FiShoppingCart size={48} className="text-muted mb-3"/>
-                        <p className="text-muted mb-3">{t('cart.emptyPanelPrompt', 'Giỏ hàng của bạn hiện đang trống.')}</p>
-                        <Button variant="dark" size="sm" onClick={() => { onClose(); navigate('/products'); }}>
-                            {t('cart.continueShoppingButton')}
-                        </Button>
-                    </div>
-                ) : (
-                    <ListGroup variant="flush" className="flex-grow-1 overflow-auto custom-scrollbar-light cart-items-list">
-                        {cartItems.map((item) => {
-                            // Tạo một ID duy nhất cho item dựa trên product, color, size nếu item.id không có sẵn
-                            const itemId = item.id || `${item.product.product_id}-${item.selectedColorId || 'none'}-${item.selectedSizeId || 'none'}`;
-                            const itemImage = getItemImage(item);
-                            const productName = item.product?.name || t('cart.unknownProduct', 'Sản phẩm không xác định');
-                            const colorName = item.selectedColor?.name || '';
-                            const sizeName = item.selectedSize?.name || '';
-                            const itemPrice = item.product?.product_price || 0;
+            <div
+                ref={cartPanelRef}
+                className="offcanvas offcanvas-end bg-white text-dark shadow-lg" // Thêm text-dark cho chữ màu đen trên nền trắng
+                tabIndex="-1"
+                id="cartOffcanvas"
+                aria-labelledby="cartOffcanvasLabel"
+                style={{
+                    transform: 'translateX(100%)', // Trạng thái ban đầu (ẩn bên phải)
+                    visibility: 'hidden', // Ẩn ban đầu, GSAP sẽ làm nó visible
+                    width: '360px', // Độ rộng của panel
+                    zIndex: 1045 // z-index cao hơn backdrop
+                }}
+            >
+                <div className="offcanvas-header border-bottom p-3">
+                    <h5 className="offcanvas-title text-uppercase small fw-bold" id="cartOffcanvasLabel">
+                        <Cart3 size={18} className="me-2"/>
+                        Giỏ hàng của bạn
+                    </h5>
+                    <button type="button" className="btn-close" onClick={onClose} aria-label="Close"></button>
+                </div>
 
-                            return (
-                                <ListGroup.Item key={itemId} className="px-3 py-3 cart-slider-item">
-                                    <div className="d-flex align-items-start">
-                                        <Image
-                                            src={itemImage}
-                                            alt={productName}
-                                            className="cart-item-image me-3 border rounded"
-                                            onError={(e) => { e.target.onerror = null; e.target.src = PRODUCT_IMAGE_PLACEHOLDER; }}
-                                        />
-                                        <div className="flex-grow-1">
-                                            <Link to={`/product/${item.product.product_id}`} onClick={onClose} className="cart-item-name text-dark fw-medium text-decoration-none small d-block mb-1">
-                                                {productName}
-                                            </Link>
-                                            {(colorName || sizeName) && (
-                                                <p className="text-muted extra-small mb-1">
-                                                    {colorName}{colorName && sizeName ? ' / ' : ''}{sizeName}
-                                                </p>
-                                            )}
-                                            <div className="d-flex align-items-center justify-content-between mt-1">
-                                                <div className="quantity-selector-sm d-flex align-items-center border rounded">
-                                                    <Button variant="link" size="sm" className="text-dark p-1" onClick={() => onUpdateQuantity(itemId, item.quantity - 1)} disabled={item.quantity <= 1 || cartLoading}>
-                                                        <FiMinus size={12}/>
-                                                    </Button>
-                                                    <span className="px-2 small text-dark">{item.quantity}</span>
-                                                    <Button variant="link" size="sm" className="text-dark p-1" onClick={() => onUpdateQuantity(itemId, item.quantity + 1)} disabled={cartLoading}>
-                                                        <FiPlus size={12}/>
-                                                    </Button>
+                <div className="offcanvas-body p-0 d-flex flex-column">
+                    {cartItems.length === 0 ? (
+                        <div className="flex-grow-1 d-flex flex-column align-items-center justify-content-center p-4 text-center">
+                            <Cart3 size={48} className="text-muted mb-3"/>
+                            <p className="text-muted mb-3">Giỏ hàng của bạn hiện đang trống.</p>
+                            <button onClick={() => { onClose(); if(onViewCart) onViewCart('products'); /* Hoặc trang products */}} className="btn btn-dark btn-sm">
+                                Tiếp tục mua sắm
+                            </button>
+                        </div>
+                    ) : (
+                        <ul className="list-group list-group-flush flex-grow-1 overflow-auto" style={{fontSize: '0.875rem'}}> {/* small */}
+                            {cartItems.map((item) => {
+                                const product = item.product || {}; // Đảm bảo product tồn tại
+                                const colorName = item.selectedColor?.name || '';
+                                const sizeName = item.selectedSize?.name || '';
+                                const itemImage = product.images?.[0]?.image_url || PRODUCT_IMAGE_PLACEHOLDER;
+
+                                return (
+                                    <li key={item.id || product.product_id} className="list-group-item px-3 py-3">
+                                        <div className="d-flex align-items-start">
+                                            <img
+                                                src={itemImage}
+                                                alt={`[Hình ảnh của ${product.name}]`}
+                                                className="rounded border me-3"
+                                                style={{width: '60px', height: '75px', objectFit: 'cover'}}
+                                                onError={handleItemImageError}
+                                            />
+                                            <div className="flex-grow-1">
+                                                <div className="d-flex justify-content-between align-items-start">
+                                                    <Link 
+                                                        to={`/product/${product.slug || product.product_id}`} 
+                                                        onClick={onClose} 
+                                                        className="text-dark fw-medium text-decoration-none mb-1 d-block"
+                                                        style={{fontSize: '0.8rem', lineHeight: 1.3}}
+                                                    >
+                                                        {product.name || "Tên sản phẩm"}
+                                                    </Link>
+                                                    <button 
+                                                        type="button" 
+                                                        className="btn-close btn-sm" 
+                                                        style={{fontSize: '0.6rem'}}
+                                                        onClick={() => onRemoveItem(item.id || product.product_id)}
+                                                        aria-label="Remove item"
+                                                    ></button>
                                                 </div>
-                                                <span className="text-dark small fw-medium">{formatPrice(itemPrice * item.quantity)}</span>
+                                                {(colorName || sizeName) && (
+                                                    <p className="mb-1 text-muted" style={{fontSize: '0.75rem'}}>
+                                                        {colorName}{colorName && sizeName ? ' / ' : ''}{sizeName}
+                                                    </p>
+                                                )}
+                                                <div className="d-flex justify-content-between align-items-center mt-1">
+                                                    <span className="fw-bold text-dark" style={{fontSize: '0.8rem'}}>{formatPrice(product.product_price)}</span>
+                                                    <div className="input-group input-group-sm border rounded" style={{width: '100px'}}>
+                                                        <button 
+                                                            className="btn btn-link text-dark px-2 py-1" 
+                                                            type="button" 
+                                                            onClick={() => onUpdateQuantity(item.id || product.product_id, item.quantity - 1)} 
+                                                            disabled={item.quantity <= 1}
+                                                            style={{lineHeight: 1}}
+                                                        >
+                                                            <DashLg size={12}/>
+                                                        </button>
+                                                        <input 
+                                                            type="text" 
+                                                            className="form-control text-center border-0 px-1 py-1 bg-transparent" 
+                                                            value={item.quantity} 
+                                                            readOnly 
+                                                            style={{fontSize: '0.8rem', boxShadow: 'none'}}
+                                                        />
+                                                        <button 
+                                                            className="btn btn-link text-dark px-2 py-1" 
+                                                            type="button" 
+                                                            onClick={() => onUpdateQuantity(item.id || product.product_id, item.quantity + 1)}
+                                                            style={{lineHeight: 1}}
+                                                        >
+                                                            <PlusLg size={12}/>
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                        <Button variant="link" className="text-muted hover-danger p-0 ms-2" onClick={() => onRemoveItem(itemId)} disabled={cartLoading} aria-label="Remove item">
-                                            <FiTrash2 size={14}/>
-                                        </Button>
-                                    </div>
-                                </ListGroup.Item>
-                            );
-                        })}
-                    </ListGroup>
-                )}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    )}
 
-                {cartItems.length > 0 && (
-                    <div className="cart-slider-footer p-3 border-top bg-light">
-                        <div className="d-flex justify-content-between align-items-center mb-2">
-                            <span className="text-dark small fw-medium">{t('cart.subtotal', 'Tạm tính')} ({totalItems} {t('cart.items', 'sản phẩm')})</span>
-                            <span className="text-dark fw-bold">{formatPrice(subtotal)}</span>
+                    {cartItems.length > 0 && (
+                        <div className="offcanvas-footer p-3 border-top bg-light">
+                            <div className="d-flex justify-content-between small mb-1">
+                                <p className="text-muted mb-0">Tạm tính ({totalItems} sản phẩm)</p>
+                                <p className="fw-bold text-dark mb-0">{formatPrice(subtotal)}</p>
+                            </div>
+                            {/* <div className="d-flex justify-content-between small text-muted mb-1"><p>Thuế</p><p>Đã bao gồm</p></div> */}
+                            <div className="d-flex justify-content-between small text-muted mb-2">
+                                <p className="mb-0">Vận chuyển</p>
+                                <p className="mb-0">Tính khi thanh toán</p>
+                            </div>
+                            <hr className="my-2"/>
+                            <div className="d-flex justify-content-between fw-bold h6 mt-1 mb-3">
+                                <p className="mb-0">Tổng cộng</p>
+                                <p className="mb-0">{formatPrice(subtotal)}</p>
+                            </div>
+                            <div className="d-grid gap-2">
+                                <button 
+                                    type="button" 
+                                    onClick={() => { onClose(); if(onViewCart) onViewCart('cart'); }} 
+                                    className="btn btn-outline-dark text-uppercase btn-sm"
+                                >
+                                    Xem giỏ hàng
+                                </button>
+                                <button 
+                                    type="button" 
+                                    onClick={() => { onClose(); if(onCheckout) onCheckout(); }} 
+                                    className="btn btn-dark text-uppercase btn-sm"
+                                >
+                                    Thanh toán
+                                </button>
+                            </div>
                         </div>
-                        <p className="text-muted extra-small mb-3">{t('cart.shippingTaxesCalculated', 'Phí vận chuyển và thuế sẽ được tính khi thanh toán.')}</p>
-                        <div className="d-grid gap-2">
-                            <Button variant="outline-dark" size="sm" onClick={handleViewCart} className="text-uppercase small">
-                                {t('cart.viewCartButton', 'Xem giỏ hàng')}
-                            </Button>
-                            <Button variant="dark" size="sm" onClick={handleCheckout} className="text-uppercase small">
-                                {t('cart.proceedToCheckout', 'Tiến hành thanh toán')}
-                            </Button>
-                        </div>
-                    </div>
-                )}
-            </Offcanvas.Body>
-        </Offcanvas>
+                    )}
+                </div>
+            </div>
+        </>
     );
-};
-
-CartSliderPanel.propTypes = {
-    isOpen: PropTypes.bool.isRequired,
-    onClose: PropTypes.func.isRequired,
-    cartItems: PropTypes.arrayOf(PropTypes.shape({
-        id: PropTypes.string, // ID của cart item (nếu có từ backend)
-        product: PropTypes.shape({
-            product_id: PropTypes.string.isRequired,
-            name: PropTypes.string.isRequired,
-            product_price: PropTypes.number.isRequired,
-            images: PropTypes.arrayOf(PropTypes.shape({
-                image_url: PropTypes.string,
-                display_order: PropTypes.number,
-                color: PropTypes.shape({ color_id: PropTypes.string })
-            }))
-        }).isRequired,
-        quantity: PropTypes.number.isRequired,
-        selectedColorId: PropTypes.string,
-        selectedSizeId: PropTypes.string,
-        selectedColor: PropTypes.shape({ name: PropTypes.string }), // Object màu đã chọn
-        selectedSize: PropTypes.shape({ name: PropTypes.string }),   // Object size đã chọn
-        // totalPriceForItem: PropTypes.number.isRequired, // Có thể tính toán lại
-    })),
-    onUpdateQuantity: PropTypes.func.isRequired,
-    onRemoveItem: PropTypes.func.isRequired,
-    subtotal: PropTypes.number,
-    totalItems: PropTypes.number,
-    cartLoading: PropTypes.bool,
 };
 
 export default CartSliderPanel;

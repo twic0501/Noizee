@@ -1,348 +1,439 @@
-// user/src/pages/CheckoutPage.jsx
+// src/pages/CheckoutPage.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import { useTranslation } from 'react-i18next';
-import { FiMapPin, FiTruck, FiCreditCard, FiList, FiUser, FiPhone, FiMail, FiCheckCircle } from 'react-icons/fi';
+import { ArrowLeft, CreditCard, Info, Lock, Truck, CheckCircle, ShoppingCart } from 'lucide-react'; // Giữ lại các icon cần thiết
 
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
-import { GET_ME_QUERY } from '../api/graphql/userQueries';
-import { CREATE_ORDER_MUTATION } from '../api/graphql/orderMutations'; // Hoặc saleMutations.js
+import { GET_ME_QUERY } from '../api/graphql/userQueries'; // Để lấy thông tin user
+import { CREATE_ORDER_MUTATION } from '../api/graphql/orderMutations';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import AlertMessage from '../components/common/AlertMessage';
-import { formatPrice } from '../utils/formatters';
 import OptimizedImage from '../components/common/OptimizedImage';
-import { PRODUCT_IMAGE_PLACEHOLDER } from '../utils/constants';
+import { formatPrice } from '../utils/formatters';
+import { PRODUCT_IMAGE_PLACEHOLDER, API_BASE_URL } from '../utils/constants';
 
-// Component con cho từng bước (ví dụ)
-const ShippingAddressForm = ({ address, onChange, errors, disabled }) => {
-  const { t } = useTranslation();
-  // ... form fields for address ...
-  return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-medium text-gray-700 mb-3">{t('checkout.shippingAddressTitle', 'Địa chỉ giao hàng')}</h3>
-       {/* Ví dụ một trường */}
-      <div>
-        <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">{t('checkout.fullName', 'Họ và tên')}</label>
-        <input type="text" name="fullName" id="fullName" disabled={disabled} value={address.fullName || ''} onChange={onChange} required className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
-        {errors?.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
-      </div>
-      <div>
-        <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">{t('checkout.phoneNumber', 'Số điện thoại')}</label>
-        <input type="tel" name="phoneNumber" id="phoneNumber" disabled={disabled} value={address.phoneNumber || ''} onChange={onChange} required className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
-         {errors?.phoneNumber && <p className="text-xs text-red-500 mt-1">{errors.phoneNumber}</p>}
-      </div>
-      <div>
-        <label htmlFor="street" className="block text-sm font-medium text-gray-700">{t('checkout.streetAddress', 'Địa chỉ cụ thể (số nhà, tên đường)')}</label>
-        <input type="text" name="street" id="street" disabled={disabled} value={address.street || ''} onChange={onChange} required className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" />
-         {errors?.street && <p className="text-xs text-red-500 mt-1">{errors.street}</p>}
-      </div>
-      {/* Thêm các trường City, District, Ward (có thể là dropdowns fetch từ API GHN/GHTK) */}
-      {/* ... Country ... */}
-      <p className="text-xs text-gray-500">{t('checkout.addressNote', 'Vui lòng điền đầy đủ thông tin để việc giao hàng được thuận tiện nhất.')}</p>
-    </div>
-  );
-};
-
-const PaymentMethods = ({ selectedMethod, onChange, disabled }) => {
-    const { t } = useTranslation();
-    const paymentOptions = [
-        { id: 'cod', name: t('checkout.payment.cod', 'Thanh toán khi nhận hàng (COD)')},
-        // { id: 'bank_transfer', name: t('checkout.payment.bankTransfer', 'Chuyển khoản ngân hàng')},
-        // { id: 'momo', name: t('checkout.payment.momo', 'Ví Momo')},
-        // { id: 'vnpay', name: t('checkout.payment.vnpay', 'VNPay QR')},
-    ];
-    return (
-        <div>
-            <h3 className="text-lg font-medium text-gray-700 mb-3">{t('checkout.paymentMethodTitle', 'Phương thức thanh toán')}</h3>
-            <fieldset className="mt-2">
-                <legend className="sr-only">{t('checkout.paymentMethodTitle', 'Phương thức thanh toán')}</legend>
-                <div className="space-y-3">
-                {paymentOptions.map((option) => (
-                    <label key={option.id} htmlFor={`payment-${option.id}`} className="flex items-center p-3 border border-gray-200 rounded-md hover:border-indigo-500 cursor-pointer has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-500">
-                        <input
-                            id={`payment-${option.id}`}
-                            name="paymentMethod"
-                            type="radio"
-                            disabled={disabled}
-                            value={option.id}
-                            checked={selectedMethod === option.id}
-                            onChange={onChange}
-                            className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
-                        />
-                        <span className="ml-3 block text-sm font-medium text-gray-700">{option.name}</span>
-                    </label>
-                ))}
-                </div>
-            </fieldset>
+// --- Helper Components (Giữ lại từ thiết kế mới của bạn) ---
+const InputField = ({ id, label, type = 'text', placeholder, value, onChange, error, required = false, icon, halfWidth = false, autoComplete = "off", children, disabled = false, name }) => (
+    <div className={`mb-3 ${halfWidth ? 'col-md-6' : 'col-12'}`}>
+        {label && <label htmlFor={id} className="form-label small text-muted">{label} {required && <span className="text-danger">*</span>}</label>}
+        <div className="input-group input-group-sm"> {/* input-group-sm cho input nhỏ hơn */}
+            {icon && <span className="input-group-text bg-light border-end-0">{icon}</span>}
+            <input type={type} id={id} name={name || id} placeholder={placeholder} value={value} onChange={onChange} required={required} disabled={disabled} autoComplete={autoComplete}
+                   className={`form-control form-control-sm ${error ? 'is-invalid' : ''} ${icon ? 'border-start-0' : ''}`} />
+            {children && <div className="input-group-text">{children}</div>}
         </div>
-    );
-}
+        {error && <div className="invalid-feedback d-block small">{error}</div>}
+    </div>
+);
 
+const SelectField = ({ id, label, value, onChange, options, required = false, halfWidth = false, name }) => (
+    <div className={`mb-3 ${halfWidth ? 'col-md-6' : 'col-12'}`}>
+        <label htmlFor={id} className="form-label small text-muted">{label} {required && <span className="text-danger">*</span>}</label>
+        <select id={id} name={name || id} value={value} onChange={onChange} required={required} className="form-select form-select-sm">
+            {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+        </select>
+    </div>
+);
+// --- End Helper Components ---
 
 const CheckoutPage = () => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { authState } = useAuth();
-  const { cart, clearCart: clearCartContext } = useCart(); // Lấy giỏ hàng và hàm xóa giỏ hàng từ context
+    const { t } = useTranslation();
+    const navigate = useNavigate();
+    const { authState } = useAuth();
+    const { cart, clearCart: clearCartContext, cartError: cartContextError, isLoading: cartLoading } = useCart();
 
-  const [currentStep, setCurrentStep] = useState(1); // 1: Address, 2: Shipping, 3: Payment, 4: Review
-  const [shippingAddress, setShippingAddress] = useState({
-    fullName: '',
-    phoneNumber: '',
-    street: '',
-    city: '', // Sẽ là ID từ API tỉnh/thành
-    district: '', // Sẽ là ID
-    ward: '', // Sẽ là ID
-    country: 'Việt Nam', // Mặc định
-    // isDefaultShipping: true,
-  });
-  const [formErrors, setFormErrors] = useState({});
-  // const [selectedShippingMethod, setSelectedShippingMethod] = useState(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('cod'); // Mặc định COD
-  const [orderNotes, setOrderNotes] = useState('');
-  const [orderPlacedData, setOrderPlacedData] = useState(null); // Để lưu thông tin đơn hàng sau khi đặt thành công
+    const [formData, setFormData] = useState({
+        email: authState.user?.email || '',
+        newsOffers: true,
+        country: 'Vietnam', // Mặc định
+        firstName: authState.user?.firstName || '',
+        lastName: authState.user?.lastName || '',
+        address: authState.user?.address || '', // Giả sử address là một chuỗi
+        apartment: '',
+        city: '', // Sẽ cần logic để lấy từ address chi tiết nếu có
+        postalCode: '',
+        phone: authState.user?.phoneNumber || '',
+        // Thông tin thanh toán (ví dụ)
+        ccNumber: '',
+        ccExpiry: '',
+        ccCvc: '',
+        ccName: '',
+        saveInfo: true,
+        paymentMethod: 'cod', // Mặc định là COD
+        orderNotes: '',
+    });
 
-  // Lấy thông tin user để điền sẵn địa chỉ (nếu có)
-  const { data: userData } = useQuery(GET_ME_QUERY, {
-    skip: !authState.isAuthenticated,
-    onCompleted: (data) => {
-      if (data?.me) {
-        setShippingAddress(prev => ({
-          ...prev,
-          fullName: `${data.me.firstName || ''} ${data.me.lastName || ''}`.trim(),
-          phoneNumber: data.me.phoneNumber || '',
-          street: data.me.address || '', // Giả sử address là street
-          // Cần logic để map address chi tiết nếu có
-        }));
-      }
-    }
-  });
+    const [formErrors, setFormErrors] = useState({});
+    const [orderPlacedData, setOrderPlacedData] = useState(null);
+    const [currentStep, setCurrentStep] = useState(1); // 1: Form, 2: Success
 
-  const [createOrder, { loading: creatingOrder, error: createOrderError }] = useMutation(CREATE_ORDER_MUTATION, {
-    onCompleted: (data) => {
-      if (data.createOrder) {
-        setOrderPlacedData(data.createOrder); // Lưu thông tin đơn hàng thành công
-        clearCartContext(); // Xóa giỏ hàng ở client
-        // navigate(`/account/orders/${data.createOrder.id}`); // Chuyển đến trang chi tiết đơn hàng
-        setCurrentStep(5); // Chuyển đến bước thành công
-      }
-    },
-    onError: (err) => {
-      console.error("Error creating order:", err);
-      // Hiển thị lỗi cho người dùng
-    }
-  });
+    // Query để lấy thông tin chi tiết của người dùng nếu chưa có trong authState
+    // (có thể không cần nếu authState.user đã đủ thông tin)
+    useQuery(GET_ME_QUERY, {
+        skip: !authState.isAuthenticated || !!authState.user?.address, // Bỏ qua nếu không đăng nhập hoặc đã có địa chỉ
+        onCompleted: (data) => {
+            if (data?.myProfile && !formData.address) { // Chỉ cập nhật nếu form chưa có địa chỉ
+                setFormData(prev => ({
+                    ...prev,
+                    firstName: data.myProfile.customer_name?.split(' ')[0] || prev.firstName,
+                    lastName: data.myProfile.customer_name?.split(' ').slice(1).join(' ') || prev.lastName,
+                    email: data.myProfile.customer_email || prev.email,
+                    phone: data.myProfile.customer_tel || prev.phone,
+                    address: data.myProfile.customer_address || prev.address,
+                    // Cần logic để tách city, postalCode từ customer_address nếu có
+                }));
+            }
+        }
+    });
 
+    const [createOrder, { loading: creatingOrder, error: createOrderError }] = useMutation(CREATE_ORDER_MUTATION, {
+        onCompleted: (data) => {
+            if (data.createOrder) {
+                setOrderPlacedData(data.createOrder);
+                clearCartContext();
+                setCurrentStep(2); // Chuyển sang trang thành công
+                window.scrollTo(0, 0);
+            }
+        },
+        onError: (err) => {
+            console.error("Error creating order:", err);
+            setFormErrors(prev => ({ ...prev, submit: err.message || t('checkout.placeOrderError') }));
+        }
+    });
 
-  const handleAddressChange = (e) => {
-    const { name, value } = e.target;
-    setShippingAddress(prev => ({ ...prev, [name]: value }));
-    setFormErrors(prev => ({ ...prev, [name]: null }));
-  };
-  
-  const handlePaymentChange = (e) => {
-      setSelectedPaymentMethod(e.target.value);
-  }
-
-  const validateShippingAddress = () => {
-      const errors = {};
-      if(!shippingAddress.fullName.trim()) errors.fullName = t('validation.fullNameRequired', 'Vui lòng nhập họ tên.');
-      if(!shippingAddress.phoneNumber.trim()) errors.phoneNumber = t('validation.phoneNumberRequired', 'Vui lòng nhập số điện thoại.');
-      // Thêm regex cho phone number
-      if(!shippingAddress.street.trim()) errors.street = t('validation.streetRequired', 'Vui lòng nhập địa chỉ cụ thể.');
-      // Thêm validation cho city, district, ward nếu là dropdowns bắt buộc
-      setFormErrors(errors);
-      return Object.keys(errors).length === 0;
-  }
-
-  const handlePlaceOrder = async () => {
-    if (!validateShippingAddress()) return;
-    if (!selectedPaymentMethod) {
-        alert(t('checkout.selectPaymentMethodPrompt', 'Vui lòng chọn phương thức thanh toán.'));
-        return;
-    }
-
-    const orderInput = {
-      shippingAddress: { // Cần map đúng với AddressInput của backend
-        firstName: shippingAddress.fullName.split(' ').slice(0, -1).join(' ') || shippingAddress.fullName, // Tách đơn giản
-        lastName: shippingAddress.fullName.split(' ').slice(-1).join('') || '',
-        phoneNumber: shippingAddress.phoneNumber,
-        street: shippingAddress.street,
-        city: shippingAddress.city, // Nên là cityId
-        district: shippingAddress.district, // Nên là districtId
-        ward: shippingAddress.ward, // Nên là wardId
-        country: shippingAddress.country,
-      },
-      // billingAddress: {}, // Nếu có
-      // shippingMethodId: selectedShippingMethod?.id, // Nếu có
-      paymentMethodId: selectedPaymentMethod, // Hoặc paymentMethodType
-      notes: orderNotes,
+    const handleInputChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+        if (formErrors[name]) {
+            setFormErrors(prev => ({ ...prev, [name]: null }));
+        }
+        if (formErrors.submit) {
+            setFormErrors(prev => ({ ...prev, submit: null}));
+        }
     };
 
-    try {
-      await createOrder({ variables: { input: orderInput } });
-    } catch (e) {
-      // Lỗi đã được xử lý bởi onError của useMutation
+    const validateForm = () => {
+        const errors = {};
+        if (!formData.email.trim()) errors.email = t('validation.emailRequired');
+        else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = t('validation.emailInvalid');
+        if (!formData.firstName.trim()) errors.firstName = t('validation.firstNameRequired');
+        if (!formData.lastName.trim()) errors.lastName = t('validation.lastNameRequired');
+        if (!formData.address.trim()) errors.address = t('validation.streetRequired'); // "Địa chỉ cụ thể"
+        if (!formData.city.trim()) errors.city = "Vui lòng nhập thành phố."; // Cần key dịch
+        if (!formData.postalCode.trim()) errors.postalCode = "Vui lòng nhập mã bưu điện."; // Cần key dịch
+        if (!formData.phone.trim()) errors.phone = t('validation.phoneNumberRequired');
+        // Thêm validation cho thẻ tín dụng nếu paymentMethod là 'credit_card'
+        if (formData.paymentMethod === 'credit_card') {
+            if (!formData.ccNumber.trim()) errors.ccNumber = "Vui lòng nhập số thẻ.";
+            if (!formData.ccExpiry.trim()) errors.ccExpiry = "Vui lòng nhập ngày hết hạn.";
+            if (!formData.ccCvc.trim()) errors.ccCvc = "Vui lòng nhập mã CVC.";
+            if (!formData.ccName.trim()) errors.ccName = "Vui lòng nhập tên trên thẻ.";
+        }
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
+    const handleSubmitOrder = async (e) => {
+        e.preventDefault();
+        if (!validateForm()) {
+            // Hiển thị modal lỗi chung nếu cần, hoặc dựa vào error message của từng field
+            const firstErrorKey = Object.keys(formErrors).find(key => formErrors[key]);
+            if (firstErrorKey) {
+                const errorFieldElement = document.getElementById(firstErrorKey);
+                errorFieldElement?.focus();
+            }
+            return;
+        }
+
+        const orderInput = {
+            // cartId: cart.id, // Backend có thể lấy cartId từ user session
+            shippingAddress: {
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                street: formData.address,
+                apartment: formData.apartment,
+                city: formData.city,
+                postalCode: formData.postalCode,
+                country: formData.country,
+                phoneNumber: formData.phone,
+            },
+            // billingAddress: { ... }, // Nếu khác
+            paymentMethodId: formData.paymentMethod, // Hoặc một ID cụ thể nếu backend yêu cầu
+            notes: formData.orderNotes,
+            // items: cart.items.map(item => ({ // Backend có thể tự lấy items từ cart
+            //     productId: item.product.id,
+            //     variantId: item.variant?.id, // Hoặc inventoryId
+            //     quantity: item.quantity,
+            //     price: item.price // Giá tại thời điểm đặt hàng
+            // })),
+            // totalAmount: grandTotal, // Backend nên tự tính toán lại
+        };
+
+        try {
+            await createOrder({ variables: { input: orderInput } });
+        } catch (err) {
+            // Lỗi đã được xử lý bởi onError của useMutation
+            console.error("Submit order error caught in component:", err);
+        }
+    };
+
+    const countryOptions = [
+        { value: 'Vietnam', label: 'Việt Nam' },
+        { value: 'USA', label: 'Hoa Kỳ (United States)' },
+        { value: 'Canada', label: 'Canada' },
+    ];
+
+    const paymentMethods = [
+        { id: 'cod', label: t('checkout.payment.cod', 'Thanh toán khi nhận hàng (COD)') },
+        // { id: 'credit_card', label: 'Thẻ tín dụng' },
+        // { id: 'paypal', label: 'PayPal' },
+    ];
+
+
+    if (cartLoading && !cart) {
+        return (
+            <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: 'calc(100vh - 200px)' }}>
+                <LoadingSpinner size="lg" message={t('cart.loadingCart')} />
+            </div>
+        );
     }
-  };
-
-  if (!authState.isAuthenticated) {
-    // ProtectedRoute đã xử lý, nhưng thêm fallback
-    navigate('/login', { state: { from: location } });
-    return null;
-  }
-
-  if (!cart || cart.items.length === 0 && currentStep !== 5) { // Nếu giỏ hàng rỗng và chưa đặt hàng thành công
-    return (
-      <div className="container mx-auto px-4 py-12 text-center">
-        <AlertMessage type="info" message={t('checkout.emptyCartPrompt', 'Giỏ hàng của bạn trống. Vui lòng thêm sản phẩm trước khi thanh toán.')} />
-        <Link to="/products" className="mt-4 inline-block bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700">
-          {t('cart.continueShoppingButton', 'Khám phá sản phẩm')}
-        </Link>
-      </div>
-    );
-  }
-  
-  // Bước 5: Hiển thị trang xác nhận đặt hàng thành công
-  if (currentStep === 5 && orderPlacedData) {
-    return (
-        <div className="container mx-auto px-4 py-12 text-center">
-            <FiCheckCircle className="mx-auto text-green-500 mb-6 h-20 w-20" />
-            <h1 className="text-2xl md:text-3xl font-semibold text-gray-800 mb-4">
-                {t('checkout.orderSuccessTitle', 'Đặt hàng thành công!')}
-            </h1>
-            <p className="text-gray-600 mb-3">
-                {t('checkout.orderSuccessMessage', 'Cảm ơn bạn đã đặt hàng. Mã đơn hàng của bạn là:')}
-                <strong className="ml-1">{orderPlacedData.order_number || orderPlacedData.id}</strong>.
-            </p>
-            <p className="text-gray-600 mb-8">
-                {t('checkout.orderSuccessNextSteps', 'Chúng tôi sẽ xử lý đơn hàng của bạn sớm nhất có thể. Bạn có thể theo dõi trạng thái đơn hàng trong tài khoản của mình.')}
-            </p>
-            <div className="space-x-4">
-                <Link
-                    to={`/account/orders/${orderPlacedData.id}`}
-                    className="bg-indigo-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-indigo-700 transition-colors"
-                >
-                    {t('checkout.viewOrderButton', 'Xem chi tiết đơn hàng')}
-                </Link>
-                <Link
-                    to="/products"
-                    className="border border-indigo-600 text-indigo-600 px-6 py-3 rounded-md font-semibold hover:bg-indigo-50 transition-colors"
-                >
-                    {t('cart.continueShoppingButton', 'Tiếp tục mua sắm')}
-                </Link>
+    if (!cart && !cartLoading) { // Nếu không loading mà vẫn không có cart (ví dụ lỗi fetch cart ban đầu)
+         return (
+            <div className="container my-4">
+                <AlertMessage type="error" title={t('cart.errorTitle')} message={cartContextError?.message || "Không thể tải thông tin giỏ hàng."} />
             </div>
-        </div>
-    )
-  }
+        );
+    }
 
 
-  return (
-    <div className="bg-gray-50 min-h-screen py-8 md:py-12">
-      <div className="container mx-auto px-4">
-        <header className="mb-8 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
-            {t('checkout.pageTitle', 'Thanh toán')}
-          </h1>
-        </header>
-
-        <div className="lg:flex lg:gap-8">
-          {/* Left Side: Forms (Address, Shipping, Payment) */}
-          <div className="lg:w-2/3">
-            <div className="bg-white p-6 sm:p-8 rounded-lg shadow-md space-y-8">
-              {/* Step 1: Shipping Address */}
-              <ShippingAddressForm
-                address={shippingAddress}
-                onChange={handleAddressChange}
-                errors={formErrors}
-                disabled={creatingOrder}
-              />
-
-              {/* Step 2: Shipping Method (Placeholder) */}
-              {/* <div>
-                <h3 className="text-lg font-medium text-gray-700 mb-3">{t('checkout.shippingMethodTitle', 'Phương thức vận chuyển')}</h3>
-                <p className="text-sm text-gray-500">{t('checkout.shippingMethodPlaceholder', 'Sẽ được tính toán dựa trên địa chỉ.')}</p>
-              </div> */}
-
-              {/* Step 3: Payment Method */}
-              <PaymentMethods
-                selectedMethod={selectedPaymentMethod}
-                onChange={handlePaymentChange}
-                disabled={creatingOrder}
-              />
-              
-              {/* Order Notes */}
-              <div>
-                  <label htmlFor="orderNotes" className="block text-sm font-medium text-gray-700">{t('checkout.orderNotes', 'Ghi chú đơn hàng (tùy chọn)')}</label>
-                  <textarea
-                    id="orderNotes"
-                    name="orderNotes"
-                    rows="3"
-                    value={orderNotes}
-                    onChange={(e) => setOrderNotes(e.target.value)}
-                    disabled={creatingOrder}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                    placeholder={t('checkout.orderNotesPlaceholder', 'Ví dụ: Giao hàng giờ hành chính...')}
-                  />
-              </div>
-
-
+    if (currentStep === 2 && orderPlacedData) {
+        return (
+            <div className="container text-center py-5" style={{ marginTop: '80px', minHeight: 'calc(100vh - 250px)' }}>
+                <CheckCircle size={60} className="mx-auto text-success mb-4" />
+                <h1 className="h4 fw-bold mb-3">{t('checkout.orderSuccessTitle')}</h1>
+                <p className="text-muted">
+                    {t('checkout.orderSuccessMessage')} <strong className="text-dark">{orderPlacedData.order_number || orderPlacedData.id}</strong>.
+                </p>
+                <p className="text-muted mb-4">{t('checkout.orderSuccessNextSteps')}</p>
+                <div className="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                    <button onClick={() => navigate(`/account/orders/${orderPlacedData.id}`)} className="btn btn-dark px-4 py-2">
+                        {t('checkout.viewOrderButton')}
+                    </button>
+                    <button onClick={() => navigate('/products')} className="btn btn-outline-secondary px-4 py-2">
+                        {t('cart.continueShoppingButton')}
+                    </button>
+                </div>
             </div>
-          </div>
+        );
+    }
 
-          {/* Right Side: Order Summary */}
-          <div className="lg:w-1/3 mt-8 lg:mt-0">
-            <div className="bg-white p-6 rounded-lg shadow-md sticky top-24">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-3">
-                {t('checkout.orderReviewTitle', 'Xem lại đơn hàng')}
-              </h3>
-              {/* Tóm tắt sản phẩm */}
-              <div className="space-y-3 max-h-60 overflow-y-auto mb-4 pr-2">
-                {cart.items.map(item => (
-                  <div key={item.id} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center">
-                      <OptimizedImage src={item.product?.images?.[0]?.imageUrl || PRODUCT_IMAGE_PLACEHOLDER} alt={item.product?.name} containerClassName="w-10 h-10 mr-3 rounded flex-shrink-0" objectFit="object-contain"/>
-                      <span className="text-gray-700 line-clamp-1">{item.product?.name} <span className="text-gray-500">x{item.quantity}</span></span>
+    if (cart.items.length === 0 && currentStep !== 2) {
+        return (
+            <div className="container text-center py-5" style={{ marginTop: '80px', minHeight: 'calc(100vh - 250px)' }}>
+                 <ShoppingCart size={60} className="mx-auto text-muted mb-4"/>
+                <p className="h5 text-muted mb-4">{t('checkout.emptyCartPrompt')}</p>
+                <button onClick={() => navigate('/products')} className="btn btn-dark btn-lg text-uppercase">
+                    {t('cart.continueShoppingButton')}
+                </button>
+            </div>
+        );
+    }
+
+    const subtotal = cart?.subtotal || 0;
+    const shippingCost = cart?.shippingCost || 0; // Giả sử là 0 nếu chưa tính
+    const grandTotal = cart?.total || subtotal + shippingCost;
+
+
+    return (
+        <div className="bg-light min-vh-100">
+            <main className="container py-4 py-md-5" style={{ marginTop: '80px' }}>
+                <div className="row g-4 g-lg-5">
+                    {/* Order Form Section */}
+                    <div className="col-lg-7 order-lg-0 order-1">
+                        <form onSubmit={handleSubmitOrder} className="needs-validation" noValidate>
+                            {/* Optional: Express Checkout */}
+                            {/* <div className="text-center mb-4"> ... </div> */}
+
+                            <section className="mb-4">
+                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 className="mb-0 text-uppercase small fw-bold">Liên hệ</h5>
+                                    {!authState.isAuthenticated && (
+                                        <span className="small text-muted">
+                                            {t('auth.alreadyHaveAccountPrompt')}{' '}
+                                            <Link to="/login" state={{ from: location }} className="text-dark fw-medium text-decoration-none">
+                                                {t('auth.loginButton')}
+                                            </Link>
+                                        </span>
+                                    )}
+                                </div>
+                                <InputField id="email" name="email" type="email" placeholder="Địa chỉ email" value={formData.email} onChange={handleInputChange} required error={formErrors.email} />
+                                <div className="form-check small mt-n2">
+                                    <input type="checkbox" name="newsOffers" checked={formData.newsOffers} onChange={handleInputChange} className="form-check-input" id="newsOffersCheckout"/>
+                                    <label className="form-check-label text-muted" htmlFor="newsOffersCheckout">Gửi email cho tôi về tin tức và ưu đãi</label>
+                                </div>
+                            </section>
+
+                            <section className="mb-4">
+                                <h5 className="mb-2 text-uppercase small fw-bold">Giao hàng</h5>
+                                {/* <div className="alert alert-secondary small p-2 d-flex align-items-center" role="alert">
+                                    <Info size={16} className="me-2 flex-shrink-0"/> Vui lòng cung cấp tất cả thông tin bằng tiếng Anh.
+                                </div> */}
+                                <div className="row">
+                                    <SelectField id="country" name="country" value={formData.country} onChange={handleInputChange} options={countryOptions} required />
+                                    <InputField id="firstName" name="firstName" placeholder="Tên" value={formData.firstName} onChange={handleInputChange} required halfWidth error={formErrors.firstName} />
+                                    <InputField id="lastName" name="lastName" placeholder="Họ" value={formData.lastName} onChange={handleInputChange} required halfWidth error={formErrors.lastName} />
+                                    <InputField id="address" name="address" placeholder="Địa chỉ (số nhà, đường)" value={formData.address} onChange={handleInputChange} required error={formErrors.address} />
+                                    <InputField id="apartment" name="apartment" placeholder="Căn hộ, phòng, etc. (tùy chọn)" value={formData.apartment} onChange={handleInputChange} />
+                                    <InputField id="city" name="city" placeholder="Thành phố" value={formData.city} onChange={handleInputChange} required halfWidth error={formErrors.city}/>
+                                    <InputField id="postalCode" name="postalCode" placeholder="Mã bưu điện" value={formData.postalCode} onChange={handleInputChange} required halfWidth error={formErrors.postalCode} />
+                                    <InputField id="phone" name="phone" type="tel" placeholder="Số điện thoại" value={formData.phone} onChange={handleInputChange} required error={formErrors.phone} />
+                                </div>
+                            </section>
+
+                            <section className="mb-4">
+                                <h5 className="mb-2 text-uppercase small fw-bold">Phương thức vận chuyển</h5>
+                                <div className="border rounded p-3 bg-white">
+                                    <div className="d-flex justify-content-between align-items-center small">
+                                        <div className="d-flex align-items-center">
+                                            <Truck size={18} className="me-2 text-muted"/>
+                                            <span>Giao hàng tiêu chuẩn</span>
+                                        </div>
+                                        <span className="fw-bold text-dark">{shippingCost > 0 ? formatPrice(shippingCost) : "Miễn phí"}</span>
+                                    </div>
+                                    {/* <p className="small text-muted mt-1 mb-0" style={{fontSize: '0.75rem'}}>Dự kiến giao hàng: 5-10 ngày làm việc</p> */}
+                                </div>
+                            </section>
+
+                            <section className="mb-4">
+                                <h5 className="mb-1 text-uppercase small fw-bold">Thanh toán</h5>
+                                <p className="small text-muted mb-2">Tất cả giao dịch đều được bảo mật và mã hóa.</p>
+                                <div className="border rounded bg-white">
+                                    {paymentMethods.map(method => (
+                                        <div key={method.id} className={`p-3 ${formData.paymentMethod === method.id ? 'bg-light border-dark' : ''}`}>
+                                            <div className="form-check">
+                                                <input
+                                                    className="form-check-input"
+                                                    type="radio"
+                                                    name="paymentMethod"
+                                                    id={`payment-${method.id}`}
+                                                    value={method.id}
+                                                    checked={formData.paymentMethod === method.id}
+                                                    onChange={handleInputChange}
+                                                />
+                                                <label className="form-check-label small fw-medium text-dark" htmlFor={`payment-${method.id}`}>
+                                                    {method.label}
+                                                </label>
+                                            </div>
+                                            {method.id === 'credit_card' && formData.paymentMethod === 'credit_card' && (
+                                                <div className="mt-2 ps-4">
+                                                    <InputField id="ccNumber" name="ccNumber" placeholder="Số thẻ" value={formData.ccNumber} onChange={handleInputChange} required icon={<CreditCard size={16} className="text-muted"/>} error={formErrors.ccNumber} />
+                                                    <div className="row">
+                                                        <InputField id="ccExpiry" name="ccExpiry" placeholder="Ngày hết hạn (MM/YY)" value={formData.ccExpiry} onChange={handleInputChange} required halfWidth error={formErrors.ccExpiry} />
+                                                        <InputField id="ccCvc" name="ccCvc" placeholder="Mã bảo mật" value={formData.ccCvc} onChange={handleInputChange} required halfWidth icon={<Info size={16} className="text-muted"/>} error={formErrors.ccCvc} />
+                                                    </div>
+                                                    <InputField id="ccName" name="ccName" placeholder="Tên trên thẻ" value={formData.ccName} onChange={handleInputChange} required error={formErrors.ccName} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                             <section className="mb-4">
+                                <h5 className="mb-2 text-uppercase small fw-bold">Ghi chú đơn hàng</h5>
+                                <textarea
+                                    id="orderNotes"
+                                    name="orderNotes"
+                                    rows="3"
+                                    value={formData.orderNotes}
+                                    onChange={handleInputChange}
+                                    className="form-control form-control-sm"
+                                    placeholder={t('checkout.orderNotesPlaceholder')}
+                                    disabled={creatingOrder}
+                                />
+                            </section>
+
+                            <section>
+                                <div className="form-check small mb-3">
+                                    <input type="checkbox" name="saveInfo" checked={formData.saveInfo} onChange={handleInputChange} className="form-check-input" id="saveInfoCheckout"/>
+                                    <label className="form-check-label text-muted" htmlFor="saveInfoCheckout">Lưu thông tin của tôi để thanh toán nhanh hơn</label>
+                                </div>
+                                {formErrors.submit && <AlertMessage type="error" message={formErrors.submit} className="mb-3"/>}
+                                <button type="submit" className="btn btn-dark btn-lg w-100 text-uppercase d-flex align-items-center justify-content-center py-2" disabled={creatingOrder}>
+                                    {creatingOrder ? (
+                                        <LoadingSpinner size="sm" color="text-white" className="me-2" />
+                                    ) : (
+                                        <Lock size={16} className="me-2"/>
+                                    )}
+                                    {creatingOrder ? "Đang xử lý..." : t('checkout.placeOrderButton')}
+                                </button>
+                                <p className="small text-muted mt-3 text-center" style={{fontSize: '0.7rem'}}>
+                                    Bằng cách tiếp tục, bạn đồng ý với <Link to="/terms" className="text-dark fw-medium text-decoration-none">Điều khoản dịch vụ</Link> và xác nhận <Link to="/privacy" className="text-dark fw-medium text-decoration-none">Chính sách bảo mật</Link> của Shop.
+                                </p>
+                            </section>
+                        </form>
                     </div>
-                    <span className="text-gray-800 font-medium">{formatPrice(item.price * item.quantity)}</span>
-                  </div>
-                ))}
-              </div>
-              {/* Tổng tiền từ CartSummary (hoặc tính lại) */}
-              <div className="border-t pt-4 space-y-1 text-sm">
-                 <div className="flex justify-between text-gray-600">
-                    <span>{t('cart.subtotal', 'Tạm tính')}:</span>
-                    <span>{formatPrice(cart.subtotal)}</span>
-                </div>
-                {/* Shipping, Discount (nếu có) */}
-                <div className="flex justify-between text-gray-600">
-                    <span>{t('cart.shipping', 'Phí vận chuyển')}:</span>
-                    <span className="text-xs">{t('cart.shippingCalculatedLater', 'Sẽ được thông báo')}</span>
-                </div>
-                <div className="flex justify-between text-base font-semibold text-gray-900 mt-2 pt-2 border-t">
-                    <span>{t('cart.total', 'Tổng cộng')}:</span>
-                    <span>{formatPrice(cart.total)}</span>
-                </div>
-              </div>
 
-              {createOrderError && <AlertMessage type="error" message={t('checkout.placeOrderError')} details={createOrderError.message} className="mt-4"/>}
+                    {/* Order Summary Section */}
+                    <div className="col-lg-5 order-lg-1 order-0">
+                        <div className="sticky-top" style={{ top: 'calc(80px + 1rem)' }}> {/* Điều chỉnh top cho header cố định */}
+                            <div className="bg-white p-3 p-md-4 rounded border shadow-sm">
+                                <h5 className="mb-3 text-uppercase small fw-bold">Tóm tắt đơn hàng</h5>
+                                {cart.items.length > 0 ? (
+                                    <ul className="list-unstyled mb-0" style={{maxHeight: '300px', overflowY: 'auto'}}>
+                                        {cart.items.map(item => {
+                                            const product = item.product || {};
+                                            const itemImage = product.images?.[0]?.image_url;
+                                            return (
+                                                <li key={item.id} className="d-flex align-items-start py-2 border-bottom">
+                                                    <div className="position-relative me-3 flex-shrink-0">
+                                                        <OptimizedImage
+                                                            src={getFullImageUrl(itemImage)}
+                                                            alt={`[Hình ảnh của ${product.name}]`}
+                                                            containerClassName="border rounded overflow-hidden"
+                                                            style={{ width: '64px', height: '80px' }}
+                                                            objectFitClass="object-fit-cover"
+                                                        />
+                                                        <span className="badge bg-dark text-white rounded-pill position-absolute top-0 start-100 translate-middle small" style={{ fontSize: '0.6rem', padding: '0.25em 0.5em' }}>{item.quantity}</span>
+                                                    </div>
+                                                    <div className="flex-grow-1">
+                                                        <h6 className="mb-0 small fw-medium text-dark">{product.name || "Tên sản phẩm"}</h6>
+                                                        <p className="mb-0 text-muted" style={{ fontSize: '0.75rem' }}>
+                                                            {item.selectedColor?.name || product.color?.name || ''}
+                                                            {(item.selectedColor?.name || product.color?.name) && (item.selectedSize?.name || product.size?.name) ? ' / ' : ''}
+                                                            {item.selectedSize?.name || product.size?.name || ''}
+                                                        </p>
+                                                    </div>
+                                                    <div className="small fw-medium text-dark">{formatPrice(item.price * item.quantity)}</div>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                ) : (<p className="small text-muted">Không có sản phẩm nào.</p>)}
 
-              <button
-                onClick={handlePlaceOrder}
-                disabled={creatingOrder || cart.items.length === 0}
-                className="w-full mt-6 bg-indigo-600 text-white py-3 px-4 rounded-md font-semibold hover:bg-indigo-700 transition-colors duration-150 flex items-center justify-center text-base disabled:opacity-50"
-              >
-                {creatingOrder ? <LoadingSpinner size="sm" color="text-white" className="mr-2"/> : <FiCheckCircle className="mr-2 h-5 w-5"/>}
-                {t('checkout.placeOrderButton', 'Hoàn tất đặt hàng')}
-              </button>
-            </div>
-          </div>
+                                {cart.items.length > 0 && (
+                                    <>
+                                        {/* <div className="input-group mt-4 mb-3">
+                                            <input type="text" className="form-control form-control-sm" placeholder="Mã giảm giá"/>
+                                            <button className="btn btn-outline-secondary btn-sm" type="button">Áp dụng</button>
+                                        </div> */}
+                                        <hr className="my-3"/>
+                                        <div className="d-flex justify-content-between small mb-1"><p className="text-muted mb-0">{t('cart.subtotal', 'Tạm tính')}</p><p className="fw-medium text-dark mb-0">{formatPrice(subtotal)}</p></div>
+                                        <div className="d-flex justify-content-between small mb-1"><p className="text-muted mb-0">{t('cart.shipping', 'Vận chuyển')}</p><p className="fw-medium text-dark mb-0">{shippingCost > 0 ? formatPrice(shippingCost) : "Miễn phí"}</p></div>
+                                        <hr className="my-3"/>
+                                        <div className="d-flex justify-content-between fw-bold h6 mb-0"><p className="mb-0">{t('cart.total', 'Tổng cộng')}</p><p className="mb-0">USD {formatPrice(grandTotal)}</p></div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+            {/* Footer is rendered by MainLayout */}
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default CheckoutPage;
